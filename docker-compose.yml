@@ -1,8 +1,7 @@
 services:
   db:
     image: postgres:16
-    container_name: crud_db
-    env_file: 
+    env_file:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
@@ -11,8 +10,7 @@ services:
 
   web:
     build: .
-    container_name: crud_web
-    env_file: 
+    env_file:
       - .env
     volumes:
       - ./app:/app
