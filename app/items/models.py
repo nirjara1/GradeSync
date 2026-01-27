@@ -5,7 +5,7 @@ class Department(models.Model):
     location = models.CharField(max_length=100, blank=True)
 
     def __str__(self):
-        return f"{self.name} — {self.location}"  # or just return self.name
+        return f"{self.name}"
 
 
 class Employee(models.Model):
