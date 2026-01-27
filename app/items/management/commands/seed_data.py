@@ -26,7 +26,7 @@ class Command(BaseCommand):
         # 1) Departments (name, location)
         departments_data = [
             ("Software Development", "Baton Rouge, LA"),
-            ("Cybersecurity", "Monroe, LA"),
+            ("Cybersecurity", "Alexandria, LA"),
             ("Data Analytics", "New Orleans, LA"),
             ("Infrastructure & Systems", "Jacksonville, FL"),
             ("Technology & Operations", "Remote"),
