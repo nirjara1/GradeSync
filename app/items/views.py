@@ -66,7 +66,7 @@ class EmployeeUpdateView(UpdateView):
 
 class EmployeeDeleteView(DeleteView):
     model = Employee
-    template_name = "items/employee_confirm_delete.html"
+    template_name = "items/employee_delete.html"
     success_url = reverse_lazy("employee_list")
 
 class DepartmentEmployeeListView(ListView):
