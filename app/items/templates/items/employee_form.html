@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Employee Form{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h1 class="h4">{% if object %}Edit{% else %}Create{% endif %} Employee</h1>
+
+    <form method="post" class="mt-3">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn btn-link" href="/employees/">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

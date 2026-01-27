@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Delete Employee{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h1 class="h4">Delete Employee</h1>
+    <p>Are you sure you want to delete <strong>{{ object.first_name }} {{ object.last_name }}</strong>?</p>
+
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn btn-danger" type="submit">Yes, delete</button>
+      <a class="btn btn-link" href="/employees/">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

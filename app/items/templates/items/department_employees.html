@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ department.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h1 class="h3 m-0">{{ department.name }}</h1>
+    {% if department.location %}
+      <div class="text-muted">{{ department.location }}</div>
+    {% endif %}
+  </div>
+
+  <a class="btn btn-outline-secondary" href="{% url 'department_list' %}">
+    ← Back to Departments
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="text-muted">Headcount</div>
+        <div class="fs-4 fw-semibold">{{ stats.headcount }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="text-muted">Avg Salary</div>
+        <div class="fs-4 fw-semibold">${{ stats.avg_salary|floatformat:0 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="text-muted">Total Payroll</div>
+        <div class="fs-4 fw-semibold">${{ stats.total_payroll|floatformat:0 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="text-muted">Top Earner</div>
+        {% if top_earner %}
+          <div class="fw-semibold">
+            {{ top_earner.first_name }} {{ top_earner.last_name }}
+          </div>
+          <div class="text-muted">${{ top_earner.salary }}</div>
+        {% else %}
+          <div class="text-muted">—</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 60px;">Rank</th>
+          <th>Name</th>
+          <th>Job Title</th>
+          <th class="text-end">Salary</th>
+          <th class="text-end">Active Employee</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in employees %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>
+            <a class="text-decoration-none" href="{% url 'employee_detail' e.id %}">
+              {{ e.first_name }} {{ e.last_name }}
+            </a>
+            <div class="text-muted small">{{ e.email }}</div>
+          </td>
+          <td>{{ e.job_title }}</td>
+          <td class="text-end">${{ e.salary }}</td>
+          <td class="text-end">{% if e.is_active %}✅{% else %}❌{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-muted p-3">No employees in this department yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

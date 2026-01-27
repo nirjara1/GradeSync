@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Departments{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 m-0">Choose a Department</h1>
+    <div class="text-muted">Pick a department to view salary-ranked employees and stats.</div>
+  </div>
+
+  <a class="btn btn-outline-secondary" href="{% url 'home' %}">
+    ← Back to Portal
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">Departments</div>
+
+  <div class="list-group list-group-flush">
+    {% for dept in departments %}
+      <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+         href="{% url 'department-employees' dept.id %}">
+        <span class="fw-semibold">{{ dept.name }}</span>
+        <span class="text-muted">View →</span>
+      </a>
+    {% empty %}
+      <div class="list-group-item text-muted">No departments yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

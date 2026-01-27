@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Employee{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h1 class="h4">{{ object.first_name }} {{ object.last_name }}</h1>
+    <p class="mb-1"><strong>Department:</strong> {{ object.department.name }}</p>
+    <p class="mb-1"><strong>Email:</strong> {{ object.email }}</p>
+    <p class="mb-1"><strong>Job Title:</strong> {{ object.job_title }}</p>
+    <p class="mb-1"><strong>Salary:</strong> ${{ object.salary }}</p>
+    <p class="mb-1"><strong>Hire Date:</strong> {{ object.hire_date }}</p>
+    <p class="mb-3"><strong>Active:</strong> {% if object.is_active %}Yes{% else %}No{% endif %}</p>
+
+    <a class="btn btn-outline-secondary" href="/employees/{{ object.id }}/edit/">Edit</a>
+    <a class="btn btn-outline-danger" href="/employees/{{ object.id }}/delete/">Delete</a>
+    <a class="btn btn-link" href="/employees/">Back</a>
+  </div>
+</div>
+{% endblock %}
