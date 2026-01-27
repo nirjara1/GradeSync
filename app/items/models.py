@@ -4,6 +4,9 @@ class Department(models.Model):
     name = models.CharField(max_length=100)
     location = models.CharField(max_length=100, blank=True)
 
+    def __str__(self):
+        return f"{self.name} — {self.location}"  # or just return self.name
+
 
 class Employee(models.Model):
     department = models.ForeignKey("Department", on_delete=models.PROTECT)
