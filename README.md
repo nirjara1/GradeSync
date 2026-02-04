@@ -1,5 +1,5 @@
 # GradeSync Employee Portal (Django + Postgres + Docker)
-
+## Git check
 ## Prereqs
 - Docker Desktop installed and running
 
