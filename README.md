@@ -21,6 +21,9 @@ docker compose exec web python manage.py seed_data
 ## Create admin user (optional)
 docker compose exec web python manage.py createsuperuser
 
-## Open
-- App: http://localhost:8000/
-- Admin: http://localhost:8000/admin/
+## Open Locally
+- App: http://localhost
+- Admin: http://localhost/admin/
+
+## When the EC2 is ON
+- http://3.151.189.18
