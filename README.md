@@ -14,7 +14,7 @@ docker compose up --build
 ## Migrate DB
 docker compose exec web python manage.py migrate
 
-## To load the dummy seed data use the following command
+## Load the dummy seed data
 docker compose exec web python manage.py seed_data
 
 
