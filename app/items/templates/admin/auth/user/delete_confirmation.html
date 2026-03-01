@@ -1,0 +1,61 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Delete user | GradeSync Admin{% endblock %}
+{% block nav_accounts %}active{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">Delete User: {{ object }}</h1>
+    <hr class="page-rule">
+</div>
+
+<div class="form-container delete-warning-box" style="margin-top: 20px; text-align: left; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    
+    {% if perms_lacking %}
+        <p style="color: #b00020; font-weight: 500; font-size: 16px; margin-bottom: 20px;">
+            Deleting the {{ object_name }} '{{ object }}' would result in deleting related objects, but your account doesn't have permission to delete the following types of objects:
+        </p>
+        <ul style="margin-left: 20px; margin-bottom: 30px; font-size: 14px; color: #555;">
+        {% for obj in perms_lacking %}
+            <li>{{ obj }}</li>
+        {% endfor %}
+        </ul>
+        <a href="#" onclick="window.history.back(); return false;" class="button cancel-link" style="color: #555; text-decoration: underline;">Return to previous page</a>
+
+    {% elif protected %}
+        <p style="color: #b00020; font-weight: 500; font-size: 16px; margin-bottom: 20px;">
+            Deleting the {{ object_name }} '{{ object }}' would require deleting the following protected related objects:
+        </p>
+        <ul style="margin-left: 20px; margin-bottom: 30px; font-size: 14px; color: #555;">
+        {% for obj in protected %}
+            <li>{{ obj }}</li>
+        {% endfor %}
+        </ul>
+        <a href="#" onclick="window.history.back(); return false;" class="button cancel-link" style="color: #555; text-decoration: underline;">Return to previous page</a>
+
+    {% else %}
+        <p style="font-size: 16px; margin-bottom: 20px; color: #b00020; font-weight: 500;">
+            Are you sure you want to delete the user account "<strong>{{ object }}</strong>"? All of the following related items will be permanently deleted:
+        </p>
+        
+        <div class="deleted-objects" style="margin-bottom: 30px; padding: 15px; background: #fdf2f2; border-left: 4px solid #b00020; list-style-position: inside;">
+            <ul style="margin: 0; padding-left: 20px; color: #333; font-size: 14px;">{{ deleted_objects|unordered_list }}</ul>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div>
+                <input type="hidden" name="post" value="yes">
+                {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
+                {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
+                
+                <div class="submit-row" style="display: flex; gap: 15px; align-items: center; border-top: 1px solid #eaeaea; padding-top: 20px;">
+                    <button type="submit" class="btn-save btn-delete" style="background-color: #b00020; color: white; border: none; padding: 10px 24px; font-weight: bold; border-radius: 4px; cursor: pointer;">Yes, I'm sure</button>
+                    <a href="#" onclick="window.history.back(); return false;" class="button cancel-link" style="color: #555; text-decoration: underline; font-size: 14px;">No, take me back</a>
+                </div>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}
