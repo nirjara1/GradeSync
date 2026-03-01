@@ -1,0 +1,71 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Manage Accounts | GradeSync Admin{% endblock %}
+{% block nav_accounts %}active{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">Manage System Accounts</h1>
+    <hr class="page-rule">
+</div>
+
+<!-- Toolbar (Add + Search) -->
+<div class="accounts-toolbar">
+    <a href="add/" class="btn-add-user">+ Add user</a>
+    
+    <form class="search-form" id="changelist-search" method="get">
+        <input type="text" size="40" name="q" value="{{ cl.query }}" id="searchbar" placeholder="Search">
+    </form>
+</div>
+
+<!-- Accounts Table -->
+<div class="accounts-table-container">
+    <table class="accounts-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for obj in cl.result_list %}
+            <tr>
+                <td class="col-name">{{ obj.get_full_name|default:obj.username }}</td>
+                <td>{{ obj.email }}</td>
+                <td>
+                    {% if obj.is_superuser %}Admin{% elif obj.is_staff %}Faculty{% else %}Student{% endif %}
+                </td>
+                <td>
+                    {% if obj.is_active %}
+                        <span class="status-indicator status-active"></span>Active
+                    {% else %}
+                        <span class="status-indicator status-disabled"></span>Disabled
+                    {% endif %}
+                </td>
+                <td class="col-actions">
+                    <a href="{{ obj.pk }}/change/" class="action-link">Edit</a> | 
+                    <a href="{{ obj.pk }}/delete/" class="action-link">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 20px;">No accounts found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination (Optional, but good to have) -->
+{% if cl.result_count > cl.list_per_page %}
+<div class="pagination">
+    <span class="step-links">
+        {{ cl.result_count }} users total. Use search to filter.
+    </span>
+</div>
+{% endif %}
+{% endblock %}

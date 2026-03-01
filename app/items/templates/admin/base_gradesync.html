@@ -1,0 +1,60 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}GradeSync Admin{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}">
+    {% block extrastyle %}{% endblock %}
+</head>
+<body>
+
+    <!-- ── MAIN MAROON HEADER ── -->
+    <header class="main-header">
+        <div class="header-brand">
+            <img class="header-logo" src="{% static 'images/ulm_logo.png' %}" alt="ULM Seal">
+            <div class="header-divider"></div>
+            <span class="header-title">GradeSync</span>
+        </div>
+    </header>
+
+    <!-- ── GOLD ACCENT BAR ── -->
+    <div class="gold-bar"></div>
+
+    <!-- ── SECONDARY WHITE BAR ── -->
+    <div class="secondary-header">
+        <span class="brand-name">GradeSync</span>
+        <div class="user-nav">
+            {% if user.is_authenticated %}
+                Welcome, <strong>{{ user.get_username }}</strong>!
+                <a href="{% url 'admin:logout' %}">LOG OUT?</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── MAIN LAYOUT ── -->
+    <div class="admin-layout">
+
+        <!-- ── SIDEBAR ── -->
+        <aside class="sidebar">
+            <ul class="sidebar-nav">
+                <li><a href="{% url 'admin:index' %}" class="{% block nav_dash %}{% endblock %}">Dashboard</a></li>
+                <li><a href="{% url 'admin:auth_user_changelist' %}" class="{% block nav_accounts %}{% endblock %}">Accounts</a></li>
+                <li><a href="#" class="{% block nav_lang %}{% endblock %}">Programming Languages</a></li>
+                <li><a href="#" class="{% block nav_env %}{% endblock %}">Execution<br>Environment</a></li>
+                <li><a href="#" class="{% block nav_db %}{% endblock %}">Database</a></li>
+                <li><a href="#" class="{% block nav_audit %}{% endblock %}">Audit Logs</a></li>
+                <li><a href="#" class="{% block nav_archive %}{% endblock %}">Archive class</a></li>
+            </ul>
+        </aside>
+
+        <!-- ── MAIN CONTENT ── -->
+        <main class="main-content">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+
+</body>
+</html>
