@@ -1,0 +1,109 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Audit Logs | GradeSync Admin{% endblock %}
+{% block nav_audit %}active{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title" style="display:inline-block; margin-right: 20px;">Audit Logs</h1>
+</div>
+
+<!-- Toolbar -->
+<div class="audit-toolbar">
+    <a href="#" class="btn-export-logs">Export Logs</a>
+</div>
+
+<!-- Filters Bar -->
+<div class="audit-filters-bar">
+    <div class="filter-group">
+        <span class="filter-label">Filters</span>
+        <input type="text" class="filter-search" placeholder="Search by user or event" value="{{ cl.query }}">
+    </div>
+    
+    <div class="filter-group">
+        <span class="filter-label">Log Type &#9662;</span>
+        <div class="filter-options">
+            <a href="#" class="active-filter">All</a> | 
+            <a href="#">Login</a> | 
+            <a href="#">Account</a> | 
+            <a href="#">Grading</a> | 
+            <a href="#">Submission</a> | 
+            <a href="#">System</a>
+        </div>
+    </div>
+    
+    <div class="filter-group">
+        <span class="filter-label">Date Range &#9662;</span>
+        <div class="filter-options">
+            <a href="#">Today</a> | 
+            <a href="#" class="active-filter" style="color:#860029;">7 Days</a> | 
+            <a href="#">30 Days</a> | 
+            <a href="#">Custom</a>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Logs Table -->
+<div class="audit-table-container">
+    <table class="audit-table">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Role</th>
+                <th>Action</th>
+                <th>Category</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in cl.result_list %}
+            <tr>
+                <td class="col-timestamp">{{ entry.action_time|date:"M d, Y g:i A" }}</td>
+                <td class="col-user">
+                    {% if entry.user %}
+                        {{ entry.user.get_full_name|default:entry.user.username }}
+                    {% else %}
+                        System
+                    {% endif %}
+                </td>
+                <td>
+                    {% if entry.user %}
+                        {% if entry.user.is_superuser %}Admin{% elif entry.user.is_staff %}Faculty{% else %}Student{% endif %}
+                    {% else %}
+                        --
+                    {% endif %}
+                </td>
+                <td class="col-action">{{ entry.get_change_message }} ({{ entry.object_repr }})</td>
+                <td>
+                    {% if entry.content_type %}
+                        {{ entry.content_type.name|capfirst }}
+                    {% else %}
+                        System
+                    {% endif %}
+                </td>
+                <td class="col-status 
+                    {% if entry.is_addition %}status-created
+                    {% elif entry.is_change %}status-updated
+                    {% elif entry.is_deletion %}status-deleted
+                    {% endif %}">
+                    {% if entry.is_addition %}
+                        Created
+                    {% elif entry.is_change %}
+                        Updated
+                    {% elif entry.is_deletion %}
+                        Deleted
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 20px;">No audit logs found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

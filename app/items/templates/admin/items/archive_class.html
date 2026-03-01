@@ -1,0 +1,48 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Archive Class | GradeSync Admin{% endblock %}
+{% block nav_archive %}active{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">Archive Class</h1>
+    <hr class="page-rule">
+</div>
+
+<div class="archive-container">
+    <h2 class="archive-subtitle">Select Class to Archive</h2>
+    
+    <form method="POST" class="archive-form">
+        {% csrf_token %}
+        
+        <div class="form-row archive-select-row">
+            <label class="bold-label" for="course_id">Class:</label>
+            <div class="select-wrapper">
+                <select name="course_id" id="course_id" class="custom-select" required>
+                    <option value="" disabled selected>Select a class</option>
+                    {% for course in active_courses %}
+                        <option value="{{ course.id }}">{{ course.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <p class="warning-title">Warning!</p>
+            <p class="warning-text">Archiving a class will:</p>
+            <ul class="warning-list">
+                <li>Lock all submission and grading</li>
+                <li>Prevent further edits</li>
+                <li>Make the class read-only</li>
+                <li>Preserve audit history</li>
+            </ul>
+        </div>
+
+        <div class="archive-actions">
+            <button type="submit" class="btn-archive-submit">Archive Class</button>
+            <a href="{% url 'admin:index' %}" class="btn-archive-cancel">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

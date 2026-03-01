@@ -1,0 +1,63 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}GradeSync Admin{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}">
+    {% block extrastyle %}{% endblock %}
+</head>
+<body>
+
+    <!-- ── MAIN MAROON HEADER ── -->
+    <header class="main-header">
+        <div class="header-brand">
+            <img class="header-logo" src="{% static 'images/ulm_logo.png' %}" alt="ULM Seal">
+            <div class="header-divider"></div>
+            <span class="header-title">GradeSync</span>
+        </div>
+    </header>
+
+    <!-- ── GOLD ACCENT BAR ── -->
+    <div class="gold-bar"></div>
+
+    <!-- ── SECONDARY WHITE BAR ── -->
+    <div class="secondary-header">
+        <span class="sec-brand">GradeSync</span>
+        <div class="sec-user">
+            {% if user.is_authenticated %}
+                Welcome, <strong>{{ user.username }}</strong>! 
+                <form method="post" action="{% url 'admin:logout' %}" style="display:inline-block; margin:0; padding:0;">
+                    {% csrf_token %}
+                    <button type="submit" style="background:none; border:none; padding:0; font:inherit; color:#860029; font-weight:700; cursor:pointer; text-decoration:underline;">LOG OUT?</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── MAIN LAYOUT ── -->
+    <div class="admin-layout">
+
+        <!-- ── SIDEBAR ── -->
+        <aside class="sidebar">
+            <ul class="sidebar-nav">
+                <li><a href="{% url 'admin:index' %}" class="{% block nav_dash %}{% endblock %}">Dashboard</a></li>
+                <li><a href="{% url 'admin:auth_user_changelist' %}" class="{% block nav_accounts %}{% endblock %}">Accounts</a></li>
+                <li><a href="{% url 'admin:items_programminglanguage_changelist' %}" class="{% block nav_lang %}{% endblock %}">Programming Languages</a></li>
+                <li><a href="{% url 'admin:execution_environment' %}" class="{% block nav_env %}{% endblock %}">Execution<br>Environment</a></li>
+                <li><a href="{% url 'admin:database_maintenance' %}" class="{% block nav_db %}{% endblock %}">Database</a></li>
+                <li><a href="{% url 'admin:admin_logentry_changelist' %}" class="{% block nav_audit %}{% endblock %}">Audit Logs</a></li>
+                <li><a href="{% url 'admin:archive_class' %}" class="{% block nav_archive %}{% endblock %}">Archive Class</a></li>
+            </ul>
+        </aside>
+
+        <!-- ── MAIN CONTENT ── -->
+        <main class="main-content">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,66 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Manage Programming Language | GradeSync Admin{% endblock %}
+{% block nav_lang %}active{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">{% if original %}Edit Language: {{ original.name }}{% else %}Add Language{% endif %}</h1>
+    <hr class="page-rule">
+</div>
+
+<div class="form-container">
+    <p class="form-help-text">Configure the language execution environment, memory limits, and commands.</p>
+    
+    <form method="post" id="{{ opts.model_name }}_form" novalidate>
+        {% csrf_token %}
+        
+        {% if adminform.form.non_field_errors %}
+            <div class="errornote">
+                {{ adminform.form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        {% for fieldset in adminform %}
+            <fieldset class="module aligned {{ fieldset.classes }}">
+                {% if fieldset.name %}<h2>{{ fieldset.name }}</h2>{% endif %}
+                
+                {% for line in fieldset %}
+                    <div class="form-row">
+                        {% for adminfield in line %}
+                            <div class="field-box {% if adminfield.field.name %}field-{{ adminfield.field.name }}{% endif %}">
+                                {{ adminfield.field.errors }}
+                                
+                                {% if adminfield.is_checkbox %}
+                                    {{ adminfield.field }}
+                                    <label class="vCheckboxLabel" for="{{ adminfield.field.id_for_label }}">{{ adminfield.field.label }}</label>
+                                {% elif adminfield.is_readonly %}
+                                    <label>{{ adminfield.field.label }}:</label>
+                                    <p class="readonly-content">{{ adminfield.contents|safe }}</p>
+                                {% else %}
+                                    <label class="required" for="{{ adminfield.field.id_for_label }}">{{ adminfield.field.label }}:</label>
+                                    {{ adminfield.field }}
+                                {% endif %}
+                                
+                                {% if adminfield.field.help_text %}
+                                    <div class="help" style="margin-top: 4px; font-size: 12px; color: #666;">{{ adminfield.field.help_text|safe }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </fieldset>
+        {% endfor %}
+
+        <div class="submit-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px;">
+            {% if has_delete_permission and original %}
+                <a href="delete/" class="deletelink" style="color: #b00020; font-weight: bold; text-decoration: underline;">Delete Language</a>
+            {% else %}
+                <span></span>
+            {% endif %}
+            <button type="submit" class="btn-save btn-default" name="_save" style="background-color: #860029; color: white; padding: 10px 24px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">SAVE</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Dashboard | GradeSync Admin{% endblock %}
+{% block nav_dash %}active{% endblock %}
+
+{% block content %}
+<h1 class="page-title">System Administration Dashboard</h1>
+<hr class="page-rule">
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+
+    <!-- Card: System Accounts -->
+    <div class="stat-card">
+        <div class="stat-card-title">System Accounts</div>
+        <div class="stat-card-number">{{ user_count|default:"—" }}</div>
+        <div class="stat-card-label">Active Users</div>
+        <a class="stat-card-link" href="{% url 'admin:auth_user_changelist' %}">Manage Accounts &rarr;</a>
+    </div>
+
+    <!-- Card: Active Classes -->
+    <div class="stat-card">
+        <div class="stat-card-title">Active Classes</div>
+        <div class="stat-card-number">—</div>
+        <div class="stat-card-label">Current Semesters</div>
+        <a class="stat-card-link" href="#">View Classes &rarr;</a>
+    </div>
+
+    <!-- Card: Registered Students -->
+    <div class="stat-card">
+        <div class="stat-card-title">Registered Students</div>
+        <div class="stat-card-number">—</div>
+        <div class="stat-card-label">Enrolled This Term</div>
+        <a class="stat-card-link" href="#">View Students &rarr;</a>
+    </div>
+
+    <!-- Card: Faculty Members -->
+    <div class="stat-card">
+        <div class="stat-card-title">Faculty Members</div>
+        <div class="stat-card-number">—</div>
+        <div class="stat-card-label">Active Instructors</div>
+        <a class="stat-card-link" href="#">View Faculty &rarr;</a>
+    </div>
+
+    <!-- Card: Pending Grades -->
+    <div class="stat-card">
+        <div class="stat-card-title">Pending Grades</div>
+        <div class="stat-card-number">—</div>
+        <div class="stat-card-label">Awaiting Submission</div>
+        <a class="stat-card-link" href="#">View Grades &rarr;</a>
+    </div>
+
+    <!-- Card: Recent Logins -->
+    <div class="stat-card">
+        <div class="stat-card-title">Recent Logins</div>
+        <div class="stat-card-number">—</div>
+        <div class="stat-card-label">Last 24 Hours</div>
+        <a class="stat-card-link" href="#">View Logs &rarr;</a>
+    </div>
+
+</div>
+<!-- /Stats Grid -->
+
+<!-- Quick Actions -->
+<h2 class="quick-actions-title">Quick Administrative Actions</h2>
+<ul class="quick-actions-list">
+    {% for app in app_list %}
+        {% for model in app.models %}
+            {% if model.add_url %}
+                <li><a href="{{ model.add_url }}">+ Add {{ model.name }}</a></li>
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+    <li><a href="{% url 'admin:auth_user_add' %}">+ Create User Account</a></li>
+</ul>
+{% endblock %}
