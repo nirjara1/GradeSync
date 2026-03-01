@@ -1,5 +1,11 @@
 /* ── RESET ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
 /* ── BODY ── */
 body {
@@ -83,7 +89,7 @@ body {
     background-color: #ffffff;
     border-top: 4px solid #860029;
     border-radius: 6px;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.10);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
     padding: 28px 36px 26px;
     width: 100%;
     max-width: 420px;
@@ -125,6 +131,48 @@ body {
     margin-bottom: 16px;
 }
 
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.alert-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border: 1px solid #badbcc;
+    border-radius: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 14px;
+    padding-right: 14px;
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 13px;
+    text-align: center;
+    opacity: 1;
+    max-height: 200px;
+    overflow: hidden;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    transition: all 0.8s ease-in-out;
+}
+
+.alert-success.fade-out {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    border-color: transparent;
+}
+
 /* ── FORM FIELDS ── */
 .form-group {
     margin-bottom: 16px;
@@ -154,7 +202,7 @@ body {
 .form-group input[type="text"]:focus,
 .form-group input[type="password"]:focus {
     border-color: #860029;
-    box-shadow: 0 0 0 3px rgba(134,0,41,0.09);
+    box-shadow: 0 0 0 3px rgba(134, 0, 41, 0.09);
     background-color: #fff;
 }
 
@@ -177,7 +225,9 @@ body {
     padding: 4px 16px;
 }
 
-.login-btn:hover { color: #5e001c; }
+.login-btn:hover {
+    color: #5e001c;
+}
 
 /* ── SECONDARY LINKS ── */
 .card-links {
@@ -191,7 +241,9 @@ body {
     text-decoration: none;
 }
 
-.card-links a:hover { text-decoration: underline; }
+.card-links a:hover {
+    text-decoration: underline;
+}
 
 /* ── FOOTER ── */
 .site-footer {
@@ -211,4 +263,6 @@ body {
     font-weight: 500;
 }
 
-.site-footer a:hover { color: #0d5fc2; }
+.site-footer a:hover {
+    color: #0d5fc2;
+}
