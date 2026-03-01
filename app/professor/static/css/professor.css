@@ -1,0 +1,516 @@
+/* Colors */
+:root {
+    --maroon: #840029;
+    --gold: #fdb913;
+    --light-gray: #e8e8e8;
+    --white: #ffffff;
+    --text-main: #333333;
+    --text-muted: #666666;
+    --red-link: #d32f2f;
+}
+
+body,
+html {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--light-gray);
+    color: var(--text-main);
+}
+
+/* TOP HEADER */
+.top-header {
+    width: 100%;
+}
+
+.maroon-band {
+    background-color: var(--maroon);
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.ulm-seal {
+    height: 70px;
+    width: auto;
+}
+
+.gradesync-logo {
+    color: var(--white);
+    font-size: 36px;
+    font-weight: 700;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.vertical-separator {
+    width: 2px;
+    height: 60px;
+    background-color: var(--white);
+    margin: 0 15px;
+}
+
+.gold-line {
+    height: 4px;
+    background-color: var(--gold);
+    width: 100%;
+}
+
+.header-row {
+    background-color: var(--white);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.header-left-title {
+    color: var(--maroon);
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+    text-decoration: none;
+}
+
+.user-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 18px;
+    margin-left: auto;
+    /* Push to the right */
+}
+
+.username {
+    font-weight: normal;
+}
+
+.username-bold {
+    font-weight: bold;
+}
+
+.logout-link {
+    color: var(--red-link);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.logout-link:hover {
+    text-decoration: underline;
+}
+
+/* MAIN LAYOUT */
+.dashboard-layout {
+    display: flex;
+    max-width: 1400px;
+    margin: 30px auto;
+    gap: 30px;
+    padding: 0 30px;
+}
+
+/* SIDEBAR */
+.sidebar {
+    background-color: var(--white);
+    width: 150px;
+    padding: 30px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-main);
+    gap: 8px;
+    font-size: 16px;
+    transition: color 0.2s;
+}
+
+.nav-item i {
+    font-size: 32px;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    color: var(--maroon);
+}
+
+/* MAIN CONTENT */
+.main-content {
+    flex: 1;
+    background-color: var(--white);
+    padding: 40px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    min-height: 600px;
+}
+
+.page-title {
+    font-size: 32px;
+    font-weight: 400;
+    margin: 0 0 10px 0;
+}
+
+.divider {
+    border: none;
+    border-top: 2px solid #000;
+    margin-bottom: 30px;
+}
+
+/* COURSE GRID */
+.course-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+@media (max-width: 1024px) {
+    .course-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .course-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* COURSE CARD */
+.course-card {
+    background: var(--white);
+    border: 1px solid #eee;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.course-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-image {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background-color: #ddd;
+    display: block;
+}
+
+.card-content {
+    padding: 15px;
+    background-color: #f7f9fc;
+    border-top: 3px solid #ccc;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+}
+
+.course-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0 0 15px 0;
+    line-height: 1.4;
+}
+
+.course-prof,
+.course-term {
+    font-size: 12px;
+    font-weight: bold;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.course-term {
+    margin-top: 5px;
+}
+
+/* Assignments Dashboard Specifics */
+.assignments-list {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.assignment-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.assignment-icon {
+    font-size: 20px;
+    color: var(--text-main);
+    margin-top: 2px;
+}
+
+.assignment-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.assignment-title {
+    color: var(--maroon);
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: underline;
+    text-transform: uppercase;
+}
+
+.assignment-title:hover {
+    color: var(--red-link);
+}
+
+.assignment-meta {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.add-assignment-btn {
+    background-color: var(--light-gray);
+    color: var(--maroon);
+    border: 1px solid #ccc;
+    padding: 10px 20px;
+    font-size: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 40px;
+    text-align: center;
+    display: inline-block;
+    transition: background 0.2s;
+}
+
+.add-assignment-btn:hover {
+    background-color: #d8d8d8;
+}
+
+/* Modal Styling */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--white);
+    padding: 30px;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--maroon);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.btn-submit {
+    background-color: var(--maroon);
+    color: var(--white);
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+}
+
+.btn-submit:hover {
+    background-color: #6a0020;
+}
+
+/* Refined Header Elements matching screenshot */
+.header-brand-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.brand-separator {
+    width: 2px;
+    height: 50px;
+    background-color: var(--white);
+    opacity: 0.8;
+}
+
+.brand-title {
+    color: var(--white);
+    font-size: 28px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.nav-separator {
+    width: 2px;
+    height: 25px;
+    background-color: #ccc;
+    margin: 0 10px;
+}
+
+.user-username {
+    font-weight: bold;
+}
+
+/* Create Assignment Page Specifics */
+.create-assignment-container {
+    background-color: var(--white);
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    max-width: 900px;
+    margin: 0;
+}
+
+.create-assignment-form .form-group {
+    margin-bottom: 20px;
+}
+
+.create-assignment-form .full-width input[type="text"],
+.create-assignment-form .full-width textarea,
+.create-assignment-form input[type="date"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 15px;
+}
+
+.upload-box {
+    border: 2px dashed #bbb;
+    background-color: #f9f9f9;
+    padding: 40px 20px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    flex: 1;
+    min-width: 250px;
+    transition: background-color 0.2s;
+}
+
+.upload-box:hover {
+    background-color: #f0f0f0;
+}
+
+.upload-box .upload-icon {
+    font-size: 24px;
+    color: #555;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.upload-box p {
+    margin: 0;
+    color: #333;
+    font-size: 14px;
+}
+
+.btn-outline-maroon {
+    background-color: transparent;
+    border: 1px solid var(--maroon);
+    color: var(--maroon);
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-outline-maroon:hover {
+    background-color: rgba(132, 0, 41, 0.05);
+}
+
+.btn-draft {
+    background-color: #f0f0f0;
+    color: #555;
+    border: 1px solid #ccc;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.btn-draft:hover {
+    background-color: #e4e4e4;
+}
+
+.btn-publish {
+    background-color: var(--maroon);
+    color: var(--white);
+    border: none;
+    padding: 10px 25px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.btn-publish:hover {
+    background-color: #6a0020;
+}

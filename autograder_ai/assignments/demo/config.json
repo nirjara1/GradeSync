@@ -1,0 +1,7 @@
+{
+    "main_class": "Main",
+    "rubric": {
+        "Compilation/Execution": 10,
+        "test_logic": 20
+    }
+}

@@ -1,0 +1,180 @@
+{% extends 'base_professor.html' %}
+
+{% block content %}
+<style>
+    /* Override main-content layout to show the white card on grey background */
+    .main-content {
+        background-color: transparent !important;
+        box-shadow: none !important;
+        padding: 0 40px !important;
+    }
+
+    .create-assignment-container {
+        background-color: var(--white);
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        max-width: 850px;
+    }
+
+    .form-group.full-width input[type="text"],
+    .form-group.full-width textarea,
+    .row-group input[type="date"] {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+        font-family: inherit;
+    }
+
+    .upload-box {
+        border: 1px dashed #999;
+        background-color: transparent;
+        padding: 40px 20px;
+        text-align: center;
+        border-radius: 4px;
+        cursor: pointer;
+        flex: 1;
+        min-width: 250px;
+        color: #333;
+        transition: background-color 0.2s;
+    }
+
+    .upload-box:hover {
+        background-color: #f5f5f5;
+    }
+
+    .btn-upload-criteria {
+        background-color: transparent;
+        border: 1px solid #777;
+        color: #333;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 13px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-draft {
+        background-color: #f2f2f2;
+        color: #333;
+        border: 1px solid #ccc;
+        padding: 8px 18px;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .btn-publish {
+        background-color: var(--maroon);
+        color: var(--white);
+        border: none;
+        padding: 8px 24px;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+</style>
+
+<div class="create-assignment-container">
+    <h2 class="page-title" style="margin-bottom: 25px; font-weight: bold; color: #333; font-size: 28px;">Create New
+        Assignment</h2>
+
+    {% if form.errors or messages %}
+    <div style="margin-bottom: 20px;">
+        {% if messages %}
+        {% for message in messages %}
+        <p style="color: var(--maroon); font-weight: bold; margin: 0;">{{ message }}</p>
+        {% endfor %}
+        {% endif %}
+        {% if form.errors %}
+        <p style="color: var(--maroon); font-weight: bold; margin: 0;">Error creating assignment. Please check the form
+            data.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Title -->
+        <div class="form-group full-width" style="margin-bottom: 15px;">
+            {{ form.name }}
+            <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.name.errors }}</div>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group full-width" style="margin-bottom: 20px;">
+            {{ form.description }}
+            <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.description.errors }}</div>
+        </div>
+
+        <!-- Date & No Due Date -->
+        <div class="form-group row-group" style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px;">
+            <div style="width: 180px;">
+                {{ form.due_date }}
+                <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.due_date.errors }}</div>
+            </div>
+            <div class="checkbox-group" style="display: flex; align-items: center; gap: 8px;">
+                {{ form.no_due_date }}
+                <label for="{{ form.no_due_date.id_for_label }}"
+                    style="margin: 0; font-weight: normal; font-size: 14px; color: #333;">No Due Date</label>
+            </div>
+        </div>
+
+        <!-- Allowed Languages -->
+        <div class="form-group full-width" style="margin-bottom: 25px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 8px; font-size: 15px; color: #333;">Allowed
+                Languages</label>
+            <div class="radio-group" style="display: flex; gap: 20px; align-items: center;">
+                {% for radio in form.allowed_language %}
+                <div class="custom-radio" style="display: flex; align-items: center; gap: 6px;">
+                    {{ radio.tag }}
+                    <label for="{{ radio.id_for_label }}"
+                        style="margin: 0; font-weight: normal; font-size: 14px; color: #333;">
+                        {{ radio.choice_label }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Testing & Grading Section -->
+        <h3 style="margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #333;">Testing & Grading</h3>
+
+        <div class="upload-section" style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+            <!-- Public Test Data -->
+            <div class="upload-box" onclick="document.getElementById('public_test_data_upload').click()">
+                <i class="fa-solid fa-arrow-up-from-bracket"
+                    style="font-size: 18px; color: #555; margin-bottom: 10px;"></i>
+                <p style="margin: 0; font-size: 14px; color: #555;">Public Test Data (*Required)</p>
+                {{ form.public_test_data }}
+                <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.public_test_data.errors }}</div>
+            </div>
+
+            <!-- Expected Outputs -->
+            <div class="upload-box" onclick="document.getElementById('expected_outputs_upload').click()">
+                <i class="fa-solid fa-arrow-up-from-bracket"
+                    style="font-size: 18px; color: #555; margin-bottom: 10px;"></i>
+                <p style="margin: 0; font-size: 14px; color: #555;">Expected Outputs (*Required)</p>
+                {{ form.expected_outputs }}
+                <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.expected_outputs.errors }}</div>
+            </div>
+        </div>
+
+        <!-- Add Rubric Button -->
+        <button type="button" class="btn-upload-criteria">
+            <i class="fa-solid fa-plus" style="font-size: 12px;"></i> Add Grading Criteria / Rubric
+        </button>
+
+        <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 40px;">
+            <button type="submit" name="action" value="draft" class="btn-draft">Save Draft</button>
+            <button type="submit" name="action" value="publish" class="btn-publish">Publish</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

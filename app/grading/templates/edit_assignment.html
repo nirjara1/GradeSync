@@ -1,0 +1,49 @@
+{% extends 'base_professor.html' %}
+
+{% block content %}
+<h2 class="page-title">Edit Assignment: {{ assignment.name }}</h2>
+<hr class="divider">
+
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}" {% endif %}
+        style="color: var(--maroon); font-weight: bold; list-style: none;">
+        {{ message }}
+        </li>
+        {% endfor %}
+</ul>
+{% endif %}
+
+<div
+    style="background: var(--white); padding: 30px; border-radius: 8px; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <form method="POST" action="{% url 'edit_assignment' assignment.pk %}">
+        {% csrf_token %}
+
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+            <small style="color: grey">{{ field.help_text }}</small>
+            {% endif %}
+            {% for error in field.errors %}
+            <p style="color: red">{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endfor %}
+
+        <div style="display: flex; gap: 15px; margin-top: 20px;">
+            <button type="submit" class="btn-submit">Save Changes</button>
+            {% if assignment.course %}
+            <a href="{% url 'course_assignments' assignment.course.id %}" class="btn-submit"
+                style="background-color: var(--text-muted); text-align: center; text-decoration: none;">Cancel</a>
+            {% else %}
+            <a href="{% url 'assignments_dashboard' %}" class="btn-submit"
+                style="background-color: var(--text-muted); text-align: center; text-decoration: none;">Cancel</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% endblock %}

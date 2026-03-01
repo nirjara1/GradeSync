@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "total_score": 0.0,
+  "max_score": 10.0,
+  "breakdown": [
+    {
+      "name": "Compilation/Execution",
+      "passed": false,
+      "score": 0.0,
+      "max_score": 10.0,
+      "output": "\nno tests ran in 0.01s\n",
+      "error": null
+    }
+  ],
+  "feedback": [
+    {
+      "category": "Logic Error",
+      "message": "Test 'Compilation/Execution' failed. Output: \nno tests ran in 0.01s\n...",
+      "severity": "warning"
+    }
+  ],
+  "ai_likelihood": 0.0,
+  "ai_explanation": "Detailed explanation placeholder",
+  "plagiarism_matches": [],
+  "error": null
+}

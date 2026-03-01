@@ -1,0 +1,242 @@
+{% extends 'base_professor.html' %}
+
+{% block content %}
+<h2 class="page-title">
+    {% if course %}
+    {{ course.code }}-{{ course.section }} Assignments
+    {% else %}
+    All Assignments
+    {% endif %}
+</h2>
+<hr class="divider">
+
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}" {% endif %}
+        style="color: var(--maroon); font-weight: bold; list-style: none;">
+        {{ message }}
+        </li>
+        {% endfor %}
+</ul>
+{% endif %}
+
+<div class="assignments-list">
+    {% for assignment in assignments %}
+    <div class="assignment-item" style="justify-content: space-between;">
+        <div style="display: flex; gap: 15px;">
+            <i class="fa-solid fa-book assignment-icon"></i>
+            <div class="assignment-details">
+                <a href="{% url 'assignment_detail' assignment.pk %}" class="assignment-title">{{ assignment.name }}</a>
+                <!-- The Figma mockup specifically concatenates the course info string. We match the format exactly. -->
+                {% if assignment.course %}
+                <p class="assignment-meta">{{ assignment.course.code }}-{{ assignment.course.section }}-{{
+                    assignment.course.term }}- {{ assignment.course.title }}</p>
+                {% endif %}
+                <p class="assignment-meta">Points: {{ assignment.points }}</p>
+                <!-- Formatting datetime precisely matches "Feb 18 at 11:59pm" format from the image -->
+                <p class="assignment-meta">Due: {{ assignment.due_date|date:"M j \a\t g:ia" }}</p>
+            </div>
+        </div>
+
+        {% if is_instructor %}
+        <div class="assignment-actions" style="display: flex; gap: 10px; align-items: flex-start; margin-top: 5px;">
+            <a href="{% url 'edit_assignment' assignment.pk %}" title="Edit Assignment"
+                style="color: var(--text-muted); font-size: 18px;"><i class="fa-solid fa-pen"></i></a>
+            <form method="POST" action="{% url 'delete_assignment' assignment.pk %}"
+                onsubmit="return confirm('Are you sure you want to delete this assignment?');" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" title="Delete Assignment"
+                    style="background: none; border: none; color: var(--red-link); font-size: 18px; cursor: pointer; padding: 0;">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <p>No assignments found.</p>
+    {% endfor %}
+</div>
+
+{% if course %}
+{% if is_instructor %}
+<div style="margin-top: 20px; display: flex; gap: 10px;">
+    <a href="{% url 'course_create_assignment' course.id %}" class="add-assignment-btn"
+        style="text-decoration: none; display: inline-block;">Add Assignment</a>
+    <button onclick="openModal('addStudentModal')" class="add-assignment-btn"
+        style="border: none; cursor: pointer; display: inline-block;">Add Student</button>
+    <button onclick="openModal('addGAModal')" class="add-assignment-btn"
+        style="border: none; cursor: pointer; display: inline-block;">Add Grading Assistant</button>
+</div>
+{% endif %}
+
+<hr class="divider" style="margin-top: 30px;">
+<h3>Course Roster</h3>
+<div style="display: flex; gap: 40px; margin-top: 15px;">
+    <div style="flex: 1;">
+        <h4>Students</h4>
+        <ul id="students-list" style="list-style-type: none; padding-left: 0;">
+            <li>Loading...</li>
+        </ul>
+    </div>
+    <div style="flex: 1;">
+        <h4>Grading Assistants</h4>
+        <ul id="graders-list" style="list-style-type: none; padding-left: 0;">
+            <li>Loading...</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div id="addStudentModal" class="modal-overlay">
+    <div class="modal-content" style="width: 500px; padding: 40px; border-radius: 8px;">
+        <h3 style="margin-top: 0; color: #333; font-size: 24px; margin-bottom: 20px;">Add Students</h3>
+        <p style="color: #333; font-size: 16px; margin-bottom: 15px;">Enter Outlook email addresses (comma or newline
+            separated):</p>
+        <textarea id="studentEmails"
+            style="width: 100%; height: 120px; margin-bottom: 20px; border: 2px solid #0056b3; border-radius: 4px; padding: 10px; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+        <div id="studentResults" style="margin-bottom: 15px; max-height: 100px; overflow-y: auto; font-size: 14px;">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 15px;">
+            <button onclick="closeModal('addStudentModal')"
+                style="padding: 10px 20px; background-color: #f0f0f0; border: 1px solid #999; border-radius: 4px; color: #000; font-size: 16px; cursor: pointer;">Cancel</button>
+            <button onclick="submitEmails('api_add_students', 'studentEmails', 'studentResults')"
+                style="padding: 10px 20px; background-color: #e6e6e6; border: none; border-radius: 4px; color: var(--maroon); font-weight: normal; font-size: 16px; cursor: pointer;">Verify
+                & Add</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add GA Modal -->
+<div id="addGAModal" class="modal-overlay">
+    <div class="modal-content" style="width: 500px; padding: 40px; border-radius: 8px;">
+        <h3 style="margin-top: 0; color: #333; font-size: 24px; margin-bottom: 20px;">Add Grading Assistants</h3>
+        <p style="color: #333; font-size: 16px; margin-bottom: 15px;">Enter Outlook email addresses (comma or newline
+            separated):</p>
+        <textarea id="gaEmails"
+            style="width: 100%; height: 120px; margin-bottom: 20px; border: 2px solid #0056b3; border-radius: 4px; padding: 10px; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+        <div id="gaResults" style="margin-bottom: 15px; max-height: 100px; overflow-y: auto; font-size: 14px;"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 15px;">
+            <button onclick="closeModal('addGAModal')"
+                style="padding: 10px 20px; background-color: #f0f0f0; border: 1px solid #999; border-radius: 4px; color: #000; font-size: 16px; cursor: pointer;">Cancel</button>
+            <button onclick="submitEmails('api_add_graders', 'gaEmails', 'gaResults')"
+                style="padding: 10px 20px; background-color: #e6e6e6; border: none; border-radius: 4px; color: var(--maroon); font-weight: normal; font-size: 16px; cursor: pointer;">Verify
+                & Add</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const courseId = {{ course.id }};
+    const rosterApiUrl = "{% url 'api_course_roster' course.id %}";
+
+    // We need the URLs for adding. Use Django's URL tag to inject them
+    const apiUrls = {
+        'api_add_students': "{% url 'api_add_students' course.id %}",
+        'api_add_graders': "{% url 'api_add_graders' course.id %}"
+    };
+
+    function openModal(id) {
+        document.getElementById(id).style.display = 'flex';
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+        // Clear inputs and results
+        if (id === 'addStudentModal') {
+            document.getElementById('studentEmails').value = '';
+            document.getElementById('studentResults').innerHTML = '';
+        } else {
+            document.getElementById('gaEmails').value = '';
+            document.getElementById('gaResults').innerHTML = '';
+        }
+    }
+
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    async function submitEmails(apiType, inputId, resultsId) {
+        const emailText = document.getElementById(inputId).value;
+        const emails = emailText.split(/[\n,]+/).map(e => e.trim()).filter(e => e);
+
+        if (emails.length === 0) return;
+
+        const resultsDiv = document.getElementById(resultsId);
+        resultsDiv.innerHTML = 'Processing...';
+
+        try {
+            const response = await fetch(apiUrls[apiType], {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ emails })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                let html = '<ul>';
+                data.results.forEach(res => {
+                    let color = res.status === 'added' ? 'green' : 'red';
+                    html += `<li style="color:${color}">${res.email}: ${res.status}</li>`;
+                });
+                html += '</ul>';
+                resultsDiv.innerHTML = html;
+
+                // Refresh roster
+                loadRoster();
+            } else {
+                resultsDiv.innerHTML = `<span style="color:red">Error: ${data.error || 'Unknown error'}</span>`;
+            }
+        } catch (error) {
+            resultsDiv.innerHTML = `<span style="color:red">Error communicating with server</span>`;
+        }
+    }
+
+    async function loadRoster() {
+        try {
+            const response = await fetch(rosterApiUrl);
+            const data = await response.json();
+
+            const studentsList = document.getElementById('students-list');
+            studentsList.innerHTML = '';
+            if (data.students.length === 0) {
+                studentsList.innerHTML = '<li>No students enrolled.</li>';
+            } else {
+                data.students.forEach(s => {
+                    studentsList.innerHTML += `<li style="margin-bottom:5px; padding:5px; background:#f9f9f9; border:1px solid #ddd; border-radius:3px;">
+                        <strong>${s.first_name} ${s.last_name}</strong> (${s.email})
+                    </li>`;
+                });
+            }
+
+            const gradersList = document.getElementById('graders-list');
+            gradersList.innerHTML = '';
+            if (data.graders.length === 0) {
+                gradersList.innerHTML = '<li>No grading assistants.</li>';
+            } else {
+                data.graders.forEach(g => {
+                    gradersList.innerHTML += `<li style="margin-bottom:5px; padding:5px; background:#f9f9f9; border:1px solid #ddd; border-radius:3px;">
+                        <strong>${g.first_name} ${g.last_name}</strong> (${g.email})
+                    </li>`;
+                });
+            }
+        } catch (error) {
+            console.error('Error loading roster:', error);
+        }
+    }
+
+    // Load roster on page load
+    document.addEventListener('DOMContentLoaded', loadRoster);
+</script>
+{% else %}
+{% if is_instructor %}
+<a href="{% url 'create_assignment' %}" class="add-assignment-btn"
+    style="margin-top: 20px; text-decoration: none; display: inline-block;">Add Assignment</a>
+{% endif %}
+{% endif %}
+
+{% endblock %}

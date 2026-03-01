@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "total_score": 0.0,
+  "max_score": 30.0,
+  "breakdown": [
+    {
+      "name": "Compilation/Execution",
+      "passed": false,
+      "score": 0.0,
+      "max_score": 10.0,
+      "output": "400 Client Error for http+docker://localhost/v1.53/containers/e2dc7af7a55796876bcf0b9012e1b5560a378090111cc64e59aafb850f251ca3/start: Bad Request (\"failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: \"pytest\": executable file not found in $PATH\")",
+      "error": null
+    }
+  ],
+  "feedback": [
+    {
+      "category": "Runtime Error",
+      "message": "Error log detected: 400 Client Error for http+docker://localhost/v1.53/containers/e2dc7af7a55796876bcf0b9012e1b5560a378090111cc64e59aafb850f251ca3/start: Bad Request (\"failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: exec: \"pytest\": executable file not found in $PATH\")...",
+      "severity": "critical"
+    },
+    {
+      "category": "Logic Error",
+      "message": "Test 'Compilation/Execution' failed. Output: 400 Client Error for http+docker://localhost/v1.53/containers/e2dc7af7a55796876bcf0b9012e1b5560a378090111cc64e59aafb850f251ca3/start: Bad Request (\"failed to create task for container: failed to creat...",
+      "severity": "warning"
+    }
+  ],
+  "ai_likelihood": 0.0,
+  "ai_explanation": "Detailed explanation placeholder",
+  "plagiarism_matches": [
+    {
+      "file": "main.py",
+      "score": 1.0
+    }
+  ],
+  "error": null
+}
