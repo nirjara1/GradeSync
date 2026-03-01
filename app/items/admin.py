@@ -44,3 +44,11 @@ class LogEntryAdmin(admin.ModelAdmin):
     date_hierarchy = 'action_time'
 
 gradesync_admin.register(LogEntry, LogEntryAdmin)
+
+from .models import ProgrammingLanguage
+class ProgrammingLanguageAdmin(admin.ModelAdmin):
+    change_list_template = 'admin/items/programminglanguage/change_list.html'
+    change_form_template = 'admin/items/programminglanguage/change_form.html'
+    list_display = ('name', 'version', 'compile_command', 'run_command', 'status')
+
+gradesync_admin.register(ProgrammingLanguage, ProgrammingLanguageAdmin)

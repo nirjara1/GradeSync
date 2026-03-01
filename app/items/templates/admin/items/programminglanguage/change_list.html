@@ -1,0 +1,67 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Programming Languages | GradeSync Admin{% endblock %}
+{% block nav_lang %}active{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">Programming Languages</h1>
+    <hr class="page-rule">
+</div>
+
+<!-- Toolbar (Add + Search) -->
+<div class="accounts-toolbar">
+    <a href="add/" class="btn-add-user">+ Add Language</a>
+</div>
+
+<!-- Languages Table -->
+<div class="accounts-table-container">
+    <table class="accounts-table">
+        <thead>
+            <tr>
+                <th>Language</th>
+                <th>Version</th>
+                <th>Compile Command</th>
+                <th>Run Command</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for obj in cl.result_list %}
+            <tr>
+                <td class="col-name" style="font-weight: bold; color: #333;">{{ obj.name }}</td>
+                <td>{{ obj.version }}</td>
+                <td>{% if obj.compile_command %}{{ obj.compile_command }}{% else %}---{% endif %}</td>
+                <td>{{ obj.run_command }}</td>
+                <td>
+                    {% if obj.status %}
+                        Enabled
+                    {% else %}
+                        Disabled
+                    {% endif %}
+                </td>
+                <td class="col-actions">
+                    <a href="{{ obj.pk }}/change/" class="action-link" style="color: #860029;">Edit</a> | 
+                    {% if obj.status %}
+                    <!-- Can add disable logic if built, but link to delete for now or just generic style -->
+                    <a href="{{ obj.pk }}/delete/" class="action-link" style="color: #860029;">Disable</a>
+                    {% else %}
+                    <a href="{{ obj.pk }}/delete/" class="action-link" style="color: #860029;">Enable</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 20px;">No programming languages configured.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="info-footer-box" style="margin-top: 20px; background-color: #E6E8ED; padding: 16px; border-radius: 4px; font-size: 14px; color: #333;">
+    Languages must be linked to a secure execution container and validated before activation.
+</div>
+{% endblock %}

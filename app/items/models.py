@@ -43,3 +43,20 @@ class Employee(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+class ProgrammingLanguage(models.Model):
+    name = models.CharField(max_length=100)
+    version = models.CharField(max_length=50)
+    compile_command = models.CharField(max_length=255, blank=True, null=True, help_text="e.g. javac Main.java (Leave blank for interpreted languages)")
+    run_command = models.CharField(max_length=255, help_text="e.g. python main.py or java Main")
+    status = models.BooleanField(default=True, verbose_name="Enabled")
+    container_image = models.CharField(max_length=255, help_text="e.g. python:3.10-slim")
+    memory_limit_mb = models.IntegerField(default=256, help_text="Memory limit in MB")
+    time_limit_ms = models.IntegerField(default=5000, help_text="Time limit in milliseconds")
+
+    def __str__(self):
+        return f"{self.name} {self.version}"
+
+    class Meta:
+        verbose_name = "Programming Language"
+        verbose_name_plural = "Programming Languages"
