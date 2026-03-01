@@ -33,13 +33,13 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", '3.151.189.18']
 # Application definition
 
 INSTALLED_APPS = [
+    'items',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'items',
 ]
 
 MIDDLEWARE = [
@@ -122,10 +122,11 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 STATIC_URL = 'static/'
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
