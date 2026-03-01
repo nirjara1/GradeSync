@@ -901,6 +901,127 @@ input:checked+.slider:before {
     background-color: #d4d4d4;
 }
 
+/* ── ARCHIVE CLASS DASHBOARD ── */
+
+.archive-container {
+    background: #fff;
+    padding: 30px;
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    /* Distinct inner panel from mockup */
+    display: inline-block;
+    /* Keep it tight */
+    min-width: 600px;
+}
+
+.archive-subtitle {
+    font-size: 16px;
+    font-weight: bold;
+    color: #000;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.archive-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.archive-select-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bold-label {
+    font-weight: bold;
+    font-size: 14px;
+    color: #000;
+}
+
+/* Custom dropdown matching mockup */
+.custom-select {
+    padding: 6px 30px 6px 10px;
+    font-size: 12px;
+    border: 1px solid #ccc;
+    background-color: #e4e4e4;
+    border-radius: 0;
+    appearance: none;
+    /* remove default arrow */
+    background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+    /* custom arrow */
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    background-size: 20px;
+    min-width: 250px;
+    cursor: pointer;
+}
+
+/* Warning Box */
+.warning-box {
+    background-color: #fbd655;
+    /* The specific yellow from the mockup */
+    padding: 15px 20px;
+    width: fit-content;
+    margin-top: 5px;
+}
+
+.warning-title {
+    color: #a40000;
+    /* Darker red warning text */
+    font-weight: bold;
+    font-size: 12px;
+    margin: 0 0 2px 0;
+}
+
+.warning-text {
+    font-size: 11px;
+    font-weight: bold;
+    color: #000;
+    margin: 0 0 5px 0;
+}
+
+.warning-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #000;
+}
+
+.warning-list li {
+    margin-bottom: 2px;
+}
+
+/* Actions */
+.archive-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 5px;
+}
+
+.btn-archive-submit,
+.btn-archive-cancel {
+    background-color: #860029;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 6px 20px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn-archive-submit:hover,
+.btn-archive-cancel:hover {
+    background-color: #6a0020;
+    color: #fff;
+    text-decoration: none;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
     .stats-grid {

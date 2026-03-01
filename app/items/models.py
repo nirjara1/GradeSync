@@ -100,3 +100,15 @@ class ExecutionEnvironment(models.Model):
 
     def __str__(self):
         return "System Execution Environment Settings"
+
+class Course(models.Model):
+    name = models.CharField(max_length=200, help_text="Name of the course")
+    is_archived = models.BooleanField(default=False, help_text="Locks the course from further edits")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Course"
+        verbose_name_plural = "Courses"

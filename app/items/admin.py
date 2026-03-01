@@ -28,8 +28,35 @@ class GradeSyncAdminSite(admin.AdminSite):
         urls = super().get_urls()
         custom_urls = [
             path('execution-environment/', self.admin_view(self.execution_environment_view), name='execution_environment'),
+            path('archive-class/', self.admin_view(self.archive_class_view), name='archive_class'),
         ]
         return custom_urls + urls
+
+    def archive_class_view(self, request):
+        from .models import Course
+        from django.shortcuts import render, redirect
+        from django.contrib import messages
+
+        if request.method == 'POST':
+            course_id = request.POST.get('course_id')
+            if course_id:
+                try:
+                    course = Course.objects.get(id=course_id)
+                    course.is_archived = True
+                    course.save()
+                    messages.success(request, f'Class "{course.name}" has been successfully archived.')
+                except Course.DoesNotExist:
+                    messages.error(request, 'The selected class could not be found.')
+            return redirect('admin:archive_class')
+
+        active_courses = Course.objects.filter(is_archived=False)
+        
+        context = dict(
+            self.each_context(request),
+            title='Archive Class',
+            active_courses=active_courses,
+        )
+        return render(request, 'admin/items/archive_class.html', context)
 
     def execution_environment_view(self, request):
         from .models import ExecutionEnvironment
