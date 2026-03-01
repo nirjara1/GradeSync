@@ -1,0 +1,87 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}">
+<head>
+    <meta charset="utf-8">
+    <title>Log in | GradeSync</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/admin_login.css' %}">
+</head>
+<body>
+
+    <!-- Main Maroon Header -->
+    <header class="main-header">
+        <div class="header-brand">
+            <img class="header-logo" src="{% static 'images/ulm_logo.png' %}" alt="ULM Seal">
+            <div class="header-divider"></div>
+            <span class="header-title">GradeSync</span>
+        </div>
+    </header>
+
+    <!-- Gold Accent Bar -->
+    <div class="gold-bar"></div>
+
+    <!-- Secondary White Bar -->
+    <div class="secondary-header">
+        <span>GradeSync</span>
+    </div>
+
+    <!-- Content Area -->
+    <main class="content-area">
+        <div class="login-card">
+
+            <h1 class="card-title">Sign In</h1>
+            <hr class="title-rule">
+            <p class="card-description">Enter your Username to access the portal</p>
+
+            {% if form.errors %}
+                <div class="errornote">
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    {% else %}
+                        {% translate "Please correct the errors below." %}
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <form method="post" action="{{ app_path }}" id="login-form">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="id_username">Username <span style="color:#860029;">*</span></label>
+                    {{ form.username }}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_password">Password</label>
+                    {{ form.password }}
+                </div>
+
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <div class="login-btn-wrapper">
+                    <button type="submit" class="login-btn">Login</button>
+                </div>
+            </form>
+
+            <div class="card-links">
+                <a href="#">Forget Password?</a>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        Need access? <a href="#">Register Here</a>
+    </footer>
+
+    <script>
+        var u = document.getElementById('id_username');
+        var p = document.getElementById('id_password');
+        if (u) u.placeholder = 'Enter your Username';
+        if (p) p.placeholder = 'Enter your Password';
+    </script>
+
+</body>
+</html>
