@@ -112,3 +112,28 @@ class Course(models.Model):
     class Meta:
         verbose_name = "Course"
         verbose_name_plural = "Courses"
+
+class DatabaseSettings(models.Model):
+    # Singleton pattern
+    
+    retention_period = models.CharField(max_length=50, choices=[
+        ('30 Days', '30 Days'), ('60 Days', '60 Days'), ('90 Days', '90 Days'), ('1 Year', '1 Year')
+    ], default='30 Days')
+    
+    auto_cleanup_logs = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Database Settings"
+        verbose_name_plural = "Database Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return "Global Database Maintenance Settings"

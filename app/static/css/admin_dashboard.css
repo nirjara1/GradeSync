@@ -1022,6 +1022,150 @@ input:checked+.slider:before {
     text-decoration: none;
 }
 
+/* ── DATABASE MAINTENANCE DASHBOARD ── */
+
+.db-maintenance-form {
+    margin-top: 20px;
+}
+
+/* Top Action Row */
+.db-top-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.btn-db-action {
+    background-color: #e4e4e4;
+    color: #860029;
+    font-weight: bold;
+    font-size: 13px;
+    padding: 8px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-block;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-db-action:hover {
+    background-color: #d4d4d4;
+    color: #860029;
+}
+
+/* 4-Card Grid (reusing some flex layout concepts) */
+.db-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.db-card {
+    background: #e4e4e4;
+    border-radius: 8px;
+    padding: 20px 25px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.db-card-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #000;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.db-card-body {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    /* Stretch to fill so buttons can align to bottom */
+}
+
+.db-text {
+    font-size: 12px;
+    font-weight: bold;
+    color: #000;
+    margin: 0 0 10px 0;
+}
+
+.db-warning-text {
+    font-size: 11px;
+    font-style: italic;
+    /* Mimics mockup text feel */
+    color: #b2904c;
+    /* Gold/brown text */
+    margin: 0 0 15px 0;
+}
+
+/* Alignments */
+.db-status-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: auto;
+    /* Push buttons down */
+}
+
+.db-dropdown-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.db-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #000;
+}
+
+.db-select {
+    padding: 4px 20px 4px 8px;
+    font-size: 11px;
+    border: none;
+    background-color: #fff;
+    border-radius: 0;
+    color: #ccc;
+    /* Default 'Select...' color mimicking mock */
+}
+
+.db-select option {
+    color: #000;
+}
+
+/* Yellow Action Buttons */
+.db-button-row {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.db-button-center {
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
+}
+
+.btn-db-yellow {
+    background-color: #fbd655;
+    color: #cc5500;
+    /* Darker burnt orange text */
+    font-weight: bold;
+    font-size: 11px;
+    border: none;
+    border-radius: 12px;
+    padding: 8px 16px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-db-yellow:hover {
+    background-color: #e5c040;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
     .stats-grid {

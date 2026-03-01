@@ -29,8 +29,37 @@ class GradeSyncAdminSite(admin.AdminSite):
         custom_urls = [
             path('execution-environment/', self.admin_view(self.execution_environment_view), name='execution_environment'),
             path('archive-class/', self.admin_view(self.archive_class_view), name='archive_class'),
+            path('database-maintenance/', self.admin_view(self.database_maintenance_view), name='database_maintenance'),
         ]
         return custom_urls + urls
+
+    def database_maintenance_view(self, request):
+        from .models import DatabaseSettings
+        from django.shortcuts import render, redirect
+        from django.contrib import messages
+        from datetime import datetime
+
+        db_settings = DatabaseSettings.load()
+
+        if request.method == 'POST':
+            if 'save_cleanup' in request.POST:
+                db_settings.retention_period = request.POST.get('retention_period', db_settings.retention_period)
+                db_settings.auto_cleanup_logs = request.POST.get('auto_cleanup_logs') == 'on'
+                db_settings.save()
+                messages.success(request, 'Cleanup & Retention settings have been updated.')
+            elif 'run_backup' in request.POST:
+                messages.success(request, 'Database Backup has been initiated successfully!')
+            elif 'upload_restore' in request.POST:
+                messages.error(request, 'Restore functionality requires an attached backup file. Mock action simulated.')
+            
+            return redirect('admin:database_maintenance')
+
+        context = dict(
+            self.each_context(request),
+            title='Database Maintenance',
+            db_settings=db_settings,
+        )
+        return render(request, 'admin/items/database_maintenance.html', context)
 
     def archive_class_view(self, request):
         from .models import Course

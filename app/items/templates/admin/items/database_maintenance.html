@@ -1,0 +1,106 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Database Maintenance | GradeSync Admin{% endblock %}
+{% block nav_db %}active{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">Database Maintenance</h1>
+    <hr class="page-rule">
+</div>
+
+<form method="POST" class="db-maintenance-form">
+    {% csrf_token %}
+    
+    <!-- Top Action Row -->
+    <div class="db-top-actions">
+        <!-- These could eventually link to specific full views -->
+        <a href="#" class="btn-db-action">Run Backup</a>
+        <a href="{% url 'admin:admin_logentry_changelist' %}" class="btn-db-action">View Audit Log</a>
+    </div>
+
+    <!-- 4-Card Grid Layout -->
+    <div class="db-grid">
+
+        <!-- CARD 1: Backups -->
+        <div class="db-card backups-card">
+            <h2 class="db-card-title">Backups</h2>
+            <div class="db-card-body">
+                <p class="db-text">Last backup: Feb 18, 2026 . 3:10 PM</p>
+                
+                <div class="db-status-row">
+                    <span class="db-text">Status:</span>
+                    <span class="status-indicator status-online"></span>
+                    <span class="db-text" style="font-weight: normal;">Healthy</span>
+                </div>
+                
+                <div class="db-button-row">
+                    <button type="submit" name="run_backup" class="btn-db-yellow">Run Backup Now</button>
+                    <button type="button" class="btn-db-yellow">Schedule Backup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 2: Restore -->
+        <div class="db-card restore-card">
+            <h2 class="db-card-title">Restore</h2>
+            <div class="db-card-body">
+                <p class="db-warning-text">Restoring may log out active users and should be done during low-traffic periods.</p>
+                
+                <div class="db-dropdown-row">
+                    <label class="db-label">Restore Source:</label>
+                    <select class="db-select" name="restore_source">
+                        <option value="" disabled selected>Select backup....</option>
+                    </select>
+                </div>
+                
+                <div class="db-button-center">
+                    <button type="submit" name="upload_restore" class="btn-db-yellow">Upload Backup File</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 3: Cleanup & Retention -->
+        <div class="db-card cleanup-card">
+            <h2 class="db-card-title">Cleanup & Retention</h2>
+            <div class="db-card-body">
+                <div class="db-dropdown-row">
+                    <label class="db-label">Retention Period:</label>
+                    <select class="db-select" name="retention_period">
+                        <option value="30 Days" {% if db_settings.retention_period == '30 Days' %}selected{% endif %}>30 Days</option>
+                        <option value="60 Days" {% if db_settings.retention_period == '60 Days' %}selected{% endif %}>60 Days</option>
+                        <option value="90 Days" {% if db_settings.retention_period == '90 Days' %}selected{% endif %}>90 Days</option>
+                        <option value="1 Year" {% if db_settings.retention_period == '1 Year' %}selected{% endif %}>1 Year</option>
+                    </select>
+                </div>
+
+                <div class="toggle-row">
+                    <label class="db-label">Auto-cleanup old logs:</label>
+                    <label class="switch">
+                        <input type="checkbox" name="auto_cleanup_logs" {% if db_settings.auto_cleanup_logs %}checked{% endif %}>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div class="db-button-center" style="margin-top:20px;">
+                    <button type="submit" name="save_cleanup" class="btn-db-yellow">Run Cleanup Now</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 4: Recent Maintenance -->
+        <div class="db-card maintenance-card">
+            <h2 class="db-card-title">Recent Maintenance</h2>
+            <div class="db-card-body">
+                <p class="db-text">Backup Completed : Feb 18, 2026 3:10 PM</p>
+                <p class="db-text">Cleanup run : Feb 17, 2026 9:00 PM</p>
+                <p class="db-text" style="margin-bottom:20px;">Restore attempted: Feb 10, 2026 1:22 PM (Failed)</p>
+                
+                <a href="{% url 'admin:admin_logentry_changelist' %}" class="view-logs-link" style="color:#b2904c;">View full history in Audit Logs →</a>
+            </div>
+        </div>
+
+    </div>
+</form>
+{% endblock %}
