@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradeSync - Sign In</title>
+    <!-- Use a modern, clean font like Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-red: #860029; /* ULM Maroon */
+            --primary-red-hover: #860029;
+            --ulm-gold: #c39a3f;
+            --bg-gray: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #d1d5db;
+            --focus-ring: rgba(139, 0, 0, 0.15);
+        }
+
+        #background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .floating-word {
+            position: absolute;
+            font-weight: 800;
+            white-space: nowrap;
+            user-select: none;
+            will-change: transform;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            /* Subtle moving mesh gradient */
+            background: linear-gradient(-45deg, #f3f4f6, #e5e7eb, #ebd4d4, #f3f4f6);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Top Header Bar */
+        .header {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 120px;
+            background-color: var(--primary-red);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 10px 20px;
+        }
+
+        .main-logo {
+            max-width: 100%;
+            max-height: 95px;
+            object-fit: contain;
+        }
+
+        /* Login Card */
+        .login-card {
+            position: relative;
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 420px;
+            margin: auto;
+            padding: 48px 36px;
+            border-radius: 16px;
+            /* Soft diffused drop shadow */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 5;
+            
+            /* Fade in and slide up */
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeSlideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-title {
+            color: var(--text-dark);
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 36px;
+            text-align: center;
+            position: relative;
+        }
+
+        /* Subtle gold accent under title */
+        .login-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 3px;
+            background-color: var(--ulm-gold);
+            border-radius: 2px;
+        }
+
+        .login-form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Floating Labels Input Group */
+        .input-group {
+            position: relative;
+            width: 100%;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 24px 16px 8px 16px;
+            font-size: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-dark);
+            background-color: #f9fafb;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-red);
+            border-width: 2px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 15px var(--focus-ring);
+            padding: 23px 15px 7px 15px; /* Adjust padding to prevent jumping from border thickens */
+        }
+
+        .input-group label {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 15px;
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            top: 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--primary-red);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Prevent auto-fill jump */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active{
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            margin-top: 12px;
+            background-color: var(--primary-red);
+            color: white;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-3px);
+            background-color: var(--primary-red-hover);
+            box-shadow: 0 10px 20px rgba(139, 0, 0, 0.25);
+            border-color: var(--ulm-gold);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 10px rgba(139, 0, 0, 0.2);
+        }
+
+        .links-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 28px;
+            width: 100%;
+            padding: 0 4px;
+        }
+
+        .link-wrapper {
+            position: relative;
+        }
+
+        .links-container a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+            padding-bottom: 4px;
+        }
+
+        .links-container a:hover {
+            color: var(--primary-red);
+            text-decoration: none;
+        }
+
+        /* Slide-in underline animation */
+        .links-container a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 0;
+            background-color: var(--primary-red);
+            transition: width 0.3s ease-out;
+        }
+
+        .links-container a:hover::after {
+            width: 100%;
+        }
+
+        .divider {
+            width: 1px;
+            height: 14px;
+            background-color: var(--border-color);
+            opacity: 0.6;
+            margin: 0 10px;
+        }
+
+        .footer-text {
+            margin-top: auto;
+            margin-bottom: 30px;
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                height: 80px;
+                padding: 10px 15px;
+            }
+
+            .main-logo {
+                max-height: 50px;
+            }
+
+            .login-card {
+                width: 92%;
+                margin: auto;
+                padding: 36px 24px;
+            }
+            
+            .links-container {
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .divider {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="background-container"></div>
+
+    <header class="header">
+        <!-- Make sure to save the image you attached as "logo.png" in the same folder, 
+             or change the src="" below to match your image file's name and location! -->
+        <img src="logo.png" alt="GradeSync Logo" class="main-logo">
+    </header>
+
+    <main class="login-card">
+        <h1 class="login-title">Sign In</h1>
+
+        <form class="login-form" onsubmit="event.preventDefault(); window.location.href='../portal/profile.html';">
+            <div class="input-group">
+                <input type="text" id="username" name="username" placeholder=" " required autocomplete="username">
+                <label for="username">Email or Username</label>
+            </div>
+
+            <div class="input-group">
+                <input type="password" id="password" name="password" placeholder=" " required autocomplete="current-password">
+                <label for="password">Password</label>
+            </div>
+
+            <button type="submit" class="login-btn">LOGIN</button>
+        </form>
+
+        <div class="links-container">
+            <a href="#">Forgot Password?</a>
+            <div class="divider"></div>
+            <a href="#">Create Account</a>
+        </div>
+    </main>
+
+    <footer class="footer-text" style="position: relative; z-index: 5;">
+        &copy; 2026 GradeSync Portal. All rights reserved.
+    </footer>
+
+    <script>
+        const container = document.getElementById('background-container');
+        const words = [];
+        const numWords = 25;
+        const mouse = { x: -1000, y: -1000 };
+
+        for (let i = 0; i < numWords; i++) {
+            const el = document.createElement('div');
+            el.className = 'floating-word';
+            el.textContent = 'GradeSync';
+            
+            const size = Math.random() * 60 + 20; // 20px to 80px
+            el.style.fontSize = `${size}px`;
+            
+            const isMaroon = Math.random() > 0.6;
+            el.style.color = isMaroon ? 'rgba(139, 0, 0, 0.05)' : 'rgba(107, 114, 128, 0.08)';
+            
+            const angle = (Math.random() - 0.5) * 60; // -30 to 30 degrees
+            
+            const word = {
+                el,
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                vx: (Math.random() - 0.5) * 0.8,
+                vy: (Math.random() - 0.5) * 0.8,
+                angle,
+                offsetX: 0,
+                offsetY: 0,
+                targetOffsetX: 0,
+                targetOffsetY: 0
+            };
+            
+            container.appendChild(el);
+            words.push(word);
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        document.addEventListener('mouseleave', () => {
+            mouse.x = -1000;
+            mouse.y = -1000;
+        });
+
+        function animate() {
+            words.forEach(word => {
+                word.x += word.vx;
+                word.y += word.vy;
+                
+                // Wrap around screen
+                if (word.x < -200) word.x = window.innerWidth + 100;
+                if (word.x > window.innerWidth + 200) word.x = -100;
+                if (word.y < -100) word.y = window.innerHeight + 100;
+                if (word.y > window.innerHeight + 100) word.y = -100;
+                
+                // Mouse repulsion
+                // Calculate distance based on the actual visual position
+                const dx = mouse.x - (word.x + word.offsetX);
+                const dy = mouse.y - (word.y + word.offsetY);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const repelRadius = 250;
+                
+                if (distance < repelRadius) {
+                    const force = Math.pow((repelRadius - distance) / repelRadius, 2); 
+                    const dirX = -dx / distance;
+                    const dirY = -dy / distance;
+                    
+                    word.targetOffsetX = dirX * force * 150; 
+                    word.targetOffsetY = dirY * force * 150;
+                } else {
+                    word.targetOffsetX = 0;
+                    word.targetOffsetY = 0;
+                }
+                
+                // Smoothly ease into offset
+                word.offsetX += (word.targetOffsetX - word.offsetX) * 0.08;
+                word.offsetY += (word.targetOffsetY - word.offsetY) * 0.08;
+                
+                word.el.style.transform = `translate(${word.x + word.offsetX}px, ${word.y + word.offsetY}px) rotate(${word.angle}deg)`;
+            });
+            
+            requestAnimationFrame(animate);
+        }
+
+        // Handle resize nicely
+        window.addEventListener('resize', () => {
+            words.forEach(word => {
+                if (word.x > window.innerWidth) word.x = window.innerWidth - 100;
+                if (word.y > window.innerHeight) word.y = window.innerHeight - 100;
+            });
+        });
+
+        animate();
+    </script>
+</body>
+
+</html>
