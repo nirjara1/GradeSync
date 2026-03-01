@@ -1,0 +1,88 @@
+{% extends 'base_professor.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <div>
+        <h2 class="page-title" style="margin: 0; color: var(--maroon);">Grade Submission</h2>
+        <p style="margin: 5px 0 0 0; color: var(--text-muted);">
+            Student: <strong>{{ submission.student.user.get_full_name|default:submission.student.user.username
+                }}</strong> |
+            Assignment: <a href="{% url 'assignment_detail' submission.assignment.pk %}"
+                style="color: var(--maroon);">{{ submission.assignment.name }}</a>
+        </p>
+    </div>
+</div>
+
+<div style="display: flex; gap: 30px;">
+    <!-- Left Column: Submission Details -->
+    <div style="flex: 2; background: white; padding: 30px; border-radius: 8px; border: 1px solid #eee;">
+        <h3 style="margin-top: 0; border-bottom: 2px solid var(--maroon); padding-bottom: 10px;">Submission Details</h3>
+
+        <p><strong>Submitted On:</strong> {{ submission.submission_time|date:"F j, Y, g:i a" }}</p>
+
+        <div style="margin-top: 20px;">
+            <p><strong>Submitted File:</strong></p>
+            <div
+                style="background: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-radius: 6px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <i class="fa-solid fa-file-code"
+                        style="font-size: 24px; color: var(--text-muted); margin-right: 10px;"></i>
+                    <span style="font-family: monospace; font-size: 14px;">{{ submission.file_path.name }}</span>
+                </div>
+                <a href="{{ submission.file_path.url }}" target="_blank" class="btn-publish"
+                    style="text-decoration: none; padding: 8px 15px;">
+                    Download File
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Grading Panel -->
+    <div
+        style="flex: 1; background: #fdfdfd; padding: 30px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <h3 style="margin-top: 0; border-bottom: 2px solid var(--maroon); padding-bottom: 10px;">Evaluation</h3>
+
+        {% if messages %}
+        <ul class="messages" style="padding: 0; margin-bottom: 15px;">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}" {% endif %}
+                style="color: green; font-weight: bold; list-style: none; margin-bottom: 10px;">
+                {{ message }}
+                </li>
+                {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="score" style="display: block; font-weight: bold; margin-bottom: 8px;">
+                    Score (out of {{ submission.assignment.points }}) *
+                </label>
+                <div style="display: flex; align-items: center;">
+                    <input type="number" id="score" name="score" step="0.5" required
+                        value="{{ grade.score|default:'' }}"
+                        style="width: 100px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; text-align: center;">
+                    <span style="margin-left: 10px; color: var(--text-muted); font-size: 18px;">/ {{
+                        submission.assignment.points }}</span>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label for="feedback" style="display: block; font-weight: bold; margin-bottom: 8px;">
+                    Feedback (Optional)
+                </label>
+                <textarea id="feedback" name="feedback" rows="6"
+                    style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 14px; box-sizing: border-box;">{{ grade.feedback|default:'' }}</textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <a href="{% url 'assignment_detail' submission.assignment.pk %}"
+                    style="padding: 10px 15px; border: 1px solid #ccc; border-radius: 4px; color: #333; text-decoration: none; background: #f5f5f5;">Cancel</a>
+                <button type="submit" class="btn-publish" style="flex: 1;">Save Grade</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

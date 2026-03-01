@@ -1,0 +1,1 @@
+{"created": 1771804504.6463995, "duration": 0.0023255348205566406, "exitcode": 5, "root": "/submission", "environment": {}, "summary": {"total": 0, "collected": 0}, "collectors": [{"nodeid": "", "outcome": "passed", "result": [{"nodeid": ".", "type": "Dir"}]}, {"nodeid": ".", "outcome": "passed", "result": []}], "tests": []}

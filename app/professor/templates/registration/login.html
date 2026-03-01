@@ -1,0 +1,16 @@
+{% extends 'base_professor.html' %}
+
+{% block content %}
+<div style="max-width: 400px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; background: #fff;">
+    <h2>Login Required</h2>
+    <p>Please log in to view the Professor Dashboard.</p>
+    <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit"
+            style="background: #800000; color: white; padding: 10px 15px; border: none; cursor: pointer; width: 100%;">Log
+            In</button>
+        <input type="hidden" name="next" value="{{ next }}" />
+    </form>
+</div>
+{% endblock %}

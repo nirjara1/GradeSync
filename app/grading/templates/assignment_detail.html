@@ -1,0 +1,100 @@
+{% extends 'base_professor.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <div>
+        <h2 class="page-title" style="margin: 0; color: var(--maroon);">{{ assignment.name }}</h2>
+        <p style="margin: 5px 0 0 0; color: var(--text-muted);">
+            Course: {{ assignment.course.code }}-{{ assignment.course.section }} |
+            Points: {{ assignment.points }} |
+            Due: {{ assignment.due_date|date:"M j \a\t g:ia"|default:"No due date" }}
+        </p>
+    </div>
+    {% if is_instructor %}
+    <div style="display: flex; gap: 10px;">
+        <a href="{% url 'edit_assignment' assignment.pk %}" class="btn-outline-maroon" style="text-decoration: none;">
+            <i class="fa-solid fa-pen"></i> Edit
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 30px;">
+    <h3 style="margin-top: 0; margin-bottom: 10px;">Description</h3>
+    <p>{{ assignment.description|default:"No description provided." }}</p>
+    {% if assignment.public_test_data %}
+    <a href="{{ assignment.public_test_data.url }}" target="_blank" style="color: var(--maroon);">Download Test Data</a>
+    {% endif %}
+</div>
+
+<hr class="divider">
+<h3 style="margin-bottom: 20px;">Submissions</h3>
+
+{% if messages %}
+<ul class="messages" style="padding: 0; margin-bottom: 20px;">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}" {% endif %}
+        style="color: var(--maroon); font-weight: bold; list-style: none; padding: 10px; background: #ffebee; border-radius: 4px;">
+        {{ message }}
+        </li>
+        {% endfor %}
+</ul>
+{% endif %}
+
+<div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead style="background-color: var(--maroon); color: white;">
+            <tr>
+                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd;">Student</th>
+                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd;">Submitted At</th>
+                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd;">File</th>
+                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd;">Grade</th>
+                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd; text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for submission in submissions %}
+            <tr style="border-bottom: 1px solid #eee; background-color: {% cycle '#ffffff' '#fcfcfc' %};">
+                <td style="padding: 12px 15px;">{{
+                    submission.student.user.get_full_name|default:submission.student.user.username }}</td>
+                <td style="padding: 12px 15px; color: var(--text-muted);">{{ submission.submission_time|date:"M j g:ia"
+                    }}</td>
+                <td style="padding: 12px 15px;">
+                    <a href="{{ submission.file_path.url }}" target="_blank"
+                        style="color: var(--red-link); text-decoration: none;">
+                        <i class="fa-solid fa-file-code"></i> Download
+                    </a>
+                </td>
+                <td
+                    style="padding: 12px 15px; font-weight: bold; color: {% if submission.grade %}green{% else %}var(--text-muted){% endif %};">
+                    {% if submission.grade %}
+                    {{ submission.grade.score }} / {{ assignment.points }}
+                    {% else %}
+                    Needs Grading
+                    {% endif %}
+                </td>
+                <td style="padding: 12px 15px; text-align: center;">
+                    <a href="{% url 'grade_submission' submission.pk %}" class="btn-publish"
+                        style="padding: 6px 15px; font-size: 13px; text-decoration: none; display: inline-block;">
+                        {% if submission.grade %}Edit Grade{% else %}Grade{% endif %}
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="padding: 30px; text-align: center; color: var(--text-muted);">
+                    No submissions found for this assignment yet.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="margin-top: 20px;">
+    <a href="{% url 'course_assignments' assignment.course.id %}" style="color: var(--maroon); text-decoration: none;">
+        <i class="fa-solid fa-arrow-left"></i> Back to Assignments
+    </a>
+</div>
+
+{% endblock %}
