@@ -1,0 +1,87 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}">
+<head>
+    <meta charset="utf-8">
+    <title>Logout Successful | GradeSync</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #222;
+        }
+
+        .logout-container {
+            text-align: center;
+            padding: 40px;
+            max-width: 500px;
+        }
+
+        .logout-icon {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 24px;
+        }
+
+        .logout-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #111;
+        }
+
+        .logout-subtext {
+            font-size: 16px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 36px;
+        }
+
+        .btn-login {
+            display: inline-block;
+            background-color: #860029; /* ULM Maroon */
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 28px;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-login:hover {
+            background-color: #63001d;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="logout-container">
+        <!-- SVG Icon (Person walking out door) -->
+        <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+
+        <h1 class="logout-title">Logout Successful</h1>
+        
+        <p class="logout-subtext">You have been successfully logged out. Thank you for using GradeSync!</p>
+
+        <a href="{% url 'admin:login' %}" class="btn-login">Back to Login</a>
+    </div>
+
+</body>
+</html>

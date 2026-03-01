@@ -24,11 +24,14 @@
 
     <!-- ── SECONDARY WHITE BAR ── -->
     <div class="secondary-header">
-        <span class="brand-name">GradeSync</span>
-        <div class="user-nav">
+        <span class="sec-brand">GradeSync</span>
+        <div class="sec-user">
             {% if user.is_authenticated %}
-                Welcome, <strong>{{ user.get_username }}</strong>!
-                <a href="{% url 'admin:logout' %}">LOG OUT?</a>
+                Welcome, <strong>{{ user.username }}</strong>! 
+                <form method="post" action="{% url 'admin:logout' %}" style="display:inline-block; margin:0; padding:0;">
+                    {% csrf_token %}
+                    <button type="submit" style="background:none; border:none; padding:0; font:inherit; color:#860029; font-weight:700; cursor:pointer; text-decoration:underline;">LOG OUT?</button>
+                </form>
             {% endif %}
         </div>
     </div>
