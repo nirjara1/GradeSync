@@ -1,0 +1,62 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Add user | GradeSync Admin{% endblock %}
+{% block nav_accounts %}active{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">Add user</h1>
+    <hr class="page-rule">
+</div>
+
+<div class="form-container">
+    <p class="form-help-text">Enter the new user's username and secure password.</p>
+    
+    <form method="post" id="{{ opts.model_name }}_form" novalidate>
+        {% csrf_token %}
+        
+        {% if adminform.form.non_field_errors %}
+            <div class="errornote">
+                {{ adminform.form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        {% for fieldset in adminform %}
+            <fieldset class="module aligned {{ fieldset.classes }}">
+                {% if fieldset.name %}<h2>{{ fieldset.name }}</h2>{% endif %}
+                
+                {% for line in fieldset %}
+                    <div class="form-row">
+                        {% for adminfield in line %}
+                            <div class="field-box {% if adminfield.field.name %}field-{{ adminfield.field.name }}{% endif %}">
+                                {{ adminfield.field.errors }}
+                                
+                                {% if adminfield.is_checkbox %}
+                                    {{ adminfield.field }}
+                                    <label class="vCheckboxLabel" for="{{ adminfield.field.id_for_label }}">{{ adminfield.field.label }}</label>
+                                {% else %}
+                                    <label class="required" for="{{ adminfield.field.id_for_label }}">{{ adminfield.field.label }}:</label>
+                                    {{ adminfield.field }}
+                                {% endif %}
+                                
+                                {% if adminfield.field.name == 'username' %}
+                                    <div class="help">Required. 150 characters or fewer.</div>
+                                {% elif adminfield.field.name == 'password' or adminfield.field.name == 'password1' %}
+                                    <div class="help">Must be at least 8 characters and not entirely numeric.</div>
+                                {% elif adminfield.field.name == 'password_confirmation' or adminfield.field.name == 'password2' %}
+                                    <div class="help">Re-enter password for verification.</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </fieldset>
+        {% endfor %}
+
+        <div class="submit-row">
+            <button type="submit" class="btn-save btn-default" name="_save">SAVE</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

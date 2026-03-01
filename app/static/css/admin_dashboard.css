@@ -414,6 +414,145 @@ body {
     text-decoration: underline;
 }
 
+/* ── FORM CONTAINER (ADD/EDIT USER) ── */
+.form-container {
+    background-color: #ffffff;
+    border-top: 4px solid #860029;
+    border-radius: 6px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
+    padding: 30px 40px;
+    width: 100%;
+    max-width: 800px;
+}
+
+.form-help-text {
+    font-size: 14px;
+    color: #444;
+    margin-bottom: 25px;
+}
+
+.form-container fieldset {
+    border: none;
+    margin-bottom: 20px;
+}
+
+.form-container h2 {
+    color: #860029;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.form-row {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.form-row label {
+    display: block;
+    width: 250px;
+    color: #333;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding-right: 20px;
+}
+
+.form-row input[type="text"],
+.form-row input[type="password"] {
+    flex: 1;
+    min-width: 250px;
+    background-color: #f5f6f8;
+    border: 1px solid #dde0e5;
+    border-radius: 5px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-row input[type="text"]:focus,
+.form-row input[type="password"]:focus {
+    border-color: #860029;
+    box-shadow: 0 0 0 3px rgba(134, 0, 41, 0.09);
+    background-color: #fff;
+}
+
+.help {
+    flex-basis: 100%;
+    margin-left: 250px;
+    /* Aligns with input */
+    margin-top: 6px;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Checkbox & Radio specific layout */
+.form-row .vCheckboxLabel {
+    width: auto;
+    padding-left: 8px;
+    font-weight: 400;
+    display: inline;
+}
+
+ul.radiolist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+ul.radiolist li {
+    display: block;
+    /* Stacks the circles vertically */
+    margin-bottom: 8px;
+}
+
+ul.radiolist li label {
+    display: inline-block;
+    width: auto;
+    padding-left: 6px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Submit row */
+.submit-row {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 15px;
+}
+
+.btn-save {
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 5px;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.2s;
+}
+
+.btn-save:hover {
+    opacity: 0.9;
+}
+
+.btn-default {
+    background-color: #860029;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #e8e8e8;
+    color: #333;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
     .stats-grid {
