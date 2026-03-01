@@ -23,6 +23,52 @@ class GradeSyncAdminSite(admin.AdminSite):
         messages.success(request, "You have been successfully logged out.")
         return HttpResponseRedirect(reverse('admin:login'))
 
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('execution-environment/', self.admin_view(self.execution_environment_view), name='execution_environment'),
+        ]
+        return custom_urls + urls
+
+    def execution_environment_view(self, request):
+        from .models import ExecutionEnvironment
+        from django.shortcuts import render, redirect
+        from django.contrib import messages
+
+        env = ExecutionEnvironment.load()
+
+        if request.method == 'POST':
+            if 'reset' in request.POST:
+                env.delete()  # Will recreate defaults on next load
+                messages.success(request, 'Execution Environment reset to defaults.')
+                return redirect('admin:execution_environment')
+            
+            # Save logic for limits
+            env.cpu_limit = request.POST.get('cpu_limit', env.cpu_limit)
+            env.memory_limit = request.POST.get('memory_limit', env.memory_limit)
+            env.execution_timeout = request.POST.get('execution_timeout', env.execution_timeout)
+            
+            # Save logic for sandbox
+            env.container_isolation = request.POST.get('container_isolation') == 'on'
+            env.network_access = request.POST.get('network_access') == 'on'
+            env.file_system_access = request.POST.get('file_system_access', env.file_system_access)
+
+            # Save logic for auto-scaling
+            env.enable_auto_scaling = request.POST.get('enable_auto_scaling') == 'on'
+            env.max_concurrent_jobs = request.POST.get('max_concurrent_jobs', env.max_concurrent_jobs)
+
+            env.save()
+            messages.success(request, 'Execution Environment configuration updated.')
+            return redirect('admin:execution_environment')
+
+        context = dict(
+            self.each_context(request),
+            title='Execution Environment',
+            env=env,
+        )
+        return render(request, 'admin/items/execution_environment.html', context)
+
 # Replace the default admin site
 gradesync_admin = GradeSyncAdminSite(name='admin')
 

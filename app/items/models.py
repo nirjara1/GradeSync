@@ -60,3 +60,43 @@ class ProgrammingLanguage(models.Model):
     class Meta:
         verbose_name = "Programming Language"
         verbose_name_plural = "Programming Languages"
+
+
+class ExecutionEnvironment(models.Model):
+    # Singleton pattern - always override PK 1
+    
+    # Resource Limits
+    cpu_limit = models.CharField(max_length=50, choices=[
+        ('1 core', '1 core'), ('2 cores', '2 cores'), ('4 cores', '4 cores')
+    ], default='1 core')
+    memory_limit = models.CharField(max_length=50, choices=[
+        ('512 MB', '512 MB'), ('1 GB', '1 GB'), ('2 GB', '2 GB'), ('4 GB', '4 GB')
+    ], default='1 GB')
+    execution_timeout = models.IntegerField(default=10, help_text="Timeout in seconds")
+
+    # Sandbox Configuration
+    container_isolation = models.BooleanField(default=True)
+    network_access = models.BooleanField(default=False)
+    file_system_access = models.CharField(max_length=50, choices=[
+        ('Read only', 'Read only'), ('Restricted Write', 'Restricted Write'), ('Full Access (Admin only)', 'Full Access (Admin only)')
+    ], default='Restricted Write')
+
+    # Auto Scaling
+    enable_auto_scaling = models.BooleanField(default=False)
+    max_concurrent_jobs = models.IntegerField(default=10)
+
+    class Meta:
+        verbose_name = "Execution Environment"
+        verbose_name_plural = "Execution Environments"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return "System Execution Environment Settings"

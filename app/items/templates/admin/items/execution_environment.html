@@ -1,0 +1,125 @@
+{% extends "admin/base_gradesync.html" %}
+{% load i18n static %}
+
+{% block title %}Execution Environment | GradeSync Admin{% endblock %}
+{% block nav_env %}active{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">Execution Environment</h1>
+    <hr class="page-rule">
+</div>
+
+<form method="POST" class="exec-env-form">
+    {% csrf_token %}
+    
+    <div class="exec-grid">
+        
+        <!-- CARD 1: Resource Limits -->
+        <div class="exec-card resource-limits">
+            <h2 class="exec-card-title">Resource Limits</h2>
+            <div class="exec-card-body layout-flex">
+                <div class="flex-column">
+                    <label class="exec-label">CPU Limits:</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="cpu_limit" value="1 core" {% if env.cpu_limit == '1 core' %}checked{% endif %}> 1 core</label>
+                        <label><input type="radio" name="cpu_limit" value="2 cores" {% if env.cpu_limit == '2 cores' %}checked{% endif %}> 2 cores</label>
+                        <label><input type="radio" name="cpu_limit" value="4 cores" {% if env.cpu_limit == '4 cores' %}checked{% endif %}> 4 cores</label>
+                    </div>
+                </div>
+                <div class="flex-column">
+                    <label class="exec-label">Memory Limit:</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="memory_limit" value="512 MB" {% if env.memory_limit == '512 MB' %}checked{% endif %}> 512 MB</label>
+                        <label><input type="radio" name="memory_limit" value="1 GB" {% if env.memory_limit == '1 GB' %}checked{% endif %}> 1 GB</label>
+                        <label><input type="radio" name="memory_limit" value="2 GB" {% if env.memory_limit == '2 GB' %}checked{% endif %}> 2 GB</label>
+                        <label><input type="radio" name="memory_limit" value="4 GB" {% if env.memory_limit == '4 GB' %}checked{% endif %}> 4 GB</label>
+                    </div>
+                </div>
+                <div class="flex-column">
+                    <label class="exec-label">Execution Timeout:</label>
+                    <div class="timeout-wrap">
+                        <input type="number" name="execution_timeout" value="{{ env.execution_timeout }}" class="timeout-input" min="1" max="120"> <span class="timeout-suffix">seconds</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 2: Sandbox Configuration -->
+        <div class="exec-card sandbox-config">
+            <h2 class="exec-card-title">Sandbox Configuration</h2>
+            <div class="exec-card-body">
+                <div class="toggle-row">
+                    <label class="exec-label">Container Isolation:</label>
+                    <label class="switch">
+                        <input type="checkbox" name="container_isolation" {% if env.container_isolation %}checked{% endif %}>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <label class="exec-label">Network Access:</label>
+                    <label class="switch">
+                        <input type="checkbox" name="network_access" {% if env.network_access %}checked{% endif %}>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="dropdown-row">
+                    <label class="exec-label">File System Access: Dropdowns:</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="file_system_access" value="Read only" {% if env.file_system_access == 'Read only' %}checked{% endif %}> Read only</label>
+                        <label><input type="radio" name="file_system_access" value="Restricted Write" {% if env.file_system_access == 'Restricted Write' %}checked{% endif %}> Restricted Write</label>
+                        <label><input type="radio" name="file_system_access" value="Full Access (Admin only)" {% if env.file_system_access == 'Full Access (Admin only)' %}checked{% endif %}> Full Access (Admin only)</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 3: Runner Status -->
+        <div class="exec-card runner-status">
+            <h2 class="exec-card-title">Runner Status</h2>
+            <div class="exec-card-body">
+                <div class="status-row">
+                    <span class="status-name">Runner Cluster A —</span>
+                    <span class="status-indicator status-online"></span><span class="status-text">Online</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-name">Runner Cluster B —</span>
+                    <span class="status-indicator status-online"></span><span class="status-text">Online</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-name">Fallback Runner —</span>
+                    <span class="status-indicator status-degraded"></span><span class="status-text">Degraded</span>
+                </div>
+                <br>
+                <a href="#" class="view-logs-link">View Logs →</a>
+            </div>
+        </div>
+
+        <!-- CARD 4: Auto Scaling -->
+        <div class="exec-card auto-scaling">
+            <h2 class="exec-card-title">Auto Scaling</h2>
+            <div class="exec-card-body">
+                <div class="toggle-row">
+                    <label class="exec-label">Enable Auto Scaling:</label>
+                    <label class="switch">
+                        <input type="checkbox" name="enable_auto_scaling" {% if env.enable_auto_scaling %}checked{% endif %}>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="input-row">
+                    <label class="exec-label" style="display:block; margin-bottom:10px;">Max Concurrent Jobs :</label>
+                    <input type="number" name="max_concurrent_jobs" value="{{ env.max_concurrent_jobs }}" class="jobs-input" min="1">
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Actions -->
+    <div class="exec-actions">
+        <button type="submit" name="save" class="btn-save-changes">Save Changes</button>
+        <button type="submit" name="reset" class="btn-reset-default">Reset to Default</button>
+    </div>
+
+</form>
+{% endblock %}
