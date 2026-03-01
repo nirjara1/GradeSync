@@ -13,6 +13,15 @@ class GradeSyncAdminSite(admin.AdminSite):
         extra_context['user_count'] = User.objects.count()
         return super().index(request, extra_context=extra_context)
 
+    def logout(self, request, extra_context=None):
+        from django.contrib.auth import logout as auth_logout
+        from django.contrib import messages
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        
+        auth_logout(request)
+        messages.success(request, "You have been successfully logged out.")
+        return HttpResponseRedirect(reverse('admin:login'))
 
 # Replace the default admin site
 gradesync_admin = GradeSyncAdminSite(name='admin')
