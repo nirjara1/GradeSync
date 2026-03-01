@@ -34,6 +34,16 @@
             <hr class="title-rule">
             <p class="card-description">Enter your Username to access the portal</p>
 
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             {% if form.errors %}
                 <div class="errornote">
                     {% if form.non_field_errors %}
@@ -81,7 +91,22 @@
         var p = document.getElementById('id_password');
         if (u) u.placeholder = 'Enter your Username';
         if (p) p.placeholder = 'Enter your Password';
-    </script>
 
+        // Auto-dismiss the success message beautifully
+        var messagesDiv = document.querySelector('.messages');
+        if (messagesDiv) {
+            setTimeout(function() {
+                var alerts = messagesDiv.querySelectorAll('.alert-success');
+                alerts.forEach(function(alertBox) {
+                    alertBox.classList.add('fade-out');
+                });
+                
+                // Hide container completely after CSS animation finishes
+                setTimeout(function() {
+                    messagesDiv.style.display = 'none';
+                }, 800); 
+            }, 3000); // Wait 3 seconds before beginning fade out
+        }
+    </script>
 </body>
 </html>
