@@ -1,0 +1,214 @@
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── BODY ── */
+body {
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #E5E5E5;
+}
+
+/* ── MAIN MAROON HEADER ── */
+.main-header {
+    background-color: #860029;
+    width: 100%;
+    padding: 22px 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+}
+
+.header-logo {
+    height: 60px;
+    width: auto;
+}
+
+.header-divider {
+    width: 2px;
+    height: 44px;
+    background-color: white;
+    margin: 0 20px;
+    flex-shrink: 0;
+}
+
+.header-title {
+    color: white;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* ── GOLD ACCENT BAR ── */
+.gold-bar {
+    background-color: #FDB913;
+    height: 5px;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+/* ── SECONDARY WHITE BAR ── */
+.secondary-header {
+    background-color: #ffffff;
+    width: 100%;
+    padding: 10px 40px;
+    border-bottom: 1px solid #e8e8e8;
+    flex-shrink: 0;
+}
+
+.secondary-header span {
+    color: #860029;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+/* ── CONTENT AREA ── */
+.content-area {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 36px 20px;
+}
+
+/* ── SIGN-IN CARD ── */
+.login-card {
+    background-color: #ffffff;
+    border-top: 4px solid #860029;
+    border-radius: 6px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.10);
+    padding: 28px 36px 26px;
+    width: 100%;
+    max-width: 420px;
+}
+
+.card-title {
+    color: #860029;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+    text-decoration: underline;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.title-rule {
+    border: none;
+    border-top: 1.5px solid #860029;
+    margin-bottom: 12px;
+}
+
+.card-description {
+    color: #666;
+    font-size: 12.5px;
+    text-align: center;
+    margin-bottom: 22px;
+}
+
+/* ── ERROR DISPLAY ── */
+.errornote {
+    color: #b00020;
+    background: #fff0f2;
+    border: 1px solid #f5c6cb;
+    border-radius: 5px;
+    padding: 10px 14px;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+/* ── FORM FIELDS ── */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    color: #444;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"] {
+    width: 100%;
+    background-color: #f5f6f8;
+    border: 1px solid #dde0e5;
+    border-radius: 5px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="password"]:focus {
+    border-color: #860029;
+    box-shadow: 0 0 0 3px rgba(134,0,41,0.09);
+    background-color: #fff;
+}
+
+/* ── LOGIN LINK/BUTTON ── */
+.login-btn-wrapper {
+    text-align: center;
+    margin: 22px 0 14px;
+}
+
+.login-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #860029;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-decoration: underline;
+    letter-spacing: 0.5px;
+    padding: 4px 16px;
+}
+
+.login-btn:hover { color: #5e001c; }
+
+/* ── SECONDARY LINKS ── */
+.card-links {
+    text-align: center;
+    margin-top: 8px;
+}
+
+.card-links a {
+    color: #860029;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.card-links a:hover { text-decoration: underline; }
+
+/* ── FOOTER ── */
+.site-footer {
+    background-color: #ffffff;
+    width: 100%;
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: #555;
+    border-top: 1px solid #e8e8e8;
+    flex-shrink: 0;
+}
+
+.site-footer a {
+    color: #1a73e8;
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.site-footer a:hover { color: #0d5fc2; }
