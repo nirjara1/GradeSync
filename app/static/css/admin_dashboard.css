@@ -553,6 +553,151 @@ ul.radiolist li label {
     color: #333;
 }
 
+/* ── AUDIT LOGS PAGE ── */
+.audit-toolbar {
+    margin-bottom: 20px;
+}
+
+.btn-export-logs {
+    display: inline-block;
+    background-color: #e8e8e8;
+    color: #860029;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 24px;
+    border-radius: 20px;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: background 0.2s;
+}
+
+.btn-export-logs:hover {
+    background-color: #dcdcdc;
+}
+
+/* Filters Bar */
+.audit-filters-bar {
+    background-color: #e6ecf2;
+    /* Light blueish grey */
+    padding: 12px 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 24px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #222;
+}
+
+.filter-search {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    color: #333;
+    width: 220px;
+    outline: none;
+}
+
+.filter-search::placeholder {
+    color: #888;
+}
+
+.filter-options {
+    font-size: 11.5px;
+    color: #666;
+}
+
+.filter-options a {
+    color: #666;
+    text-decoration: none;
+    padding: 0 4px;
+}
+
+.filter-options a:hover {
+    color: #222;
+}
+
+.filter-options a.active-filter {
+    color: #860029;
+    /* Maroon active text */
+    font-weight: 600;
+}
+
+/* Audit Table */
+.audit-table-container {
+    background-color: #ffffff;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.audit-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.audit-table th,
+.audit-table td {
+    padding: 16px 20px;
+    text-align: left;
+    font-size: 13.5px;
+    color: #111;
+}
+
+/* Header */
+.audit-table th {
+    background-color: #d8e1e8;
+    /* Light blue header */
+    font-weight: 700;
+    font-size: 13.5px;
+}
+
+/* Striped Rows */
+.audit-table tbody tr {
+    background-color: #ffffff;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.audit-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.audit-table td.col-timestamp,
+.audit-table td.col-user,
+.audit-table td.col-action {
+    font-weight: 600;
+}
+
+.col-status {
+    font-weight: 700;
+}
+
+.col-status.status-created {
+    color: #10c600;
+    /* Green for Created */
+}
+
+.col-status.status-updated {
+    color: #f77f00;
+    /* Orange for Updated */
+}
+
+.col-status.status-deleted {
+    color: #d90429;
+    /* Red for Deleted */
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
     .stats-grid {

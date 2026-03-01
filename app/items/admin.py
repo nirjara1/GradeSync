@@ -26,3 +26,12 @@ from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib.auth.models import Group
 gradesync_admin.register(User, UserAdmin)
 gradesync_admin.register(Group, GroupAdmin)
+
+from django.contrib.admin.models import LogEntry
+class LogEntryAdmin(admin.ModelAdmin):
+    list_display = ('action_time', 'user', 'content_type', 'object_repr', 'action_flag')
+    list_filter = ('action_flag', 'content_type')
+    search_fields = ('object_repr', 'change_message')
+    date_hierarchy = 'action_time'
+
+gradesync_admin.register(LogEntry, LogEntryAdmin)
