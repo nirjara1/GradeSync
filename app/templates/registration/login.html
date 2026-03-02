@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -320,9 +321,7 @@
     <div id="background-container"></div>
 
     <header class="header">
-        <!-- Make sure to save the image you attached as "logo.png" in the same folder, 
-             or change the src="" below to match your image file's name and location! -->
-        <img src="logo.png" alt="GradeSync Logo" class="main-logo">
+        <img src="{% static 'images/logo.png' %}" alt="GradeSync Logo" class="main-logo">
     </header>
 
     <main class="login-card">
