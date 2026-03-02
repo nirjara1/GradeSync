@@ -25,7 +25,8 @@ html {
 
 .maroon-band {
     background-color: var(--maroon);
-    height: 80px;
+    height: 120px;
+    padding: 10px 20px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -33,8 +34,10 @@ html {
 }
 
 .ulm-seal {
-    height: 70px;
+    max-width: 100%;
+    max-height: 95px;
     width: auto;
+    object-fit: contain;
 }
 
 .gradesync-logo {

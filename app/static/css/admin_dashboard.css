@@ -20,11 +20,13 @@ body {
 .main-header {
     background-color: #860029;
     width: 100%;
-    padding: 22px 40px;
+    height: 120px;
+    padding: 10px 20px;
     display: flex;
     justify-content: center;
     align-items: center;
     flex-shrink: 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .header-brand {
@@ -33,24 +35,10 @@ body {
 }
 
 .header-logo {
-    height: 60px;
+    max-width: 100%;
+    max-height: 95px;
     width: auto;
-}
-
-.header-divider {
-    width: 2px;
-    height: 44px;
-    background-color: white;
-    margin: 0 20px;
-    flex-shrink: 0;
-}
-
-.header-title {
-    color: white;
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
+    object-fit: contain;
 }
 
 /* ── GOLD ACCENT BAR ── */
