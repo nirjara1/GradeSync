@@ -1,53 +1,104 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponseForbidden
-from .models import Assignment, Submission, Grade
-from .forms import AssignmentForm
+from .models import Assignment, Submission, Grade, Student
+from .forms import AssignmentForm, SubmissionForm
 from professor.models import Course, UserProfile
-from professor.utils import is_course_instructor, has_course_access
+from professor.utils import is_course_instructor, has_course_access, is_enrolled, get_user_course_role
+
+from django.contrib.auth.decorators import login_required
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_user_from_request(request):
-    if request.user.is_authenticated:
-        return request.user
-    from django.contrib.auth.models import User
-    user, _ = User.objects.get_or_create(username='poudelb2')
-    return user
+    return request.user
 
+@login_required
 def assignments_dashboard(request):
-    """Fallback: shows all assignments if no course is specified."""
+    """Shows all assignments for all courses the user is enrolled or teaching in."""
     user = get_user_from_request(request)
-    profile, _ = UserProfile.objects.get_or_create(user=user)
-    is_faculty = profile.role == 'FACULTY' or user.username == 'poudelb2'
+    role = request.session.get('active_role') or getattr(request, 'user_role', None)
     
-    assignments = Assignment.objects.all().order_by('due_date')
-    return render(request, 'assignments_dashboard.html', {'assignments': assignments, 'is_instructor': is_faculty})
+    if role in ['FACULTY', 'INSTRUCTOR']:
+        base_template = 'base_professor.html'
+        assignments = Assignment.objects.filter(course__professor=user).order_by('due_date')
+        return render(request, 'assignments_dashboard.html', {
+            'assignments': assignments, 'is_instructor': True, 'is_student': False, 'base_template': base_template
+        })
+    elif role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+        courses = Course.objects.filter(members__user=user, members__role_in_course='STUDENT')
+        assignments = Assignment.objects.filter(course__in=courses).order_by('due_date')
+        return render(request, 'assignments_dashboard.html', {
+            'assignments': assignments, 'is_instructor': False, 'is_student': True, 'base_template': base_template
+        })
+    elif role == 'GRADING_ASSISTANT':
+        base_template = 'base_grading_assistant.html'
+        courses = Course.objects.filter(members__user=user, members__role_in_course='GRADING_ASSISTANT')
+        assignments = Assignment.objects.filter(course__in=courses).order_by('due_date')
+        return render(request, 'assignments_dashboard.html', {
+            'assignments': assignments, 'is_instructor': False, 'is_student': False, 'base_template': base_template
+        })
+    else:
+        return HttpResponseForbidden("No role found.")
 
-def course_assignments_view(request, course_id):
-    """Main view: shows assignments only for a specific course."""
+@login_required
+def professor_course_view(request, course_id):
     user = get_user_from_request(request)
     course = get_object_or_404(Course, id=course_id)
+    course_role = get_user_course_role(user, course, request)
     
-    if not has_course_access(user, course):
-        return HttpResponseForbidden("You do not have access to this course.")
+    logger.info(f"[Course View Navigation] Route: PROFESSOR_COURSE | Relational Role: {course_role} | Target Class: {course_id}")
+    if course_role != 'INSTRUCTOR':
+        return HttpResponseForbidden("Access Denied")
         
-    is_instructor = is_course_instructor(user, course)
-    
     assignments = Assignment.objects.filter(course=course).order_by('due_date')
-    
-    context = {
-        'assignments': assignments,
-        'course': course,
-        'is_instructor': is_instructor
-    }
-    return render(request, 'assignments_dashboard.html', context)
+    return render(request, 'assignments_dashboard.html', {
+        'assignments': assignments, 'course': course,
+        'is_instructor': True, 'is_student': False, 'base_template': 'base_professor.html'
+    })
 
+@login_required
+def ga_course_view(request, course_id):
+    user = get_user_from_request(request)
+    course = get_object_or_404(Course, id=course_id)
+    course_role = get_user_course_role(user, course, request)
+    
+    logger.info(f"[Course View Navigation] Route: GA_COURSE | Relational Role: {course_role} | Target Class: {course_id}")
+    if course_role != 'GRADING_ASSISTANT':
+        return HttpResponseForbidden("Access Denied")
+        
+    assignments = Assignment.objects.filter(course=course).order_by('due_date')
+    return render(request, 'assignments_dashboard.html', {
+        'assignments': assignments, 'course': course,
+        'is_instructor': False, 'is_student': False, 'base_template': 'base_grading_assistant.html'
+    })
+
+@login_required
+def student_course_view(request, course_id):
+    user = get_user_from_request(request)
+    course = get_object_or_404(Course, id=course_id)
+    course_role = get_user_course_role(user, course, request)
+    
+    logger.info(f"[Course View Navigation] Route: STUDENT_COURSE | Relational Role: {course_role} | Target Class: {course_id}")
+    if course_role != 'STUDENT':
+        return HttpResponseForbidden("Access Denied")
+        
+    assignments = Assignment.objects.filter(course=course).order_by('due_date')
+    return render(request, 'assignments_dashboard.html', {
+        'assignments': assignments, 'course': course,
+        'is_instructor': False, 'is_student': True, 'base_template': 'portal/base_portal.html'
+    })
+
+@login_required
 def create_assignment(request, course_id=None):
     """Dedicated view for creating an assignment."""
     user = get_user_from_request(request)
     course = get_object_or_404(Course, id=course_id) if course_id else None
     
     # Only instructors can create assignments
-    if course and not is_course_instructor(user, course):
+    if course and not is_course_instructor(user, course, request):
         return HttpResponseForbidden("Only instructors can create assignments.")
         
     if not course:
@@ -73,7 +124,9 @@ def create_assignment(request, course_id=None):
             messages.success(request, f"Assignment '{assignment.name}' successfully {assignment.status}!")
             
             if course:
-                return redirect('course_assignments', course_id=course.id)
+                course_role = get_user_course_role(user, course, request)
+                route_name = 'professor_course' if course_role == 'INSTRUCTOR' else ('student_course' if course_role == 'STUDENT' else 'ga_course')
+                return redirect(route_name, course_id=course.id)
             return redirect('assignments_dashboard')
         else:
             messages.error(request, "Error creating assignment. Please check the form data.")
@@ -83,17 +136,28 @@ def create_assignment(request, course_id=None):
             initial_data['course'] = course
         form = AssignmentForm(initial=initial_data)
 
+    course_role = get_user_course_role(user, course, request) if course else ('INSTRUCTOR' if getattr(request, 'user_role', None) == 'FACULTY' else 'GRADING_ASSISTANT')
+    
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+
     context = {
         'form': form,
-        'course': course
+        'course': course,
+        'base_template': base_template
     }
     return render(request, 'create_assignment.html', context)
 
+@login_required
 def edit_assignment(request, pk):
     user = get_user_from_request(request)
     assignment = get_object_or_404(Assignment, pk=pk)
     
-    if not is_course_instructor(user, assignment.course):
+    if not is_course_instructor(user, assignment.course, request):
         return HttpResponseForbidden("Only instructors can edit assignments.")
         
     if request.method == 'POST':
@@ -101,53 +165,116 @@ def edit_assignment(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, "Assignment updated successfully!")
-            return redirect('course_assignments', course_id=assignment.course.id)
+            course_role = get_user_course_role(user, assignment.course, request)
+            route_name = 'professor_course' if course_role == 'INSTRUCTOR' else ('student_course' if course_role == 'STUDENT' else 'ga_course')
+            return redirect(route_name, course_id=assignment.course.id)
     else:
         form = AssignmentForm(instance=assignment)
+        
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
     
-    return render(request, 'edit_assignment.html', {'form': form, 'assignment': assignment})
+    return render(request, 'edit_assignment.html', {'form': form, 'assignment': assignment, 'base_template': base_template})
 
+@login_required
 def delete_assignment(request, pk):
     user = get_user_from_request(request)
     assignment = get_object_or_404(Assignment, pk=pk)
-    course_id = assignment.course.id if assignment.course else None
+    course = assignment.course
+    course_id = course.id if course else None
     
-    if not is_course_instructor(user, assignment.course):
+    if course and not is_course_instructor(user, course, request):
         return HttpResponseForbidden("Only instructors can delete assignments.")
         
     if request.method == 'POST':
         assignment.delete()
         messages.success(request, "Assignment deleted successfully!")
         if course_id:
-            return redirect('course_assignments', course_id=course_id)
+            course_role = get_user_course_role(user, course, request)
+            route_name = 'professor_course' if course_role == 'INSTRUCTOR' else ('student_course' if course_role == 'STUDENT' else 'ga_course')
+            return redirect(route_name, course_id=course_id)
         return redirect('assignments_dashboard')
         
+    course_role = get_user_course_role(user, course, request) if course else 'INSTRUCTOR'
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
     # Technically we should use a confirmation template for GET, but let's provide basic routing
-    return render(request, 'delete_assignment.html', {'assignment': assignment})
+    return render(request, 'delete_assignment.html', {'assignment': assignment, 'base_template': base_template})
 
+@login_required
 def assignment_detail_view(request, pk):
     user = get_user_from_request(request)
     assignment = get_object_or_404(Assignment, pk=pk)
     
-    if not has_course_access(user, assignment.course):
-        return HttpResponseForbidden("You do not have permission to view submissions for this assignment.")
+    if not is_enrolled(user, assignment.course, request):
+        return HttpResponseForbidden("You are not enrolled in this course.")
         
-    is_instructor = is_course_instructor(user, assignment.course)
+    course_role = get_user_course_role(user, assignment.course, request)
+    is_instructor = course_role == 'INSTRUCTOR'
+    is_student = course_role == 'STUDENT'
+    
+    # Handle Submissions for Students
+    form = None
+    if is_student:
+        student_profile, _ = Student.objects.get_or_create(user=user)
+        if request.method == 'POST':
+            # Check for existing submission (re-submission)
+            submission = Submission.objects.filter(student=student_profile, assignment=assignment).first()
+            form = SubmissionForm(request.POST, request.FILES, instance=submission)
+            if form.is_valid():
+                new_submission = form.save(commit=False)
+                new_submission.student = student_profile
+                new_submission.assignment = assignment
+                new_submission.save()
+                
+                # --- AUTO-GRADER TRIGGER ---
+                # This is where we would trigger the backend autograder service.
+                # Example: run_autograder(new_submission.id)
+                # The mockup requirements specify this happens automatically on submission.
+                
+                messages.success(request, "Submission successful.")
+                return redirect('assignment_detail', pk=pk)
+        else:
+            form = SubmissionForm()
+
     submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade')
+    if is_student:
+        submissions = submissions.filter(student__user=user)
+    
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
     
     context = {
         'assignment': assignment,
         'submissions': submissions,
-        'is_instructor': is_instructor
+        'latest_submission': submissions.first() if is_student else None,
+        'is_instructor': is_instructor,
+        'is_student': is_student,
+        'base_template': base_template,
+        'form': form
     }
     return render(request, 'assignment_detail.html', context)
 
+@login_required
 def grade_submission_view(request, pk):
     user = get_user_from_request(request)
     submission = get_object_or_404(Submission, pk=pk)
     assignment = submission.assignment
     
-    if not has_course_access(user, assignment.course):
+    if not has_course_access(user, assignment.course, request):
         return HttpResponseForbidden("You do not have permission to grade this assignment.")
         
     grade = getattr(submission, 'grade', None)
@@ -177,8 +304,17 @@ def grade_submission_view(request, pk):
         else:
             messages.error(request, "Score is required.")
             
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+            
     context = {
         'submission': submission,
-        'grade': grade
+        'grade': grade,
+        'base_template': base_template
     }
     return render(request, 'grade_submission.html', context)

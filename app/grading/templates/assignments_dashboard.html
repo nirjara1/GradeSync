@@ -1,4 +1,4 @@
-{% extends 'base_professor.html' %}
+{% extends base_template %}
 
 {% block content %}
 <h2 class="page-title">
@@ -71,6 +71,7 @@
 </div>
 {% endif %}
 
+{% if is_instructor %}
 <hr class="divider" style="margin-top: 30px;">
 <h3>Course Roster</h3>
 <div style="display: flex; gap: 40px; margin-top: 15px;">
@@ -232,6 +233,8 @@
     // Load roster on page load
     document.addEventListener('DOMContentLoaded', loadRoster);
 </script>
+{% endif %}
+
 {% else %}
 {% if is_instructor %}
 <a href="{% url 'create_assignment' %}" class="add-assignment-btn"

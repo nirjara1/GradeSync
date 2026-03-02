@@ -1,26 +1,26 @@
-{% extends 'portal/base_portal.html' %}
+{% extends 'base_grading_assistant.html' %}
 {% load static %}
 
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-    <h2 class="page-title" style="margin: 0;">Student Dashboard</h2>
+    <h2 class="page-title" style="margin: 0;">Dashboard</h2>
 </div>
 <hr class="divider" style="margin-top: 0;">
 
 {% if courses %}
 <div class="course-grid">
     {% for course in courses %}
-    <a href="{% url 'student_course' course.id %}" class="course-card">
+    <a href="{% url 'ga_course' course.id %}" class="course-card">
         <!-- Cover Image -->
         {% if course.image_url %}
         <img src="{{ course.image_url }}" alt="{{ course.title }} cover" class="card-image">
         {% else %}
-        <!-- Default local image -->
+        <!-- Default local image from screenshot -->
         <img src="{% static 'images/course default.png' %}" alt="Placeholder Building" class="card-image">
         {% endif %}
 
         <div class="card-content">
-            <p class="course-title">{{ course.code }}-{{ course.section|default:"001" }} - {{ course.title }}</p>
+            <p class="course-title">{{ course.code }}-{{ course.section }} - {{ course.title }}</p>
             <p class="course-prof">{{ course.professor.get_full_name|default:course.professor.username }}</p>
             <p class="course-term">{{ course.term }}</p>
         </div>
@@ -28,7 +28,7 @@
     {% endfor %}
 </div>
 {% else %}
-<p>You are not enrolled in any courses yet. Welcome to GradeSync!</p>
+<p>No courses assigned to you yet. Welcome to GradeSync!</p>
 {% endif %}
 
 {% endblock %}

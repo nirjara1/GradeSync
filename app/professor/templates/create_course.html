@@ -193,16 +193,9 @@
 
     <a href="#" class="import-link">Import settings from a previous semester?</a>
 
-    {% if form.errors or messages %}
+    {% if form.errors %}
     <div style="margin-bottom: 20px;">
-        {% if messages %}
-        {% for message in messages %}
-        <p style="color: var(--maroon); font-weight: bold; margin: 0; text-align: center;">{{ message }}</p>
-        {% endfor %}
-        {% endif %}
-        {% if form.errors %}
         <p style="color: red; font-size: 14px; text-align: center;">Please correct the errors below.</p>
-        {% endif %}
     </div>
     {% endif %}
 
