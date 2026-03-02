@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
+DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", '3.151.189.18']
@@ -88,12 +88,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "cruddb"),
-        "USER": os.getenv("POSTGRES_USER", "cruduser"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "crudpass"),
-        "HOST": os.getenv("DB_HOST", "db"),
-        "PORT": os.getenv("DB_PORT", "5432"),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
