@@ -327,7 +327,13 @@
     <main class="login-card">
         <h1 class="login-title">Sign In</h1>
 
-        <form class="login-form" onsubmit="event.preventDefault(); window.location.href='{% url 'portal_profile' %}';">
+        <form class="login-form" method="post">
+            {% csrf_token %}
+            {% if form.errors %}
+                <div style="color: #860029; font-size: 14px; margin-bottom: 15px; text-align: center; font-weight: 600;">
+                    Your username and password didn't match. Please try again.
+                </div>
+            {% endif %}
             <div class="input-group">
                 <input type="text" id="username" name="username" placeholder=" " required autocomplete="username">
                 <label for="username">Email or Username</label>

@@ -1,4 +1,5 @@
 from django.urls import path
+from django.contrib.auth.views import LoginView
 from django.views.generic import TemplateView
 from .views import (
     HomeView,
@@ -13,7 +14,7 @@ from .views import (
 
 urlpatterns = [
     # Home / Portal
-    path("", HomeView.as_view(), name="home"),
+    path("", LoginView.as_view(template_name="registration/login.html"), name="home"),
     
     # Portal Prototypes
     path("portal/profile/", TemplateView.as_view(template_name="portal/profile.html"), name="portal_profile"),

@@ -21,7 +21,7 @@ class GradeSyncAdminSite(admin.AdminSite):
         
         auth_logout(request)
         messages.success(request, "You have been successfully logged out.")
-        return HttpResponseRedirect(reverse('admin:login'))
+        return HttpResponseRedirect(reverse('home'))
 
     def get_urls(self):
         from django.urls import path
