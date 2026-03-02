@@ -1,5 +1,5 @@
 from django import forms
-from .models import Assignment
+from .models import Assignment, Submission
 
 class AssignmentForm(forms.ModelForm):
     class Meta:
@@ -27,3 +27,14 @@ class AssignmentForm(forms.ModelForm):
         self.fields['status'].required = False
         self.fields['course'].required = False
 
+
+class SubmissionForm(forms.ModelForm):
+    class Meta:
+        model = Submission
+        fields = ['file_path']
+        widgets = {
+            'file_path': forms.FileInput(attrs={'class': 'form-control-file', 'required': True}),
+        }
+        labels = {
+            'file_path': 'Select File',
+        }

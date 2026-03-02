@@ -12,7 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-red: #860029; /* ULM Maroon */
+            --primary-red: #860029;
+            /* ULM Maroon */
             --primary-red-hover: #860029;
             --ulm-gold: #c39a3f;
             --bg-gray: #f3f4f6;
@@ -61,9 +62,17 @@
         }
 
         @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
         /* Top Header Bar */
@@ -80,10 +89,25 @@
             padding: 10px 20px;
         }
 
-        .main-logo {
-            max-width: 100%;
-            max-height: 95px;
-            object-fit: contain;
+        .ulm-seal {
+            height: 70px;
+            width: auto;
+        }
+
+        .gradesync-logo {
+            color: #ffffff;
+            font-size: 36px;
+            font-weight: 700;
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .vertical-separator {
+            width: 2px;
+            height: 60px;
+            background-color: #ffffff;
+            margin: 0 15px;
         }
 
         /* Login Card */
@@ -101,7 +125,7 @@
             flex-direction: column;
             align-items: center;
             z-index: 5;
-            
+
             /* Fade in and slide up */
             opacity: 0;
             transform: translateY(30px);
@@ -168,7 +192,8 @@
             border-width: 2px;
             background-color: #ffffff;
             box-shadow: 0 4px 15px var(--focus-ring);
-            padding: 23px 15px 7px 15px; /* Adjust padding to prevent jumping from border thickens */
+            padding: 23px 15px 7px 15px;
+            /* Adjust padding to prevent jumping from border thickens */
         }
 
         .input-group label {
@@ -182,8 +207,8 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .input-group input:focus + label,
-        .input-group input:not(:placeholder-shown) + label {
+        .input-group input:focus+label,
+        .input-group input:not(:placeholder-shown)+label {
             top: 14px;
             font-size: 11px;
             font-weight: 600;
@@ -194,9 +219,9 @@
 
         /* Prevent auto-fill jump */
         input:-webkit-autofill,
-        input:-webkit-autofill:hover, 
-        input:-webkit-autofill:focus, 
-        input:-webkit-autofill:active{
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
             -webkit-box-shadow: 0 0 0 30px white inset !important;
         }
 
@@ -295,8 +320,16 @@
                 padding: 10px 15px;
             }
 
-            .main-logo {
-                max-height: 50px;
+            .ulm-seal {
+                height: 50px;
+            }
+
+            .gradesync-logo {
+                font-size: 24px;
+            }
+
+            .vertical-separator {
+                height: 40px;
             }
 
             .login-card {
@@ -304,12 +337,12 @@
                 margin: auto;
                 padding: 36px 24px;
             }
-            
+
             .links-container {
                 flex-direction: column;
                 gap: 16px;
             }
-            
+
             .divider {
                 display: none;
             }
@@ -321,26 +354,25 @@
     <div id="background-container"></div>
 
     <header class="header">
-        <img src="{% static 'images/logo.png' %}" alt="GradeSync Logo" class="main-logo">
+        <img src="{% static 'images/ulm_logo.png' %}" alt="ULM Seal" class="ulm-seal"
+            onerror="this.src='https://via.placeholder.com/100x100.png?text=ULM+Seal'">
+        <div class="vertical-separator"></div>
+        <h1 class="gradesync-logo">GradeSync</h1>
     </header>
 
     <main class="login-card">
         <h1 class="login-title">Sign In</h1>
 
-        <form class="login-form" method="post">
+        <form class="login-form" method="post" action="{% url 'login' %}">
             {% csrf_token %}
-            {% if form.errors %}
-                <div style="color: #860029; font-size: 14px; margin-bottom: 15px; text-align: center; font-weight: 600;">
-                    Your username and password didn't match. Please try again.
-                </div>
-            {% endif %}
             <div class="input-group">
                 <input type="text" id="username" name="username" placeholder=" " required autocomplete="username">
                 <label for="username">Email or Username</label>
             </div>
 
             <div class="input-group">
-                <input type="password" id="password" name="password" placeholder=" " required autocomplete="current-password">
+                <input type="password" id="password" name="password" placeholder=" " required
+                    autocomplete="current-password">
                 <label for="password">Password</label>
             </div>
 
@@ -350,7 +382,7 @@
         <div class="links-container">
             <a href="#">Forgot Password?</a>
             <div class="divider"></div>
-            <a href="#">Create Account</a>
+            <a href="/accounts/register/">Create Account</a>
         </div>
     </main>
 
@@ -368,15 +400,15 @@
             const el = document.createElement('div');
             el.className = 'floating-word';
             el.textContent = 'GradeSync';
-            
+
             const size = Math.random() * 60 + 20; // 20px to 80px
             el.style.fontSize = `${size}px`;
-            
+
             const isMaroon = Math.random() > 0.6;
             el.style.color = isMaroon ? 'rgba(139, 0, 0, 0.05)' : 'rgba(107, 114, 128, 0.08)';
-            
+
             const angle = (Math.random() - 0.5) * 60; // -30 to 30 degrees
-            
+
             const word = {
                 el,
                 x: Math.random() * window.innerWidth,
@@ -389,7 +421,7 @@
                 targetOffsetX: 0,
                 targetOffsetY: 0
             };
-            
+
             container.appendChild(el);
             words.push(word);
         }
@@ -408,39 +440,39 @@
             words.forEach(word => {
                 word.x += word.vx;
                 word.y += word.vy;
-                
+
                 // Wrap around screen
                 if (word.x < -200) word.x = window.innerWidth + 100;
                 if (word.x > window.innerWidth + 200) word.x = -100;
                 if (word.y < -100) word.y = window.innerHeight + 100;
                 if (word.y > window.innerHeight + 100) word.y = -100;
-                
+
                 // Mouse repulsion
                 // Calculate distance based on the actual visual position
                 const dx = mouse.x - (word.x + word.offsetX);
                 const dy = mouse.y - (word.y + word.offsetY);
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const repelRadius = 250;
-                
+
                 if (distance < repelRadius) {
-                    const force = Math.pow((repelRadius - distance) / repelRadius, 2); 
+                    const force = Math.pow((repelRadius - distance) / repelRadius, 2);
                     const dirX = -dx / distance;
                     const dirY = -dy / distance;
-                    
-                    word.targetOffsetX = dirX * force * 150; 
+
+                    word.targetOffsetX = dirX * force * 150;
                     word.targetOffsetY = dirY * force * 150;
                 } else {
                     word.targetOffsetX = 0;
                     word.targetOffsetY = 0;
                 }
-                
+
                 // Smoothly ease into offset
                 word.offsetX += (word.targetOffsetX - word.offsetX) * 0.08;
                 word.offsetY += (word.targetOffsetY - word.offsetY) * 0.08;
-                
+
                 word.el.style.transform = `translate(${word.x + word.offsetX}px, ${word.y + word.offsetY}px) rotate(${word.angle}deg)`;
             });
-            
+
             requestAnimationFrame(animate);
         }
 

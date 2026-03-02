@@ -1,100 +1,222 @@
-{% extends 'base_professor.html' %}
+{% extends base_template %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-    <div>
-        <h2 class="page-title" style="margin: 0; color: var(--maroon);">{{ assignment.name }}</h2>
-        <p style="margin: 5px 0 0 0; color: var(--text-muted);">
-            Course: {{ assignment.course.code }}-{{ assignment.course.section }} |
-            Points: {{ assignment.points }} |
-            Due: {{ assignment.due_date|date:"M j \a\t g:ia"|default:"No due date" }}
-        </p>
-    </div>
-    {% if is_instructor %}
-    <div style="display: flex; gap: 10px;">
-        <a href="{% url 'edit_assignment' assignment.pk %}" class="btn-outline-maroon" style="text-decoration: none;">
-            <i class="fa-solid fa-pen"></i> Edit
+<!-- Assignment Header -->
+<div style="margin-bottom: 25px;">
+    <h2 class="page-title" style="margin: 0; color: #333; font-size: 28px; font-weight: 600;">{{ assignment.name }}</h2>
+    <p style="margin: 5px 0 0 0; color: #666; font-size: 15px;">
+        Due: {{ assignment.due_date|date:"M j \a\t g:ia"|default:"No due date" }}
+    </p>
+</div>
+
+<!-- Details Section -->
+<div style="margin-bottom: 35px;">
+    <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 18px; font-weight: 600; color: #333;">Details</h3>
+    <p style="color: #444; line-height: 1.6; margin-bottom: 15px;">
+        {{ assignment.description|default:"No description provided." }}
+    </p>
+
+    <div style="display: flex; gap: 20px;">
+        {% if assignment.public_test_data %}
+        <a href="{{ assignment.public_test_data.url }}" download target="_blank"
+            style="color: var(--maroon); text-decoration: none; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-download"></i> Download Test Data
         </a>
+        {% endif %}
+        {% if not is_student and assignment.expected_outputs %}
+        <a href="{{ assignment.expected_outputs.url }}" download target="_blank"
+            style="color: var(--maroon); text-decoration: none; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-file-export"></i> Download Expected Outputs
+        </a>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 
-<div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 30px;">
-    <h3 style="margin-top: 0; margin-bottom: 10px;">Description</h3>
-    <p>{{ assignment.description|default:"No description provided." }}</p>
-    {% if assignment.public_test_data %}
-    <a href="{{ assignment.public_test_data.url }}" target="_blank" style="color: var(--maroon);">Download Test Data</a>
-    {% endif %}
+<hr style="border: none; border-top: 2px solid #333; margin: 30px 0;">
+
+<!-- Student Submission Section -->
+{% if is_student %}
+<div style="margin-top: 30px;">
+    <h3 style="margin-bottom: 20px; font-size: 16px; font-weight: 600; color: #333;">Add Submission</h3>
+
+    <form id="submissionForm" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Large Upload Card -->
+        <div id="uploadCard"
+            style="width: 210px; height: 130px; background: #fafafa; border-radius: 8px; border: 2px dashed #ddd; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease; margin-bottom: 25px;"
+            onmouseover="this.style.background='#f0f0f0'; this.style.borderColor='#bbb';"
+            onmouseout="this.style.background='#fafafa'; this.style.borderColor='#ddd';">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 36px; color: #999; margin-bottom: 10px;"></i>
+            <span id="uploadLabel"
+                style="font-size: 13px; color: var(--maroon); text-align: center; padding: 0 15px; font-weight: 500;">Upload
+                from your computer</span>
+            <input type="file" id="id_file_path" name="file_path" style="display: none;"
+                onchange="handleFileSelect(this)">
+        </div>
+
+        <!-- Success Message -->
+        {% if messages %}
+        <div id="statusMessage"
+            style="margin-bottom: 20px; padding: 12px 15px; background: #e8f5e9; border-radius: 6px; border: 1px solid #c8e6c9;">
+            {% for message in messages %}
+            <div
+                style="color: #2e7d32; font-size: 14px; display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                <i class="fa-solid fa-circle-check"></i> Submission successful.
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Submission Status & Grade -->
+        {% if latest_submission %}
+        <div id="submissionStatus" style="margin-bottom: 25px; border-top: 1px solid #eee; padding-top: 20px;">
+            <div
+                style="font-size: 14px; color: #666; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-clock" style="color: #999;"></i>
+                <span>Submitted: {{ latest_submission.submission_time|date:"F j, Y, g:i A" }}</span>
+            </div>
+
+            {% if latest_submission.grade %}
+            <div
+                style="margin-bottom: 18px; font-size: 18px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 10px;">
+                <span style="color: #666; font-weight: 500; font-size: 15px;">Grade:</span>
+                <span style="color: #2e7d32;">
+                    {{ latest_submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}
+                </span>
+            </div>
+            {% endif %}
+
+            <a href="{{ latest_submission.file_path.url }}" download target="_blank"
+                style="color: var(--maroon); text-decoration: none; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; background: #fdfdfd; border: 1px solid #ddd; padding: 10px 18px; border-radius: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+                onmouseover="this.style.background='#f5f5f5';" onmouseout="this.style.background='#fdfdfd';">
+                <i class="fa-solid fa-file-arrow-down"></i> Download Submitted File
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Submit Button -->
+        <button type="submit" id="submitBtn" disabled
+            style="background: var(--maroon); color: white; border: none; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: not-allowed; opacity: 0.6; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; margin-bottom: 30px;">
+            <span id="btnText">Submit Assignment</span>
+            <i id="loadingIcon" class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i>
+        </button>
+    </form>
 </div>
 
-<hr class="divider">
-<h3 style="margin-bottom: 20px;">Submissions</h3>
+<script>
+    const uploadCard = document.getElementById('uploadCard');
+    const fileInput = document.getElementById('id_file_path');
+    const uploadLabel = document.getElementById('uploadLabel');
+    const submitBtn = document.getElementById('submitBtn');
+    const submissionForm = document.getElementById('submissionForm');
+    const btnText = document.getElementById('btnText');
+    const loadingIcon = document.getElementById('loadingIcon');
 
-{% if messages %}
-<ul class="messages" style="padding: 0; margin-bottom: 20px;">
-    {% for message in messages %}
-    <li{% if message.tags %} class="{{ message.tags }}" {% endif %}
-        style="color: var(--maroon); font-weight: bold; list-style: none; padding: 10px; background: #ffebee; border-radius: 4px;">
-        {{ message }}
-        </li>
-        {% endfor %}
-</ul>
+    uploadCard.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            const fileName = input.files[0].name;
+            uploadLabel.innerHTML = `<strong>Selected:</strong><br><span style="font-size: 11px;">${fileName}</span>`;
+            uploadLabel.style.color = '#333';
+
+            submitBtn.disabled = false;
+            submitBtn.style.cursor = 'pointer';
+            submitBtn.style.opacity = '1';
+            uploadCard.style.borderColor = 'var(--maroon)';
+            uploadCard.style.background = '#fffafb';
+        } else {
+            uploadLabel.textContent = 'Upload from your computer';
+            uploadLabel.style.color = 'var(--maroon)';
+
+            submitBtn.disabled = true;
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.style.opacity = '0.6';
+            uploadCard.style.borderColor = '#ddd';
+            uploadCard.style.background = '#fafafa';
+        }
+    }
+
+    submissionForm.addEventListener('submit', function () {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.8';
+        submitBtn.style.cursor = 'wait';
+        btnText.textContent = 'Submitting...';
+        loadingIcon.style.display = 'inline-block';
+    });
+</script>
+
+<hr style="border: none; border-top: 2px solid #333; margin: 30px 0;">
 {% endif %}
 
-<div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-    <table style="width: 100%; border-collapse: collapse; text-align: left;">
-        <thead style="background-color: var(--maroon); color: white;">
-            <tr>
-                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd;">Student</th>
-                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd;">Submitted At</th>
-                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd;">File</th>
-                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd;">Grade</th>
-                <th style="padding: 12px 15px; border-bottom: 2px solid #ddd; text-align: center;">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for submission in submissions %}
-            <tr style="border-bottom: 1px solid #eee; background-color: {% cycle '#ffffff' '#fcfcfc' %};">
-                <td style="padding: 12px 15px;">{{
-                    submission.student.user.get_full_name|default:submission.student.user.username }}</td>
-                <td style="padding: 12px 15px; color: var(--text-muted);">{{ submission.submission_time|date:"M j g:ia"
-                    }}</td>
-                <td style="padding: 12px 15px;">
-                    <a href="{{ submission.file_path.url }}" target="_blank"
-                        style="color: var(--red-link); text-decoration: none;">
-                        <i class="fa-solid fa-file-code"></i> Download
-                    </a>
-                </td>
-                <td
-                    style="padding: 12px 15px; font-weight: bold; color: {% if submission.grade %}green{% else %}var(--text-muted){% endif %};">
-                    {% if submission.grade %}
-                    {{ submission.grade.score }} / {{ assignment.points }}
-                    {% else %}
-                    Needs Grading
-                    {% endif %}
-                </td>
-                <td style="padding: 12px 15px; text-align: center;">
-                    <a href="{% url 'grade_submission' submission.pk %}" class="btn-publish"
-                        style="padding: 6px 15px; font-size: 13px; text-decoration: none; display: inline-block;">
-                        {% if submission.grade %}Edit Grade{% else %}Grade{% endif %}
-                    </a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5" style="padding: 30px; text-align: center; color: var(--text-muted);">
-                    No submissions found for this assignment yet.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+<!-- Instructor Submissions Table -->
+{% if not is_student %}
+<div style="margin-top: 30px;">
+    <h3 style="margin-bottom: 20px; font-size: 20px; font-weight: 600; color: #333;">Submissions</h3>
 
-<div style="margin-top: 20px;">
-    <a href="{% url 'course_assignments' assignment.course.id %}" style="color: var(--maroon); text-decoration: none;">
+    <div
+        style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #eee;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="background-color: var(--maroon); color: white;">
+                <tr>
+                    <th style="padding: 15px; border-bottom: 2px solid #ddd;">Student</th>
+                    <th style="padding: 15px; border-bottom: 2px solid #ddd;">Submitted At</th>
+                    <th style="padding: 15px; border-bottom: 2px solid #ddd;">File</th>
+                    <th style="padding: 15px; border-bottom: 2px solid #ddd;">Grade</th>
+                    <th style="padding: 15px; border-bottom: 2px solid #ddd; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for submission in submissions %}
+                <tr style="border-bottom: 1px solid #eee; background-color: {% cycle '#ffffff' '#fafafa' %};">
+                    <td style="padding: 15px; font-weight: 500; font-size: 14px;">
+                        {{ submission.student.user.get_full_name|default:submission.student.user.username }}
+                    </td>
+                    <td style="padding: 15px; color: #666; font-size: 13px;">
+                        {{ submission.submission_time|date:"F j, Y, g:i A" }}
+                    </td>
+                    <td style="padding: 15px;">
+                        <a href="{{ submission.file_path.url }}" download target="_blank"
+                            style="color: var(--red-link); text-decoration: none; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-file-code"></i> Download
+                        </a>
+                    </td>
+                    <td
+                        style="padding: 15px; font-weight: bold; font-size: 15px; color: {% if submission.grade %}#2e7d32{% else %}#999{% endif %};">
+                        {% if submission.grade %}
+                        {{ submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}
+                        {% else %}
+                        <span style="font-weight: normal; font-style: italic;">Needs Grading</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px; text-align: center;">
+                        <a href="{% url 'grade_submission' submission.pk %}" class="btn-publish"
+                            style="padding: 8px 18px; font-size: 13px; text-decoration: none; display: inline-block; font-weight: 600;">
+                            {% if submission.grade %}Edit Grade{% else %}Grade{% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="padding: 40px; text-align: center; color: #999; font-style: italic;">
+                        No submissions found for this assignment yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Navigation -->
+<div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; margin-bottom: 50px;">
+    <a href="{% if request.user_role == 'FACULTY' %}{% url 'professor_course' assignment.course.id %}{% elif request.user_role == 'STUDENT' %}{% url 'student_course' assignment.course.id %}{% else %}{% url 'ga_course' assignment.course.id %}{% endif %}"
+        style="color: var(--maroon); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 8px;">
         <i class="fa-solid fa-arrow-left"></i> Back to Assignments
     </a>
 </div>
-
 {% endblock %}
