@@ -1,0 +1,23 @@
+README.md -> docs/README.md
+docker-compose.yml -> infra/docker-compose.yml
+Dockerfile -> infra/Dockerfile
+env example -> infra/env example
+app/db.sqlite3 -> database/db.sqlite3
+mydatabase.db -> database/mydatabase.db
+app/seed.py -> database/seed.py
+app/templates -> frontend/templates
+app/static -> frontend/static
+app/grading/templates -> frontend/grading/templates
+app/items/templates -> frontend/items/templates
+app/professor/templates -> frontend/professor/templates
+app/professor/static -> frontend/professor/static
+app/portal -> backend/portal
+app/grading -> backend/grading
+app/.DS_Store -> backend/.DS_Store
+app/config -> backend/config
+app/manage.py -> backend/manage.py
+app/items -> backend/items
+app/data -> backend/data
+app/professor -> backend/professor
+app/media -> backend/media
+professor -> backend/professor_root

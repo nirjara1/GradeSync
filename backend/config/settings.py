@@ -60,13 +60,16 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 ROOT_URLCONF = 'config.urls'
 
+FRONTEND_DIR = BASE_DIR.parent / 'frontend'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'templates',
-            BASE_DIR / 'professor' / 'templates',
-            BASE_DIR / 'grading' / 'templates',
+            FRONTEND_DIR / 'templates',
+            FRONTEND_DIR / 'professor' / 'templates',
+            FRONTEND_DIR / 'grading' / 'templates',
+            FRONTEND_DIR / 'items' / 'templates',
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -89,7 +92,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": BASE_DIR.parent / "database" / "db.sqlite3",
     }
 }
 
@@ -129,7 +132,8 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    BASE_DIR.parent / "frontend" / "static",
+    BASE_DIR.parent / "frontend" / "professor" / "static",
 ]
 
 # Default primary key field type
