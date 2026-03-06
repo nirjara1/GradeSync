@@ -9,7 +9,7 @@ class AssignmentForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'placeholder': 'Assignment Title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Description'}),
             'course': forms.Select(attrs={'class': 'form-control'}),
-            'points': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'points': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'placeholder': 'Total Points'}),
             'due_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'no_due_date': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'allowed_language': forms.RadioSelect(attrs={'class': 'form-check-input'}),
