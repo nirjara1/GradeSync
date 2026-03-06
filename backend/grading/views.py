@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, FileResponse, Http404
 from .models import Assignment, Submission, Grade, Student
 from .forms import AssignmentForm, SubmissionForm
 from professor.models import Course, UserProfile
@@ -333,3 +333,27 @@ def grade_submission_view(request, pk):
         'base_template': base_template
     }
     return render(request, 'grade_submission.html', context)
+
+@login_required
+def download_submission_view(request, pk):
+    """
+    Forces the browser to prompt the user with a 'Save As' dialog box
+    by setting the Content-Disposition header to attachment.
+    """
+    user = get_user_from_request(request)
+    submission = get_object_or_404(Submission, pk=pk)
+    
+    # Check permissions
+    if getattr(request, 'user_role', None) == 'STUDENT' and submission.student.user != user:
+        return HttpResponseForbidden("You can only download your own submissions.")
+        
+    if not has_course_access(user, submission.assignment.course, request) and submission.student.user != user:
+        return HttpResponseForbidden("You do not have permission to download this submission.")
+        
+    try:
+        response = FileResponse(submission.file_path.open('rb'))
+        # Using attachment; filename= forces most browsers to ask the user where to save it
+        response['Content-Disposition'] = f'attachment; filename="{submission.file_path.name.split("/")[-1]}"'
+        return response
+    except FileNotFoundError:
+        raise Http404("File not found.")
