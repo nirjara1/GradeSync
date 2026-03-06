@@ -229,20 +229,35 @@ def assignment_detail_view(request, pk):
         if request.method == 'POST':
             # Check for existing submission (re-submission)
             submission = Submission.objects.filter(student=student_profile, assignment=assignment).first()
-            form = SubmissionForm(request.POST, request.FILES, instance=submission)
-            if form.is_valid():
-                new_submission = form.save(commit=False)
-                new_submission.student = student_profile
-                new_submission.assignment = assignment
-                new_submission.save()
+            files = request.FILES.getlist('file_path')
+            
+            if files:
+                if not submission:
+                    submission = Submission(student=student_profile, assignment=assignment)
                 
+                if len(files) > 1:
+                    import zipfile
+                    import io
+                    from django.core.files.base import ContentFile
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, 'w') as zf:
+                        for f in files:
+                            zf.writestr(f.name, f.read())
+                    zip_buffer.seek(0)
+                    submission.file_path.save(f"submission_{user.username}_{assignment.id}.zip", ContentFile(zip_buffer.read()))
+                else:
+                    submission.file_path = files[0]
+                    submission.save()
+                    
                 # --- AUTO-GRADER TRIGGER ---
                 # This is where we would trigger the backend autograder service.
-                # Example: run_autograder(new_submission.id)
+                # Example: run_autograder(submission.id)
                 # The mockup requirements specify this happens automatically on submission.
                 
                 messages.success(request, "Submission successful.")
                 return redirect('assignment_detail', pk=pk)
+            else:
+                messages.error(request, "Please select at least one file to submit.")
         else:
             form = SubmissionForm()
 

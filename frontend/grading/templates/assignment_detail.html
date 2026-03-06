@@ -53,7 +53,7 @@
             <span id="uploadLabel"
                 style="font-size: 13px; color: var(--maroon); text-align: center; padding: 0 15px; font-weight: 500;">Upload
                 from your computer</span>
-            <input type="file" id="id_file_path" name="file_path" style="display: none;"
+            <input type="file" id="id_file_path" name="file_path" style="display: none;" multiple
                 onchange="handleFileSelect(this)">
         </div>
 
@@ -120,9 +120,15 @@
     });
 
     function handleFileSelect(input) {
-        if (input.files && input.files[0]) {
-            const fileName = input.files[0].name;
-            uploadLabel.innerHTML = `<strong>Selected:</strong><br><span style="font-size: 11px;">${fileName}</span>`;
+        if (input.files && input.files.length > 0) {
+            let names = [];
+            for (let i = 0; i < input.files.length; i++) {
+                names.push(input.files[i].name);
+            }
+            let labelText = names.length > 1 ? `${names.length} files selected` : names[0];
+            let nameList = names.join(', ');
+
+            uploadLabel.innerHTML = `<strong>Selected:</strong><br><span style="font-size: 11px;" title="${nameList}">${labelText}</span>`;
             uploadLabel.style.color = '#333';
 
             submitBtn.disabled = false;
