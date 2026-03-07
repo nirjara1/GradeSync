@@ -18,7 +18,9 @@
     }
 
     .form-group.full-width input[type="text"],
+    .form-group.full-width input[type="number"],
     .form-group.full-width textarea,
+    .row-group input[type="number"],
     .row-group input[type="date"] {
         width: 100%;
         padding: 10px 12px;
@@ -113,7 +115,7 @@
             <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.description.errors }}</div>
         </div>
 
-        <!-- Date & No Due Date -->
+        <!-- Date, No Due Date & Points -->
         <div class="form-group row-group" style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px;">
             <div style="width: 180px;">
                 {{ form.due_date }}
@@ -123,6 +125,15 @@
                 {{ form.no_due_date }}
                 <label for="{{ form.no_due_date.id_for_label }}"
                     style="margin: 0; font-weight: normal; font-size: 14px; color: #333;">No Due Date</label>
+            </div>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                <label for="{{ form.points.id_for_label }}"
+                    style="margin: 0; font-size: 14px; font-weight: bold; color: #333; white-space: nowrap;">Total
+                    Points</label>
+                <div style="width: 100px;">
+                    {{ form.points }}
+                    <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.points.errors }}</div>
+                </div>
             </div>
         </div>
 

@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, FileResponse, Http404
 from .models import Assignment, Submission, Grade, Student
 from .forms import AssignmentForm, SubmissionForm
 from professor.models import Course, UserProfile
@@ -229,20 +229,35 @@ def assignment_detail_view(request, pk):
         if request.method == 'POST':
             # Check for existing submission (re-submission)
             submission = Submission.objects.filter(student=student_profile, assignment=assignment).first()
-            form = SubmissionForm(request.POST, request.FILES, instance=submission)
-            if form.is_valid():
-                new_submission = form.save(commit=False)
-                new_submission.student = student_profile
-                new_submission.assignment = assignment
-                new_submission.save()
+            files = request.FILES.getlist('file_path')
+            
+            if files:
+                if not submission:
+                    submission = Submission(student=student_profile, assignment=assignment)
                 
+                if len(files) > 1:
+                    import zipfile
+                    import io
+                    from django.core.files.base import ContentFile
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, 'w') as zf:
+                        for f in files:
+                            zf.writestr(f.name, f.read())
+                    zip_buffer.seek(0)
+                    submission.file_path.save(f"submission_{user.username}_{assignment.id}.zip", ContentFile(zip_buffer.read()))
+                else:
+                    submission.file_path = files[0]
+                    submission.save()
+                    
                 # --- AUTO-GRADER TRIGGER ---
                 # This is where we would trigger the backend autograder service.
-                # Example: run_autograder(new_submission.id)
+                # Example: run_autograder(submission.id)
                 # The mockup requirements specify this happens automatically on submission.
                 
                 messages.success(request, "Submission successful.")
                 return redirect('assignment_detail', pk=pk)
+            else:
+                messages.error(request, "Please select at least one file to submit.")
         else:
             form = SubmissionForm()
 
@@ -318,3 +333,27 @@ def grade_submission_view(request, pk):
         'base_template': base_template
     }
     return render(request, 'grade_submission.html', context)
+
+@login_required
+def download_submission_view(request, pk):
+    """
+    Forces the browser to prompt the user with a 'Save As' dialog box
+    by setting the Content-Disposition header to attachment.
+    """
+    user = get_user_from_request(request)
+    submission = get_object_or_404(Submission, pk=pk)
+    
+    # Check permissions
+    if getattr(request, 'user_role', None) == 'STUDENT' and submission.student.user != user:
+        return HttpResponseForbidden("You can only download your own submissions.")
+        
+    if not has_course_access(user, submission.assignment.course, request) and submission.student.user != user:
+        return HttpResponseForbidden("You do not have permission to download this submission.")
+        
+    try:
+        response = FileResponse(submission.file_path.open('rb'))
+        # Using attachment; filename= forces most browsers to ask the user where to save it
+        response['Content-Disposition'] = f'attachment; filename="{submission.file_path.name.split("/")[-1]}"'
+        return response
+    except FileNotFoundError:
+        raise Http404("File not found.")
