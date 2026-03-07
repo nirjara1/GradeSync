@@ -184,6 +184,31 @@
         renderTabs();
     }
 
+    function deleteTab(index, event) {
+        event.stopPropagation(); // Prevent tab switch
+        if (files.length <= 1) {
+            alert("You must have at least one file.");
+            return;
+        }
+
+        // Dispose Monaco model to free memory
+        if (files[index].model) {
+            files[index].model.dispose();
+        }
+
+        files.splice(index, 1);
+
+        // Adjust active index
+        if (activeFileIndex === index) {
+            switchTab(Math.max(0, index - 1));
+        } else if (activeFileIndex > index) {
+            activeFileIndex--;
+            renderTabs();
+        } else {
+            renderTabs();
+        }
+    }
+
     function renderTabs() {
         const tabsContainer = document.getElementById('fileTabs');
         if (!tabsContainer) return;
@@ -191,23 +216,47 @@
         tabsContainer.innerHTML = '';
         files.forEach((file, index) => {
             const isActive = index === activeFileIndex;
-            const tabBtn = document.createElement('button');
-            tabBtn.type = 'button';
-            tabBtn.textContent = file.name;
-            tabBtn.style.padding = '8px 15px';
-            tabBtn.style.border = '1px solid #ddd';
-            tabBtn.style.background = isActive ? 'white' : '#f5f5f5';
-            tabBtn.style.borderBottom = isActive ? '2px solid white' : '1px solid #ddd';
-            tabBtn.style.marginBottom = isActive ? '-6px' : '0';
-            tabBtn.style.borderRadius = '6px 6px 0 0';
-            tabBtn.style.cursor = 'pointer';
-            tabBtn.style.fontSize = '13px';
-            tabBtn.style.color = isActive ? 'var(--maroon)' : '#666';
-            tabBtn.style.fontWeight = isActive ? 'bold' : 'normal';
-            tabBtn.style.position = 'relative';
-            tabBtn.style.zIndex = isActive ? '2' : '1';
-            tabBtn.onclick = () => switchTab(index);
-            tabsContainer.appendChild(tabBtn);
+
+            // Create wrapper
+            const tabWrapper = document.createElement('div');
+            tabWrapper.style.display = 'inline-flex';
+            tabWrapper.style.alignItems = 'center';
+            tabWrapper.style.padding = '8px 15px';
+            tabWrapper.style.border = '1px solid #ddd';
+            tabWrapper.style.background = isActive ? 'white' : '#f5f5f5';
+            tabWrapper.style.borderBottom = isActive ? '2px solid white' : '1px solid #ddd';
+            tabWrapper.style.marginBottom = isActive ? '-6px' : '0';
+            tabWrapper.style.borderRadius = '6px 6px 0 0';
+            tabWrapper.style.cursor = 'pointer';
+            tabWrapper.style.position = 'relative';
+            tabWrapper.style.zIndex = isActive ? '2' : '1';
+            tabWrapper.onclick = () => switchTab(index);
+
+            // Create text
+            const tabText = document.createElement('span');
+            tabText.textContent = file.name;
+            tabText.style.fontSize = '13px';
+            tabText.style.color = isActive ? 'var(--maroon)' : '#666';
+            tabText.style.fontWeight = isActive ? 'bold' : 'normal';
+            tabText.style.marginRight = files.length > 1 ? '8px' : '0';
+
+            tabWrapper.appendChild(tabText);
+
+            // Create delete button if more than 1 file
+            if (files.length > 1) {
+                const deleteBtn = document.createElement('i');
+                deleteBtn.className = 'fa-solid fa-times';
+                deleteBtn.style.fontSize = '12px';
+                deleteBtn.style.color = '#999';
+                deleteBtn.style.padding = '2px';
+                deleteBtn.style.borderRadius = '50%';
+                deleteBtn.onmouseover = () => { deleteBtn.style.color = 'var(--red-link)'; deleteBtn.style.background = '#ffebee'; };
+                deleteBtn.onmouseout = () => { deleteBtn.style.color = '#999'; deleteBtn.style.background = 'transparent'; };
+                deleteBtn.onclick = (e) => deleteTab(index, e);
+                tabWrapper.appendChild(deleteBtn);
+            }
+
+            tabsContainer.appendChild(tabWrapper);
         });
     }
 
