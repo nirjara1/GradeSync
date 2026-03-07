@@ -262,8 +262,38 @@ def assignment_detail_view(request, pk):
             form = SubmissionForm()
 
     submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade')
+    
+    latest_submission = None
+    submitted_code = ""
+    submitted_language = "plaintext"
+    can_preview_code = False
+    
     if is_student:
         submissions = submissions.filter(student__user=user)
+        latest_submission = submissions.first()
+        
+        # Monaco Editor Support
+        if latest_submission and latest_submission.file_path:
+            file_name = latest_submission.file_path.name.lower()
+            if hasattr(latest_submission.file_path, 'read'):
+                if file_name.endswith('.py'):
+                    try:
+                        latest_submission.file_path.open('r')
+                        submitted_code = latest_submission.file_path.read().decode('utf-8', errors='ignore')
+                        submitted_language = 'python'
+                        can_preview_code = True
+                        latest_submission.file_path.close()
+                    except Exception as e:
+                        logger.error(f"Error reading python file for preview: {e}")
+                elif file_name.endswith('.java'):
+                    try:
+                        latest_submission.file_path.open('r')
+                        submitted_code = latest_submission.file_path.read().decode('utf-8', errors='ignore')
+                        submitted_language = 'java'
+                        can_preview_code = True
+                        latest_submission.file_path.close()
+                    except Exception as e:
+                        logger.error(f"Error reading java file for preview: {e}")
     
     if course_role == 'INSTRUCTOR':
         base_template = 'base_professor.html'
@@ -275,7 +305,10 @@ def assignment_detail_view(request, pk):
     context = {
         'assignment': assignment,
         'submissions': submissions,
-        'latest_submission': submissions.first() if is_student else None,
+        'latest_submission': latest_submission,
+        'submitted_code': submitted_code,
+        'submitted_language': submitted_language,
+        'can_preview_code': can_preview_code,
         'is_instructor': is_instructor,
         'is_student': is_student,
         'base_template': base_template,
@@ -357,3 +390,30 @@ def download_submission_view(request, pk):
         return response
     except FileNotFoundError:
         raise Http404("File not found.")
+
+@login_required
+def delete_submission_view(request, pk):
+    """
+    Allows a student to delete their own submission.
+    """
+    user = get_user_from_request(request)
+    submission = get_object_or_404(Submission, pk=pk)
+    
+    # Check permissions - only the submitting student can delete it
+    if submission.student.user != user:
+        return HttpResponseForbidden("You can only delete your own submissions.")
+        
+    if request.method == 'POST':
+        assignment_id = submission.assignment.id
+        
+        # Delete the actual file from storage
+        if submission.file_path:
+            submission.file_path.delete(save=False)
+            
+        # Delete the database record
+        submission.delete()
+        
+        messages.success(request, "Submission successfully deleted.")
+        return redirect('assignment_detail', pk=assignment_id)
+        
+    return HttpResponseForbidden("Invalid request method.")
