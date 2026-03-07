@@ -230,24 +230,31 @@ def assignment_detail_view(request, pk):
             # Check for existing submission (re-submission)
             submission = Submission.objects.filter(student=student_profile, assignment=assignment).first()
             files = request.FILES.getlist('file_path')
+            monaco_code = request.POST.get('monaco_code', '').strip()
             
-            if files:
+            if files or monaco_code:
                 if not submission:
                     submission = Submission(student=student_profile, assignment=assignment)
                 
-                if len(files) > 1:
-                    import zipfile
-                    import io
+                if files:
+                    if len(files) > 1:
+                        import zipfile
+                        import io
+                        from django.core.files.base import ContentFile
+                        zip_buffer = io.BytesIO()
+                        with zipfile.ZipFile(zip_buffer, 'w') as zf:
+                            for f in files:
+                                zf.writestr(f.name, f.read())
+                        zip_buffer.seek(0)
+                        submission.file_path.save(f"submission_{user.username}_{assignment.id}.zip", ContentFile(zip_buffer.read()))
+                    else:
+                        submission.file_path = files[0]
+                        submission.save()
+                elif monaco_code:
                     from django.core.files.base import ContentFile
-                    zip_buffer = io.BytesIO()
-                    with zipfile.ZipFile(zip_buffer, 'w') as zf:
-                        for f in files:
-                            zf.writestr(f.name, f.read())
-                    zip_buffer.seek(0)
-                    submission.file_path.save(f"submission_{user.username}_{assignment.id}.zip", ContentFile(zip_buffer.read()))
-                else:
-                    submission.file_path = files[0]
-                    submission.save()
+                    extension = ".java" if assignment.allowed_language == "java" else ".py"
+                    filename = f"submission_{user.username}_{assignment.id}{extension}"
+                    submission.file_path.save(filename, ContentFile(monaco_code.encode('utf-8')))
                     
                 # --- AUTO-GRADER TRIGGER ---
                 # This is where we would trigger the backend autograder service.
@@ -257,7 +264,7 @@ def assignment_detail_view(request, pk):
                 messages.success(request, "Submission successful.")
                 return redirect('assignment_detail', pk=pk)
             else:
-                messages.error(request, "Please select at least one file to submit.")
+                messages.error(request, "Please upload a file or enter code before submitting.")
         else:
             form = SubmissionForm()
 

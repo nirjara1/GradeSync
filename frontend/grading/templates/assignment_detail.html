@@ -42,7 +42,8 @@
     <h3 style="margin-bottom: 20px; font-size: 16px; font-weight: 600; color: #333;">Add Submission</h3>
 
     <form id="submissionForm" method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
+        <p style="font-size: 14px; color: #555; margin-bottom: 15px;">You may either upload a <strong>.{{
+                assignment.allowed_language }}</strong> file or write your code directly below.</p>
 
         <!-- Large Upload Card -->
         <div id="uploadCard"
@@ -53,9 +54,19 @@
             <span id="uploadLabel"
                 style="font-size: 13px; color: var(--maroon); text-align: center; padding: 0 15px; font-weight: 500;">Upload
                 from your computer</span>
-            <input type="file" id="id_file_path" name="file_path" style="display: none;" multiple
-                onchange="handleFileSelect(this)">
+            <input type="file" id="id_file_path" name="file_path" style="display: none;"
+                accept=".{{ assignment.allowed_language }}" onchange="handleFileSelect(this)">
         </div>
+
+        <!-- Live Code Editor Area -->
+        <h3 style="margin-bottom: 8px; font-size: 16px; font-weight: 600; color: #333;">Code Editor</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Write your submission here or upload a file.</p>
+        <div id="monaco-editor-container"
+            style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px;">
+        </div>
+
+        <!-- Hidden input to stash code on submit -->
+        <input type="hidden" name="monaco_code" id="id_monaco_code">
 
         <!-- Success Message -->
         {% if messages %}
@@ -108,8 +119,8 @@
         {% endif %}
 
         <!-- Submit Button -->
-        <button type="submit" id="submitBtn" disabled
-            style="background: var(--maroon); color: white; border: none; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: not-allowed; opacity: 0.6; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; margin-bottom: 30px;">
+        <button type="submit" id="submitBtn"
+            style="background: var(--maroon); color: white; border: none; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; margin-bottom: 30px;">
             <span id="btnText">Submit Assignment</span>
             <i id="loadingIcon" class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i>
         </button>
@@ -124,31 +135,51 @@
 </form>
 {% endif %}
 
-<!-- Code Preview Section -->
-{% if is_student and latest_submission %}
-<div style="margin-top: 40px; margin-bottom: 20px;">
-    <h3 style="margin-bottom: 8px; font-size: 18px; font-weight: 600; color: #333;">Submitted Code</h3>
-    {% if can_preview_code %}
-    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Read-only preview of your latest submission.</p>
-    <div id="monaco-editor-container"
-        style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-    </div>
+<!-- Load Monaco Editor via CDN -->
+<script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
 
-    <!-- Load Monaco Editor via CDN -->
-    <script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
+<script>
+    const uploadCard = document.getElementById('uploadCard');
+    const fileInput = document.getElementById('id_file_path');
+    const uploadLabel = document.getElementById('uploadLabel');
+    const submitBtn = document.getElementById('submitBtn');
+    const submissionForm = document.getElementById('submissionForm');
+    const hiddenCodeInput = document.getElementById('id_monaco_code');
+    const btnText = document.getElementById('btnText');
+    const loadingIcon = document.getElementById('loadingIcon');
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // Ensure Monaco is loaded before initialization
-            if (typeof monaco !== 'undefined') {
-                // Extract code safely
+    let editorInstance = null;
+    let previewEditorInstance = null;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (typeof monaco !== 'undefined') {
+            const configLang = '{{ assignment.allowed_language }}';
+
+            // Initialize submission editor
+            editorInstance = monaco.editor.create(document.getElementById('monaco-editor-container-submission'), {
+                value: '', // Empty by default
+                language: configLang,
+                theme: 'vs-light',
+                readOnly: false,
+                lineNumbers: 'on',
+                wordWrap: 'on',
+                minimap: { enabled: false },
+                automaticLayout: true,
+                scrollBeyondLastLine: false,
+                fontSize: 14,
+                padding: { top: 16, bottom: 16 }
+            });
+
+            // Initialize preview editor if applicable
+            const previewContainer = document.getElementById('monaco-editor-container-preview');
+            if (previewContainer) {
                 const codeContent = `{{ submitted_code|escapejs }}`;
                 const codeLanguage = '{{ submitted_language }}';
 
-                monaco.editor.create(document.getElementById('monaco-editor-container'), {
+                previewEditorInstance = monaco.editor.create(previewContainer, {
                     value: codeContent,
                     language: codeLanguage,
                     theme: 'vs-light',
@@ -162,25 +193,8 @@
                     padding: { top: 16, bottom: 16 }
                 });
             }
-        });
-    </script>
-    {% else %}
-    <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; text-align: center;">
-        <i class="fa-solid fa-file-code" style="font-size: 24px; color: #999; margin-bottom: 10px; display: block;"></i>
-        <p style="color: #666; font-size: 14px; margin: 0;">Code preview is available only for .py and .java files.</p>
-    </div>
-    {% endif %}
-</div>
-{% endif %}
-
-<script>
-    const uploadCard = document.getElementById('uploadCard');
-    const fileInput = document.getElementById('id_file_path');
-    const uploadLabel = document.getElementById('uploadLabel');
-    const submitBtn = document.getElementById('submitBtn');
-    const submissionForm = document.getElementById('submissionForm');
-    const btnText = document.getElementById('btnText');
-    const loadingIcon = document.getElementById('loadingIcon');
+        }
+    });
 
     uploadCard.addEventListener('click', () => {
         fileInput.click();
@@ -188,34 +202,45 @@
 
     function handleFileSelect(input) {
         if (input.files && input.files.length > 0) {
-            let names = [];
-            for (let i = 0; i < input.files.length; i++) {
-                names.push(input.files[i].name);
-            }
-            let labelText = names.length > 1 ? `${names.length} files selected` : names[0];
-            let nameList = names.join(', ');
-
-            uploadLabel.innerHTML = `<strong>Selected:</strong><br><span style="font-size: 11px;" title="${nameList}">${labelText}</span>`;
+            const file = input.files[0];
+            uploadLabel.innerHTML = `<strong>Selected:</strong><br><span style="font-size: 11px;">${file.name}</span>`;
             uploadLabel.style.color = '#333';
 
-            submitBtn.disabled = false;
-            submitBtn.style.cursor = 'pointer';
-            submitBtn.style.opacity = '1';
             uploadCard.style.borderColor = 'var(--maroon)';
             uploadCard.style.background = '#fffafb';
+
+            // Read the file and push to monaco
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                if (editorInstance) {
+                    editorInstance.setValue(e.target.result);
+                }
+            };
+            reader.readAsText(file);
         } else {
             uploadLabel.textContent = 'Upload from your computer';
             uploadLabel.style.color = 'var(--maroon)';
 
-            submitBtn.disabled = true;
-            submitBtn.style.cursor = 'not-allowed';
-            submitBtn.style.opacity = '0.6';
             uploadCard.style.borderColor = '#ddd';
             uploadCard.style.background = '#fafafa';
         }
     }
 
-    submissionForm.addEventListener('submit', function () {
+    submissionForm.addEventListener('submit', function (e) {
+        const hasFile = fileInput.files && fileInput.files.length > 0;
+        const hasCode = editorInstance && editorInstance.getValue().trim().length > 0;
+
+        if (!hasFile && !hasCode) {
+            e.preventDefault();
+            alert('Please upload a file or enter code before submitting.');
+            return false;
+        }
+
+        // Push monaco content into hidden input
+        if (editorInstance) {
+            hiddenCodeInput.value = editorInstance.getValue();
+        }
+
         submitBtn.disabled = true;
         submitBtn.style.opacity = '0.8';
         submitBtn.style.cursor = 'wait';
@@ -225,6 +250,27 @@
 </script>
 
 <hr style="border: none; border-top: 2px solid #333; margin: 30px 0;">
+{% endif %}
+
+<!-- Code Preview Section -->
+{% if is_student and latest_submission %}
+<div style="margin-top: 40px; margin-bottom: 20px;">
+    <h3 style="margin-bottom: 8px; font-size: 18px; font-weight: 600; color: #333;">Submitted Code</h3>
+    {% if can_preview_code %}
+    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Read-only preview of your latest submission.</p>
+    <div id="monaco-editor-container-preview"
+        style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    </div>
+    {% else %}
+    <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; text-align: center;">
+        <i class="fa-solid fa-file-code" style="font-size: 24px; color: #999; margin-bottom: 10px; display: block;"></i>
+        <p style="color: #666; font-size: 14px; margin: 0;">Code preview is available only for .py and .java files.</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+
 {% endif %}
 
 <!-- Instructor Submissions Table -->
