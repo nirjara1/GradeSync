@@ -367,10 +367,37 @@ def grade_submission_view(request, pk):
     else:
         base_template = 'base_grading_assistant.html'
             
+    submitted_code = ""
+    submitted_language = "plaintext"
+    can_preview_code = False
+    
+    if submission and submission.file_path:
+        file_name = submission.file_path.name.lower()
+        if hasattr(submission.file_path, 'read'):
+            if file_name.endswith('.py'):
+                try:
+                    submission.file_path.seek(0)
+                    submitted_code = submission.file_path.read().decode('utf-8')
+                    submitted_language = 'python'
+                    can_preview_code = True
+                except Exception as e:
+                    logger.error(f"Error reading python file for preview: {e}")
+            elif file_name.endswith('.java'):
+                try:
+                    submission.file_path.seek(0)
+                    submitted_code = submission.file_path.read().decode('utf-8')
+                    submitted_language = 'java'
+                    can_preview_code = True
+                except Exception as e:
+                    logger.error(f"Error reading java file for preview: {e}")
+                    
     context = {
         'submission': submission,
         'grade': grade,
-        'base_template': base_template
+        'base_template': base_template,
+        'submitted_code': submitted_code,
+        'submitted_language': submitted_language,
+        'can_preview_code': can_preview_code
     }
     return render(request, 'grade_submission.html', context)
 
