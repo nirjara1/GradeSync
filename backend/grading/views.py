@@ -291,6 +291,7 @@ def assignment_detail_view(request, pk):
     
     import json
     submission_files = []
+    latest_submission = None
     
     if is_student:
         submissions = submissions.filter(student__user=user)
