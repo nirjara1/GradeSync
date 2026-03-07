@@ -357,3 +357,30 @@ def download_submission_view(request, pk):
         return response
     except FileNotFoundError:
         raise Http404("File not found.")
+
+@login_required
+def delete_submission_view(request, pk):
+    """
+    Allows a student to delete their own submission.
+    """
+    user = get_user_from_request(request)
+    submission = get_object_or_404(Submission, pk=pk)
+    
+    # Check permissions - only the submitting student can delete it
+    if submission.student.user != user:
+        return HttpResponseForbidden("You can only delete your own submissions.")
+        
+    if request.method == 'POST':
+        assignment_id = submission.assignment.id
+        
+        # Delete the actual file from storage
+        if submission.file_path:
+            submission.file_path.delete(save=False)
+            
+        # Delete the database record
+        submission.delete()
+        
+        messages.success(request, "Submission successfully deleted.")
+        return redirect('assignment_detail', pk=assignment_id)
+        
+    return HttpResponseForbidden("Invalid request method.")
