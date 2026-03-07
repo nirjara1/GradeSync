@@ -45,7 +45,7 @@
         {% csrf_token %}
         <p style="font-size: 14px; color: #555; margin-bottom: 15px;">You may either upload {% if
             assignment.allowed_language == 'python' %}<strong>Python (.py)</strong>{% elif assignment.allowed_language
-            == 'java' %}<strong>Java (.java)</strong>{% else %}<strong>{{ assignment.allowed_language }}</strong>{%
+            == 'java' %}<strong>Java (.java)</strong>{% else %}<strong>.{{ assignment.allowed_language }}</strong>{%
             endif %} files or write your code directly below.</p>
 
         <!-- Large Upload Card -->
