@@ -337,11 +337,16 @@ def assignment_detail_view(request, pk):
     
     submission_files_json = json.dumps(submission_files)
     
+    can_preview_code = False
+    if len(submission_files) > 0:
+        can_preview_code = True
+
     context = {
         'assignment': assignment,
         'submissions': submissions,
         'latest_submission': latest_submission,
         'submission_files_json': submission_files_json,
+        'can_preview_code': can_preview_code,
         'is_instructor': is_instructor,
         'is_student': is_student,
         'base_template': base_template,
@@ -429,10 +434,15 @@ def grade_submission_view(request, pk):
                 
     submission_files_json = json.dumps(submission_files)
     
+    can_preview_code = False
+    if len(submission_files) > 0:
+        can_preview_code = True
+        
     context = {
         'submission': submission,
         'grade': grade,
         'base_template': base_template,
+        'can_preview_code': can_preview_code,
         'submission_files_json': submission_files_json
     }
     return render(request, 'grade_submission.html', context)
