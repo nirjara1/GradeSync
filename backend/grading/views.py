@@ -262,8 +262,38 @@ def assignment_detail_view(request, pk):
             form = SubmissionForm()
 
     submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade')
+    
+    latest_submission = None
+    submitted_code = ""
+    submitted_language = "plaintext"
+    can_preview_code = False
+    
     if is_student:
         submissions = submissions.filter(student__user=user)
+        latest_submission = submissions.first()
+        
+        # Monaco Editor Support
+        if latest_submission and latest_submission.file_path:
+            file_name = latest_submission.file_path.name.lower()
+            if hasattr(latest_submission.file_path, 'read'):
+                if file_name.endswith('.py'):
+                    try:
+                        latest_submission.file_path.open('r')
+                        submitted_code = latest_submission.file_path.read().decode('utf-8', errors='ignore')
+                        submitted_language = 'python'
+                        can_preview_code = True
+                        latest_submission.file_path.close()
+                    except Exception as e:
+                        logger.error(f"Error reading python file for preview: {e}")
+                elif file_name.endswith('.java'):
+                    try:
+                        latest_submission.file_path.open('r')
+                        submitted_code = latest_submission.file_path.read().decode('utf-8', errors='ignore')
+                        submitted_language = 'java'
+                        can_preview_code = True
+                        latest_submission.file_path.close()
+                    except Exception as e:
+                        logger.error(f"Error reading java file for preview: {e}")
     
     if course_role == 'INSTRUCTOR':
         base_template = 'base_professor.html'
@@ -275,7 +305,10 @@ def assignment_detail_view(request, pk):
     context = {
         'assignment': assignment,
         'submissions': submissions,
-        'latest_submission': submissions.first() if is_student else None,
+        'latest_submission': latest_submission,
+        'submitted_code': submitted_code,
+        'submitted_language': submitted_language,
+        'can_preview_code': can_preview_code,
         'is_instructor': is_instructor,
         'is_student': is_student,
         'base_template': base_template,
