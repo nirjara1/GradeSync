@@ -132,11 +132,18 @@
         {% endif %}
 
         <!-- Submit Button -->
-        <button type="submit" id="submitBtn"
-            style="background: var(--maroon); color: white; border: none; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; margin-bottom: 30px;">
-            <span id="btnText">Submit Assignment</span>
-            <i id="loadingIcon" class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i>
-        </button>
+        <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+            <button type="submit" id="submitBtn"
+                style="background: var(--maroon); color: white; border: none; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;">
+                <span id="btnText">Submit Assignment</span>
+                <i id="loadingIcon" class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i>
+            </button>
+            <button type="button" onclick="location.reload();"
+                style="background: white; color: #555; border: 1px solid #ccc; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;"
+                onmouseover="this.style.background='#f0f0f0';" onmouseout="this.style.background='white';">
+                Cancel
+            </button>
+        </div>
     </form>
 </div>
 
