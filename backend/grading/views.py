@@ -230,24 +230,50 @@ def assignment_detail_view(request, pk):
             # Check for existing submission (re-submission)
             submission = Submission.objects.filter(student=student_profile, assignment=assignment).first()
             files = request.FILES.getlist('file_path')
+            monaco_files_json = request.POST.get('monaco_files', '').strip()
             
-            if files:
+            import json
+            monaco_files = []
+            if monaco_files_json:
+                try:
+                    monaco_files = json.loads(monaco_files_json)
+                except json.JSONDecodeError:
+                    pass
+            
+            if files or monaco_files:
                 if not submission:
                     submission = Submission(student=student_profile, assignment=assignment)
                 
-                if len(files) > 1:
+                file_contents = {}
+                for f in files:
+                    file_contents[f.name] = f.read()
+                for mf in monaco_files:
+                    name = mf.get('name')
+                    # If extension is missing or we just need a default name:
+                    if not name:
+                        extension = ".java" if assignment.allowed_language == "java" else ".py"
+                        name = f"submission_{len(file_contents)}{extension}"
+                    file_contents[name] = mf.get('content', '').encode('utf-8')
+                
+                if len(file_contents) > 1:
                     import zipfile
                     import io
                     from django.core.files.base import ContentFile
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, 'w') as zf:
-                        for f in files:
-                            zf.writestr(f.name, f.read())
+                        for name, content in file_contents.items():
+                            zf.writestr(name, content)
                     zip_buffer.seek(0)
                     submission.file_path.save(f"submission_{user.username}_{assignment.id}.zip", ContentFile(zip_buffer.read()))
-                else:
-                    submission.file_path = files[0]
-                    submission.save()
+                elif file_contents:
+                    name, content = list(file_contents.items())[0]
+                    from django.core.files.base import ContentFile
+                    import os
+                    base, ext = os.path.splitext(name)
+                    if not ext:
+                        ext = ".java" if assignment.allowed_language == "java" else ".py"
+                    filename = f"submission_{user.username}_{assignment.id}{ext}"
+                    submission.file_path.save(filename, ContentFile(content))
                     
                 # --- AUTO-GRADER TRIGGER ---
                 # This is where we would trigger the backend autograder service.
@@ -257,16 +283,15 @@ def assignment_detail_view(request, pk):
                 messages.success(request, "Submission successful.")
                 return redirect('assignment_detail', pk=pk)
             else:
-                messages.error(request, "Please select at least one file to submit.")
+                messages.error(request, "Please upload a file or enter code before submitting.")
         else:
             form = SubmissionForm()
 
     submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade')
     
+    import json
+    submission_files = []
     latest_submission = None
-    submitted_code = ""
-    submitted_language = "plaintext"
-    can_preview_code = False
     
     if is_student:
         submissions = submissions.filter(student__user=user)
@@ -276,25 +301,34 @@ def assignment_detail_view(request, pk):
         if latest_submission and latest_submission.file_path:
             file_name = latest_submission.file_path.name.lower()
             if hasattr(latest_submission.file_path, 'read'):
-                if file_name.endswith('.py'):
-                    try:
-                        latest_submission.file_path.open('r')
-                        submitted_code = latest_submission.file_path.read().decode('utf-8', errors='ignore')
-                        submitted_language = 'python'
-                        can_preview_code = True
-                        latest_submission.file_path.close()
-                    except Exception as e:
-                        logger.error(f"Error reading python file for preview: {e}")
-                elif file_name.endswith('.java'):
-                    try:
-                        latest_submission.file_path.open('r')
-                        submitted_code = latest_submission.file_path.read().decode('utf-8', errors='ignore')
-                        submitted_language = 'java'
-                        can_preview_code = True
-                        latest_submission.file_path.close()
-                    except Exception as e:
-                        logger.error(f"Error reading java file for preview: {e}")
-    
+                try:
+                    latest_submission.file_path.open('rb')
+                    file_content = latest_submission.file_path.read()
+                    latest_submission.file_path.close()
+                    
+                    if file_name.endswith('.zip'):
+                        import zipfile
+                        import io
+                        with zipfile.ZipFile(io.BytesIO(file_content), 'r') as zf:
+                            for zip_info in zf.infolist():
+                                if not zip_info.is_dir() and not zip_info.filename.startswith('__MACOSX'):
+                                    name = zip_info.filename
+                                    if name.endswith('.py') or name.endswith('.java'):
+                                        content = zf.read(name).decode('utf-8', errors='ignore')
+                                        lang = 'python' if name.endswith('.py') else 'java'
+                                        import os
+                                        submission_files.append({"name": os.path.basename(name), "content": content, "language": lang})
+                    elif file_name.endswith('.py') or file_name.endswith('.java'):
+                        content = file_content.decode('utf-8', errors='ignore')
+                        lang = 'python' if file_name.endswith('.py') else 'java'
+                        import os
+                        basename = os.path.basename(latest_submission.file_path.name)
+                        submission_files.append({"name": basename, "content": content, "language": lang})
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error reading file for preview: {e}")
+                    
     if course_role == 'INSTRUCTOR':
         base_template = 'base_professor.html'
     elif course_role == 'STUDENT':
@@ -302,12 +336,17 @@ def assignment_detail_view(request, pk):
     else:
         base_template = 'base_grading_assistant.html'
     
+    submission_files_json = json.dumps(submission_files)
+    
+    can_preview_code = False
+    if len(submission_files) > 0:
+        can_preview_code = True
+
     context = {
         'assignment': assignment,
         'submissions': submissions,
         'latest_submission': latest_submission,
-        'submitted_code': submitted_code,
-        'submitted_language': submitted_language,
+        'submission_files_json': submission_files_json,
         'can_preview_code': can_preview_code,
         'is_instructor': is_instructor,
         'is_student': is_student,
@@ -360,10 +399,52 @@ def grade_submission_view(request, pk):
     else:
         base_template = 'base_grading_assistant.html'
             
+    import json
+    submission_files = []
+    
+    if submission and submission.file_path:
+        file_name = submission.file_path.name.lower()
+        if hasattr(submission.file_path, 'read'):
+            try:
+                submission.file_path.open('rb')
+                file_content = submission.file_path.read()
+                submission.file_path.close()
+                
+                if file_name.endswith('.zip'):
+                    import zipfile
+                    import io
+                    with zipfile.ZipFile(io.BytesIO(file_content), 'r') as zf:
+                        for zip_info in zf.infolist():
+                            if not zip_info.is_dir() and not zip_info.filename.startswith('__MACOSX'):
+                                name = zip_info.filename
+                                if name.endswith('.py') or name.endswith('.java'):
+                                    content = zf.read(name).decode('utf-8', errors='ignore')
+                                    lang = 'python' if name.endswith('.py') else 'java'
+                                    import os
+                                    submission_files.append({"name": os.path.basename(name), "content": content, "language": lang})
+                elif file_name.endswith('.py') or file_name.endswith('.java'):
+                    content = file_content.decode('utf-8', errors='ignore')
+                    lang = 'python' if file_name.endswith('.py') else 'java'
+                    import os
+                    basename = os.path.basename(submission.file_path.name)
+                    submission_files.append({"name": basename, "content": content, "language": lang})
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error reading file for preview: {e}")
+                
+    submission_files_json = json.dumps(submission_files)
+    
+    can_preview_code = False
+    if len(submission_files) > 0:
+        can_preview_code = True
+        
     context = {
         'submission': submission,
         'grade': grade,
-        'base_template': base_template
+        'base_template': base_template,
+        'can_preview_code': can_preview_code,
+        'submission_files_json': submission_files_json
     }
     return render(request, 'grade_submission.html', context)
 

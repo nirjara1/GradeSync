@@ -43,6 +43,9 @@
 
     <form id="submissionForm" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
+        <p style="font-size: 14px; color: #555; margin-bottom: 15px;">
+            You may either upload <strong>Python (.py), Java (.java)</strong> files or write your code directly below.
+        </p>
 
         <!-- Large Upload Card -->
         <div id="uploadCard"
@@ -53,9 +56,31 @@
             <span id="uploadLabel"
                 style="font-size: 13px; color: var(--maroon); text-align: center; padding: 0 15px; font-weight: 500;">Upload
                 from your computer</span>
-            <input type="file" id="id_file_path" name="file_path" style="display: none;" multiple
+            <input type="file" id="id_file_path" name="file_path" style="display: none;" accept=".py,.java" multiple
                 onchange="handleFileSelect(this)">
         </div>
+
+        <!-- Live Code Editor Area -->
+        <h3 style="margin-bottom: 8px; font-size: 16px; font-weight: 600; color: #333;">Code Editor</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Write your submission here or upload a file.</p>
+
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+            <div id="fileTabs"
+                style="display: flex; flex: 1; overflow-x: auto; gap: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
+                <!-- Tabs will be injected here -->
+            </div>
+            <button type="button" onclick="createNewFile()"
+                style="background: none; border: 1px solid #ddd; border-radius: 4px; padding: 5px 10px; cursor: pointer; color: #555; font-size: 13px;">
+                <i class="fa-solid fa-plus"></i> Add File
+            </button>
+        </div>
+
+        <div id="monaco-editor-container-submission"
+            style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px;">
+        </div>
+
+        <!-- Hidden input to stash code on submit -->
+        <input type="hidden" name="monaco_files" id="id_monaco_code">
 
         <!-- Success Message -->
         {% if messages %}
@@ -108,11 +133,18 @@
         {% endif %}
 
         <!-- Submit Button -->
-        <button type="submit" id="submitBtn" disabled
-            style="background: var(--maroon); color: white; border: none; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: not-allowed; opacity: 0.6; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; margin-bottom: 30px;">
-            <span id="btnText">Submit Assignment</span>
-            <i id="loadingIcon" class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i>
-        </button>
+        <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+            <button type="submit" id="submitBtn"
+                style="background: var(--maroon); color: white; border: none; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;">
+                <span id="btnText">Submit Assignment</span>
+                <i id="loadingIcon" class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i>
+            </button>
+            <button type="button" onclick="location.reload();"
+                style="background: white; color: #555; border: 1px solid #ccc; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;"
+                onmouseover="this.style.background='#f0f0f0';" onmouseout="this.style.background='white';">
+                Cancel
+            </button>
+        </div>
     </form>
 </div>
 
@@ -124,33 +156,178 @@
 </form>
 {% endif %}
 
-<!-- Code Preview Section -->
-{% if is_student and latest_submission %}
-<div style="margin-top: 40px; margin-bottom: 20px;">
-    <h3 style="margin-bottom: 8px; font-size: 18px; font-weight: 600; color: #333;">Submitted Code</h3>
-    {% if can_preview_code %}
-    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Read-only preview of your latest submission.</p>
-    <div id="monaco-editor-container"
-        style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-    </div>
+<!-- Load Monaco Editor via CDN -->
+<script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
 
-    <!-- Load Monaco Editor via CDN -->
-    <script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
+<script>
+    const uploadCard = document.getElementById('uploadCard');
+    const fileInput = document.getElementById('id_file_path');
+    const uploadLabel = document.getElementById('uploadLabel');
+    const submitBtn = document.getElementById('submitBtn');
+    const submissionForm = document.getElementById('submissionForm');
+    const hiddenCodeInput = document.getElementById('id_monaco_code');
+    const btnText = document.getElementById('btnText');
+    const loadingIcon = document.getElementById('loadingIcon');
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // Ensure Monaco is loaded before initialization
-            if (typeof monaco !== 'undefined') {
-                // Extract code safely
-                const codeContent = `{{ submitted_code|escapejs }}`;
-                const codeLanguage = '{{ submitted_language }}';
+    let editorInstance = null;
+    let previewEditorInstance = null;
+    let files = [];
+    let activeFileIndex = -1;
+    let configLang = 'python';
 
-                monaco.editor.create(document.getElementById('monaco-editor-container'), {
-                    value: codeContent,
-                    language: codeLanguage,
+    function addFile(name, content, language) {
+        if (!monaco.editor) return;
+        const model = monaco.editor.createModel(content, language);
+        files.push({ name, model, language });
+        renderTabs();
+    }
+
+    function switchTab(index) {
+        if (index < 0 || index >= files.length) return;
+        activeFileIndex = index;
+        editorInstance.setModel(files[index].model);
+        renderTabs();
+    }
+
+    function deleteTab(index, event) {
+        event.stopPropagation(); // Prevent tab switch
+        if (files.length <= 1) {
+            alert("You must have at least one file.");
+            return;
+        }
+
+        // Dispose Monaco model to free memory
+        if (files[index].model) {
+            files[index].model.dispose();
+        }
+
+        files.splice(index, 1);
+
+        // Adjust active index
+        if (activeFileIndex === index) {
+            switchTab(Math.max(0, index - 1));
+        } else if (activeFileIndex > index) {
+            activeFileIndex--;
+            renderTabs();
+        } else {
+            renderTabs();
+        }
+    }
+
+    function renderTabs() {
+        const tabsContainer = document.getElementById('fileTabs');
+        if (!tabsContainer) return;
+
+        tabsContainer.innerHTML = '';
+        files.forEach((file, index) => {
+            const isActive = index === activeFileIndex;
+
+            // Create wrapper
+            const tabWrapper = document.createElement('div');
+            tabWrapper.style.display = 'inline-flex';
+            tabWrapper.style.alignItems = 'center';
+            tabWrapper.style.padding = '8px 15px';
+            tabWrapper.style.border = '1px solid #ddd';
+            tabWrapper.style.background = isActive ? 'white' : '#f5f5f5';
+            tabWrapper.style.borderBottom = isActive ? '2px solid white' : '1px solid #ddd';
+            tabWrapper.style.marginBottom = isActive ? '-6px' : '0';
+            tabWrapper.style.borderRadius = '6px 6px 0 0';
+            tabWrapper.style.cursor = 'pointer';
+            tabWrapper.style.position = 'relative';
+            tabWrapper.style.zIndex = isActive ? '2' : '1';
+            tabWrapper.onclick = () => switchTab(index);
+
+            // Create text
+            const tabText = document.createElement('span');
+            tabText.textContent = file.name;
+            tabText.style.fontSize = '13px';
+            tabText.style.color = isActive ? 'var(--maroon)' : '#666';
+            tabText.style.fontWeight = isActive ? 'bold' : 'normal';
+            tabText.style.marginRight = files.length > 1 ? '8px' : '0';
+
+            tabWrapper.appendChild(tabText);
+
+            // Create delete button if more than 1 file
+            if (files.length > 1) {
+                const deleteBtn = document.createElement('i');
+                deleteBtn.className = 'fa-solid fa-times';
+                deleteBtn.style.fontSize = '12px';
+                deleteBtn.style.color = '#999';
+                deleteBtn.style.padding = '2px';
+                deleteBtn.style.borderRadius = '50%';
+                deleteBtn.onmouseover = () => { deleteBtn.style.color = 'var(--red-link)'; deleteBtn.style.background = '#ffebee'; };
+                deleteBtn.onmouseout = () => { deleteBtn.style.color = '#999'; deleteBtn.style.background = 'transparent'; };
+                deleteBtn.onclick = (e) => deleteTab(index, e);
+                tabWrapper.appendChild(deleteBtn);
+            }
+
+            tabsContainer.appendChild(tabWrapper);
+        });
+    }
+
+    function createNewFile() {
+        const ext = configLang === 'java' ? '.java' : '.py';
+        const fileName = prompt(`Enter new file name (e.g. main${ext}):`, `new_file${ext}`);
+        if (!fileName) return;
+
+        if (!fileName.endsWith('.py') && !fileName.endsWith('.java')) {
+            alert('File must end with .py or .java');
+            return;
+        }
+
+        let language = fileName.endsWith('.java') ? 'java' : 'python';
+        if (language !== configLang) {
+            alert(`Assignment requires ${configLang} files.`);
+            return;
+        }
+
+        addFile(fileName, '', language);
+        switchTab(files.length - 1);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (typeof monaco !== 'undefined') {
+            configLang = '{{ assignment.allowed_language }}';
+
+            let initialFiles = [];
+            try {
+                const rawJson = `{{ submission_files_json|escapejs }}`;
+                if (rawJson) {
+                    initialFiles = JSON.parse(rawJson);
+                }
+            } catch (e) {
+                console.error("Error parsing submission_files_json", e);
+            }
+
+            // Initialize submission editor
+            editorInstance = monaco.editor.create(document.getElementById('monaco-editor-container-submission'), {
+                theme: 'vs-light',
+                readOnly: false,
+                lineNumbers: 'on',
+                wordWrap: 'on',
+                minimap: { enabled: false },
+                automaticLayout: true,
+                scrollBeyondLastLine: false,
+                fontSize: 14,
+                padding: { top: 16, bottom: 16 }
+            });
+
+            if (initialFiles.length > 0) {
+                initialFiles.forEach(f => addFile(f.name, f.content, f.language));
+                switchTab(0);
+            } else {
+                const ext = configLang === 'java' ? '.java' : '.py';
+                addFile(`main${ext}`, '', configLang);
+                switchTab(0);
+            }
+
+            // Initialize preview editor if applicable
+            const previewContainer = document.getElementById('monaco-editor-container-preview');
+            if (previewContainer && initialFiles.length > 0) {
+                previewEditorInstance = monaco.editor.create(previewContainer, {
                     theme: 'vs-light',
                     readOnly: true,
                     lineNumbers: 'on',
@@ -161,26 +338,55 @@
                     fontSize: 14,
                     padding: { top: 16, bottom: 16 }
                 });
-            }
-        });
-    </script>
-    {% else %}
-    <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; text-align: center;">
-        <i class="fa-solid fa-file-code" style="font-size: 24px; color: #999; margin-bottom: 10px; display: block;"></i>
-        <p style="color: #666; font-size: 14px; margin: 0;">Code preview is available only for .py and .java files.</p>
-    </div>
-    {% endif %}
-</div>
-{% endif %}
 
-<script>
-    const uploadCard = document.getElementById('uploadCard');
-    const fileInput = document.getElementById('id_file_path');
-    const uploadLabel = document.getElementById('uploadLabel');
-    const submitBtn = document.getElementById('submitBtn');
-    const submissionForm = document.getElementById('submissionForm');
-    const btnText = document.getElementById('btnText');
-    const loadingIcon = document.getElementById('loadingIcon');
+                const previewModels = [];
+                initialFiles.forEach((file) => {
+                    const model = monaco.editor.createModel(file.content, file.language);
+                    previewModels.push({ name: file.name, model: model });
+                });
+
+                let activePreviewIndex = -1;
+
+                function switchPreviewTab(index) {
+                    if (index < 0 || index >= previewModels.length) return;
+                    activePreviewIndex = index;
+                    previewEditorInstance.setModel(previewModels[index].model);
+                    renderPreviewTabs();
+                }
+
+                function renderPreviewTabs() {
+                    const tabsContainer = document.getElementById('studentPreviewTabs');
+                    if (!tabsContainer) return;
+
+                    tabsContainer.innerHTML = '';
+                    previewModels.forEach((file, index) => {
+                        const isActive = index === activePreviewIndex;
+                        const tabBtn = document.createElement('button');
+                        tabBtn.type = 'button';
+                        tabBtn.textContent = file.name;
+                        tabBtn.style.padding = '8px 15px';
+                        tabBtn.style.border = '1px solid #ddd';
+                        tabBtn.style.background = isActive ? 'white' : '#f5f5f5';
+                        tabBtn.style.borderBottom = isActive ? '2px solid white' : '1px solid #ddd';
+                        tabBtn.style.marginBottom = isActive ? '-6px' : '0';
+                        tabBtn.style.borderRadius = '6px 6px 0 0';
+                        tabBtn.style.cursor = 'pointer';
+                        tabBtn.style.fontSize = '13px';
+                        tabBtn.style.color = isActive ? 'var(--maroon)' : '#666';
+                        tabBtn.style.fontWeight = isActive ? 'bold' : 'normal';
+                        tabBtn.style.position = 'relative';
+                        tabBtn.style.zIndex = isActive ? '2' : '1';
+                        tabBtn.onclick = () => switchPreviewTab(index);
+                        tabsContainer.appendChild(tabBtn);
+                    });
+                }
+
+                if (previewModels.length > 0) {
+                    switchPreviewTab(0);
+                }
+            }
+        }
+    });
 
     uploadCard.addEventListener('click', () => {
         fileInput.click();
@@ -188,34 +394,45 @@
 
     function handleFileSelect(input) {
         if (input.files && input.files.length > 0) {
-            let names = [];
-            for (let i = 0; i < input.files.length; i++) {
-                names.push(input.files[i].name);
-            }
-            let labelText = names.length > 1 ? `${names.length} files selected` : names[0];
-            let nameList = names.join(', ');
-
-            uploadLabel.innerHTML = `<strong>Selected:</strong><br><span style="font-size: 11px;" title="${nameList}">${labelText}</span>`;
+            uploadLabel.innerHTML = `<strong>Selected:</strong><br><span style="font-size: 11px;">${input.files.length} file(s)</span>`;
             uploadLabel.style.color = '#333';
 
-            submitBtn.disabled = false;
-            submitBtn.style.cursor = 'pointer';
-            submitBtn.style.opacity = '1';
             uploadCard.style.borderColor = 'var(--maroon)';
             uploadCard.style.background = '#fffafb';
+
+            Array.from(input.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    let language = file.name.endsWith('.java') ? 'java' : 'python';
+                    addFile(file.name, e.target.result, language);
+                    switchTab(files.length - 1);
+                };
+                reader.readAsText(file);
+            });
+            input.value = ''; // Reset input to allow submitting same file again if deleted
         } else {
             uploadLabel.textContent = 'Upload from your computer';
             uploadLabel.style.color = 'var(--maroon)';
 
-            submitBtn.disabled = true;
-            submitBtn.style.cursor = 'not-allowed';
-            submitBtn.style.opacity = '0.6';
             uploadCard.style.borderColor = '#ddd';
             uploadCard.style.background = '#fafafa';
         }
     }
 
-    submissionForm.addEventListener('submit', function () {
+    submissionForm.addEventListener('submit', function (e) {
+        if (files.length === 0) {
+            e.preventDefault();
+            alert('Please upload or create at least one file before submitting.');
+            return false;
+        }
+
+        const filesData = files.map(f => ({
+            name: f.name,
+            content: f.model.getValue()
+        }));
+
+        hiddenCodeInput.value = JSON.stringify(filesData);
+
         submitBtn.disabled = true;
         submitBtn.style.opacity = '0.8';
         submitBtn.style.cursor = 'wait';
@@ -225,6 +442,32 @@
 </script>
 
 <hr style="border: none; border-top: 2px solid #333; margin: 30px 0;">
+{% endif %}
+
+<!-- Code Preview Section -->
+{% if is_student and latest_submission %}
+<div style="margin-top: 40px; margin-bottom: 20px;">
+    <h3 style="margin-bottom: 8px; font-size: 18px; font-weight: 600; color: #333;">Submitted Code</h3>
+    {% if can_preview_code %}
+    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Read-only preview of your latest submission.</p>
+
+    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+        <div id="studentPreviewTabs"
+            style="display: flex; flex: 1; overflow-x: auto; gap: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
+            <!-- Tabs will be injected here -->
+        </div>
+    </div>
+
+    <div id="monaco-editor-container-preview"
+        style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    </div>
+    {% else %}
+    <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; text-align: center;">
+        <i class="fa-solid fa-file-code" style="font-size: 24px; color: #999; margin-bottom: 10px; display: block;"></i>
+        <p style="color: #666; font-size: 14px; margin: 0;">Code preview is available only for .py and .java files.</p>
+    </div>
+    {% endif %}
+</div>
 {% endif %}
 
 <!-- Instructor Submissions Table -->
