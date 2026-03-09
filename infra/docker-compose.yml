@@ -2,16 +2,16 @@ services:
   db:
     image: postgres:16
     env_file:
-      - .env
+      - ../.env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   web:
     build: .
     env_file:
-      - .env
+      - ../.env
     volumes:
       - ./app:/app
       - ./app/data:/app/data

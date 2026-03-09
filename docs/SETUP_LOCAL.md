@@ -1,57 +1,33 @@
-# GradeSync Local Setup Guide
+# Local Development Setup
 
-Follow these steps to run GradeSync natively on your local machine using SQLite/PostgreSQL and local Python environments.
+To run GradeSync locally using the PostgreSQL shared database:
 
-## Prerequisites
-- Python 3.10+
-- `pip` and `virtualenv`
-- (Optional) Local PostgreSQL instance
-
-## 1. Environment Setup
-
-Copy the environment example to create your local variables:
+### 1. Configure Environment
+Copy the example environment file:
 ```bash
-cp "env example" .env
+cp .env.example .env
 ```
-Edit `.env` to match your local setup (e.g., if using SQLite, database variables can be ignored).
+Ensure that your local PostgreSQL instance matches the credentials listed in `.env` or update them as needed.
 
-## 2. Virtual Environment
-
-Create and activate your virtual environment:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-## 3. Install Dependencies
-
-Install the requirements from the root directory:
+### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-## 4. Database Migrations
-
-Apply Django migrations to set up your local database:
+### 3. Run Migrations
+Generate the database schema on your local PostgreSQL engine:
 ```bash
-cd app
+cd backend
 python manage.py migrate
 ```
 
-## 5. Running the Application
-
-We have provided a helper script in the `scripts/` directory to start the server:
-
+### 4. Load Seed Data
+Populate the database with the pre-configured mock professor, student, and grading assistant accounts for testing:
 ```bash
-# Ensure you are at the repository root
-bash scripts/run_local.sh
+python manage.py loaddata ../database/postgres/seed_data.json
 ```
 
-Alternatively, manually start the server:
+### 5. Start Server
 ```bash
-cd app
 python manage.py runserver
 ```
-
-The app will be available at `http://127.0.0.1:8000`.

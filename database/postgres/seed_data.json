@@ -1,0 +1,1393 @@
+[
+{
+  "model": "auth.permission",
+  "pk": 1,
+  "fields": {
+    "name": "Can add department",
+    "content_type": 4,
+    "codename": "add_department"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 2,
+  "fields": {
+    "name": "Can change department",
+    "content_type": 4,
+    "codename": "change_department"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 3,
+  "fields": {
+    "name": "Can delete department",
+    "content_type": 4,
+    "codename": "delete_department"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 4,
+  "fields": {
+    "name": "Can view department",
+    "content_type": 4,
+    "codename": "view_department"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 5,
+  "fields": {
+    "name": "Can add employee",
+    "content_type": 5,
+    "codename": "add_employee"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 6,
+  "fields": {
+    "name": "Can change employee",
+    "content_type": 5,
+    "codename": "change_employee"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 7,
+  "fields": {
+    "name": "Can delete employee",
+    "content_type": 5,
+    "codename": "delete_employee"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 8,
+  "fields": {
+    "name": "Can view employee",
+    "content_type": 5,
+    "codename": "view_employee"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 9,
+  "fields": {
+    "name": "Can add Programming Language",
+    "content_type": 9,
+    "codename": "add_programminglanguage"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 10,
+  "fields": {
+    "name": "Can change Programming Language",
+    "content_type": 9,
+    "codename": "change_programminglanguage"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 11,
+  "fields": {
+    "name": "Can delete Programming Language",
+    "content_type": 9,
+    "codename": "delete_programminglanguage"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 12,
+  "fields": {
+    "name": "Can view Programming Language",
+    "content_type": 9,
+    "codename": "view_programminglanguage"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 13,
+  "fields": {
+    "name": "Can add Execution Environment",
+    "content_type": 7,
+    "codename": "add_executionenvironment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 14,
+  "fields": {
+    "name": "Can change Execution Environment",
+    "content_type": 7,
+    "codename": "change_executionenvironment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 15,
+  "fields": {
+    "name": "Can delete Execution Environment",
+    "content_type": 7,
+    "codename": "delete_executionenvironment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 16,
+  "fields": {
+    "name": "Can view Execution Environment",
+    "content_type": 7,
+    "codename": "view_executionenvironment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 17,
+  "fields": {
+    "name": "Can add Course",
+    "content_type": 2,
+    "codename": "add_course"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 18,
+  "fields": {
+    "name": "Can change Course",
+    "content_type": 2,
+    "codename": "change_course"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 19,
+  "fields": {
+    "name": "Can delete Course",
+    "content_type": 2,
+    "codename": "delete_course"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 20,
+  "fields": {
+    "name": "Can view Course",
+    "content_type": 2,
+    "codename": "view_course"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 21,
+  "fields": {
+    "name": "Can add Database Settings",
+    "content_type": 3,
+    "codename": "add_databasesettings"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 22,
+  "fields": {
+    "name": "Can change Database Settings",
+    "content_type": 3,
+    "codename": "change_databasesettings"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 23,
+  "fields": {
+    "name": "Can delete Database Settings",
+    "content_type": 3,
+    "codename": "delete_databasesettings"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 24,
+  "fields": {
+    "name": "Can view Database Settings",
+    "content_type": 3,
+    "codename": "view_databasesettings"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 25,
+  "fields": {
+    "name": "Can add submission",
+    "content_type": 10,
+    "codename": "add_submission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 26,
+  "fields": {
+    "name": "Can change submission",
+    "content_type": 10,
+    "codename": "change_submission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 27,
+  "fields": {
+    "name": "Can delete submission",
+    "content_type": 10,
+    "codename": "delete_submission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 28,
+  "fields": {
+    "name": "Can view submission",
+    "content_type": 10,
+    "codename": "view_submission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 29,
+  "fields": {
+    "name": "Can add assignment",
+    "content_type": 1,
+    "codename": "add_assignment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 30,
+  "fields": {
+    "name": "Can change assignment",
+    "content_type": 1,
+    "codename": "change_assignment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 31,
+  "fields": {
+    "name": "Can delete assignment",
+    "content_type": 1,
+    "codename": "delete_assignment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 32,
+  "fields": {
+    "name": "Can view assignment",
+    "content_type": 1,
+    "codename": "view_assignment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 33,
+  "fields": {
+    "name": "Can add enrollment",
+    "content_type": 6,
+    "codename": "add_enrollment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 34,
+  "fields": {
+    "name": "Can change enrollment",
+    "content_type": 6,
+    "codename": "change_enrollment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 35,
+  "fields": {
+    "name": "Can delete enrollment",
+    "content_type": 6,
+    "codename": "delete_enrollment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 36,
+  "fields": {
+    "name": "Can view enrollment",
+    "content_type": 6,
+    "codename": "view_enrollment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 37,
+  "fields": {
+    "name": "Can add grade report",
+    "content_type": 8,
+    "codename": "add_gradereport"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 38,
+  "fields": {
+    "name": "Can change grade report",
+    "content_type": 8,
+    "codename": "change_gradereport"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 39,
+  "fields": {
+    "name": "Can delete grade report",
+    "content_type": 8,
+    "codename": "delete_gradereport"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 40,
+  "fields": {
+    "name": "Can view grade report",
+    "content_type": 8,
+    "codename": "view_gradereport"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 41,
+  "fields": {
+    "name": "Can add test bundle",
+    "content_type": 11,
+    "codename": "add_testbundle"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 42,
+  "fields": {
+    "name": "Can change test bundle",
+    "content_type": 11,
+    "codename": "change_testbundle"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 43,
+  "fields": {
+    "name": "Can delete test bundle",
+    "content_type": 11,
+    "codename": "delete_testbundle"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 44,
+  "fields": {
+    "name": "Can view test bundle",
+    "content_type": 11,
+    "codename": "view_testbundle"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 45,
+  "fields": {
+    "name": "Can add log entry",
+    "content_type": 12,
+    "codename": "add_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 46,
+  "fields": {
+    "name": "Can change log entry",
+    "content_type": 12,
+    "codename": "change_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 47,
+  "fields": {
+    "name": "Can delete log entry",
+    "content_type": 12,
+    "codename": "delete_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 48,
+  "fields": {
+    "name": "Can view log entry",
+    "content_type": 12,
+    "codename": "view_logentry"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 49,
+  "fields": {
+    "name": "Can add permission",
+    "content_type": 14,
+    "codename": "add_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 50,
+  "fields": {
+    "name": "Can change permission",
+    "content_type": 14,
+    "codename": "change_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 51,
+  "fields": {
+    "name": "Can delete permission",
+    "content_type": 14,
+    "codename": "delete_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 52,
+  "fields": {
+    "name": "Can view permission",
+    "content_type": 14,
+    "codename": "view_permission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 53,
+  "fields": {
+    "name": "Can add group",
+    "content_type": 13,
+    "codename": "add_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 54,
+  "fields": {
+    "name": "Can change group",
+    "content_type": 13,
+    "codename": "change_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 55,
+  "fields": {
+    "name": "Can delete group",
+    "content_type": 13,
+    "codename": "delete_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 56,
+  "fields": {
+    "name": "Can view group",
+    "content_type": 13,
+    "codename": "view_group"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 57,
+  "fields": {
+    "name": "Can add user",
+    "content_type": 15,
+    "codename": "add_user"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 58,
+  "fields": {
+    "name": "Can change user",
+    "content_type": 15,
+    "codename": "change_user"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 59,
+  "fields": {
+    "name": "Can delete user",
+    "content_type": 15,
+    "codename": "delete_user"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 60,
+  "fields": {
+    "name": "Can view user",
+    "content_type": 15,
+    "codename": "view_user"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 61,
+  "fields": {
+    "name": "Can add content type",
+    "content_type": 16,
+    "codename": "add_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 62,
+  "fields": {
+    "name": "Can change content type",
+    "content_type": 16,
+    "codename": "change_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 63,
+  "fields": {
+    "name": "Can delete content type",
+    "content_type": 16,
+    "codename": "delete_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 64,
+  "fields": {
+    "name": "Can view content type",
+    "content_type": 16,
+    "codename": "view_contenttype"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 65,
+  "fields": {
+    "name": "Can add session",
+    "content_type": 17,
+    "codename": "add_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 66,
+  "fields": {
+    "name": "Can change session",
+    "content_type": 17,
+    "codename": "change_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 67,
+  "fields": {
+    "name": "Can delete session",
+    "content_type": 17,
+    "codename": "delete_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 68,
+  "fields": {
+    "name": "Can view session",
+    "content_type": 17,
+    "codename": "view_session"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 69,
+  "fields": {
+    "name": "Can add course",
+    "content_type": 18,
+    "codename": "add_course"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 70,
+  "fields": {
+    "name": "Can change course",
+    "content_type": 18,
+    "codename": "change_course"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 71,
+  "fields": {
+    "name": "Can delete course",
+    "content_type": 18,
+    "codename": "delete_course"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 72,
+  "fields": {
+    "name": "Can view course",
+    "content_type": 18,
+    "codename": "view_course"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 73,
+  "fields": {
+    "name": "Can add user profile",
+    "content_type": 20,
+    "codename": "add_userprofile"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 74,
+  "fields": {
+    "name": "Can change user profile",
+    "content_type": 20,
+    "codename": "change_userprofile"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 75,
+  "fields": {
+    "name": "Can delete user profile",
+    "content_type": 20,
+    "codename": "delete_userprofile"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 76,
+  "fields": {
+    "name": "Can view user profile",
+    "content_type": 20,
+    "codename": "view_userprofile"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 77,
+  "fields": {
+    "name": "Can add course member",
+    "content_type": 19,
+    "codename": "add_coursemember"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 78,
+  "fields": {
+    "name": "Can change course member",
+    "content_type": 19,
+    "codename": "change_coursemember"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 79,
+  "fields": {
+    "name": "Can delete course member",
+    "content_type": 19,
+    "codename": "delete_coursemember"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 80,
+  "fields": {
+    "name": "Can view course member",
+    "content_type": 19,
+    "codename": "view_coursemember"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 81,
+  "fields": {
+    "name": "Can add assignment",
+    "content_type": 21,
+    "codename": "add_assignment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 82,
+  "fields": {
+    "name": "Can change assignment",
+    "content_type": 21,
+    "codename": "change_assignment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 83,
+  "fields": {
+    "name": "Can delete assignment",
+    "content_type": 21,
+    "codename": "delete_assignment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 84,
+  "fields": {
+    "name": "Can view assignment",
+    "content_type": 21,
+    "codename": "view_assignment"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 85,
+  "fields": {
+    "name": "Can add student",
+    "content_type": 23,
+    "codename": "add_student"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 86,
+  "fields": {
+    "name": "Can change student",
+    "content_type": 23,
+    "codename": "change_student"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 87,
+  "fields": {
+    "name": "Can delete student",
+    "content_type": 23,
+    "codename": "delete_student"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 88,
+  "fields": {
+    "name": "Can view student",
+    "content_type": 23,
+    "codename": "view_student"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 89,
+  "fields": {
+    "name": "Can add submission",
+    "content_type": 24,
+    "codename": "add_submission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 90,
+  "fields": {
+    "name": "Can change submission",
+    "content_type": 24,
+    "codename": "change_submission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 91,
+  "fields": {
+    "name": "Can delete submission",
+    "content_type": 24,
+    "codename": "delete_submission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 92,
+  "fields": {
+    "name": "Can view submission",
+    "content_type": 24,
+    "codename": "view_submission"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 93,
+  "fields": {
+    "name": "Can add grade",
+    "content_type": 22,
+    "codename": "add_grade"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 94,
+  "fields": {
+    "name": "Can change grade",
+    "content_type": 22,
+    "codename": "change_grade"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 95,
+  "fields": {
+    "name": "Can delete grade",
+    "content_type": 22,
+    "codename": "delete_grade"
+  }
+},
+{
+  "model": "auth.permission",
+  "pk": 96,
+  "fields": {
+    "name": "Can view grade",
+    "content_type": 22,
+    "codename": "view_grade"
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$gM3ecTyeG0dqh07EZ5Z9rh$xeFSiig1/xkHVoQHUpgq3DwwEVtzDpjPBqa8iu5urMw=",
+    "last_login": "2026-03-09T16:15:43.490Z",
+    "is_superuser": false,
+    "username": "student@warhawks.ulm.edu",
+    "first_name": "",
+    "last_name": "",
+    "email": "student@warhawks.ulm.edu",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-03-02T07:18:20.627Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$SGcoQ0IxCRj6ops2oinQ5M$xTL5wqiAGetsJCJUotEr/D9eMa6wFh1Jj5xKSrcPX14=",
+    "last_login": "2026-03-02T07:47:21.656Z",
+    "is_superuser": false,
+    "username": "test_student",
+    "first_name": "",
+    "last_name": "",
+    "email": "test_student@warhawks.ulm.edu",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-03-02T07:42:44.319Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$cXtwScVBziL99syfCsufRD$v/8M0iKPXcixEtyrI9xf3l+UMsUWcAE233TzJTCvpmY=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "test_prof",
+    "first_name": "",
+    "last_name": "",
+    "email": "prof@warhawks.ulm.edu",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-03-02T07:50:14.143Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 4,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$g1jXpEwUu93bf9ilWqLabP$PwKJ3oALxjvzuHBn8splVHhS/2d0JlNzZf6BduUWds0=",
+    "last_login": "2026-03-09T16:25:27.208Z",
+    "is_superuser": false,
+    "username": "professor@warhawks.ulm.edu",
+    "first_name": "",
+    "last_name": "",
+    "email": "professor@warhawks.ulm.edu",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-03-02T08:04:46.068Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 5,
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$b2NCUOqFPlFKuqfuRGGSjI$zE6Bm/UECxzsMqemI6vqj145QwWwpcevNf9IdF2Dc6g=",
+    "last_login": "2026-03-04T17:14:14.749Z",
+    "is_superuser": false,
+    "username": "assistance@warhawks.ulm.edu",
+    "first_name": "",
+    "last_name": "",
+    "email": "assistance@warhawks.ulm.edu",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-03-02T08:05:10.673Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 1,
+  "fields": {
+    "app_label": "items",
+    "model": "assignment"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 2,
+  "fields": {
+    "app_label": "items",
+    "model": "course"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 3,
+  "fields": {
+    "app_label": "items",
+    "model": "databasesettings"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 4,
+  "fields": {
+    "app_label": "items",
+    "model": "department"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 5,
+  "fields": {
+    "app_label": "items",
+    "model": "employee"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 6,
+  "fields": {
+    "app_label": "items",
+    "model": "enrollment"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 7,
+  "fields": {
+    "app_label": "items",
+    "model": "executionenvironment"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 8,
+  "fields": {
+    "app_label": "items",
+    "model": "gradereport"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 9,
+  "fields": {
+    "app_label": "items",
+    "model": "programminglanguage"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 10,
+  "fields": {
+    "app_label": "items",
+    "model": "submission"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 11,
+  "fields": {
+    "app_label": "items",
+    "model": "testbundle"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 12,
+  "fields": {
+    "app_label": "admin",
+    "model": "logentry"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 13,
+  "fields": {
+    "app_label": "auth",
+    "model": "group"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 14,
+  "fields": {
+    "app_label": "auth",
+    "model": "permission"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 15,
+  "fields": {
+    "app_label": "auth",
+    "model": "user"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 16,
+  "fields": {
+    "app_label": "contenttypes",
+    "model": "contenttype"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 17,
+  "fields": {
+    "app_label": "sessions",
+    "model": "session"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 18,
+  "fields": {
+    "app_label": "professor",
+    "model": "course"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 19,
+  "fields": {
+    "app_label": "professor",
+    "model": "coursemember"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 20,
+  "fields": {
+    "app_label": "professor",
+    "model": "userprofile"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 21,
+  "fields": {
+    "app_label": "grading",
+    "model": "assignment"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 22,
+  "fields": {
+    "app_label": "grading",
+    "model": "grade"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 23,
+  "fields": {
+    "app_label": "grading",
+    "model": "student"
+  }
+},
+{
+  "model": "contenttypes.contenttype",
+  "pk": 24,
+  "fields": {
+    "app_label": "grading",
+    "model": "submission"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "gr1htannjv72ue05zqtrlu1yh52ezeg6",
+  "fields": {
+    "session_data": ".eJxVjL0OgjAURt-ls2mA_uIok4OaIM7NbXtjUUKTAi7Gd7ckDLqe833nTQwsczDLhMn0nuwJJ7tfZsE9cVyFf8B4j9TFcU69peuEbnaip-hxOGzbv0CAKeQ3olRMCpDCiRJQ8ApRgZayKDJirrbal5b5Sqq6UILrqkRfKyYsz17pHAU39y80KQ6Yg8fztWtvTXdpyecLGGk_lQ:1vyHXA:j76rHWSZO8KmOBeDxc7eUDpPhGafczXln88QvUKj5RE",
+    "expire_date": "2026-03-19T22:51:08.740Z"
+  }
+},
+{
+  "model": "professor.course",
+  "pk": 1,
+  "fields": {
+    "code": "",
+    "section": "",
+    "title": "Sample Course",
+    "term": "",
+    "crn": null,
+    "grading_default": true,
+    "unweighted": false,
+    "visibility": false,
+    "published": false,
+    "image_url": null,
+    "professor": 3
+  }
+},
+{
+  "model": "professor.course",
+  "pk": 2,
+  "fields": {
+    "code": "GENERIC",
+    "section": "1",
+    "title": "Principle of Software Engineering",
+    "term": "Fall",
+    "crn": "12345",
+    "grading_default": true,
+    "unweighted": true,
+    "visibility": false,
+    "published": true,
+    "image_url": null,
+    "professor": 4
+  }
+},
+{
+  "model": "professor.course",
+  "pk": 3,
+  "fields": {
+    "code": "GENERIC",
+    "section": "1",
+    "title": "Demo 1",
+    "term": "fall",
+    "crn": "54321",
+    "grading_default": true,
+    "unweighted": false,
+    "visibility": false,
+    "published": true,
+    "image_url": null,
+    "professor": 4
+  }
+},
+{
+  "model": "professor.userprofile",
+  "pk": 1,
+  "fields": {
+    "user": 1,
+    "role": "STUDENT"
+  }
+},
+{
+  "model": "professor.userprofile",
+  "pk": 2,
+  "fields": {
+    "user": 2,
+    "role": "STUDENT"
+  }
+},
+{
+  "model": "professor.userprofile",
+  "pk": 3,
+  "fields": {
+    "user": 3,
+    "role": "FACULTY"
+  }
+},
+{
+  "model": "professor.userprofile",
+  "pk": 4,
+  "fields": {
+    "user": 4,
+    "role": "FACULTY"
+  }
+},
+{
+  "model": "professor.userprofile",
+  "pk": 5,
+  "fields": {
+    "user": 5,
+    "role": "GRADING_ASSISTANT"
+  }
+},
+{
+  "model": "professor.coursemember",
+  "pk": 1,
+  "fields": {
+    "course": 1,
+    "user": 2,
+    "role_in_course": "STUDENT",
+    "added_at": "2026-03-02T07:50:14.381Z"
+  }
+},
+{
+  "model": "professor.coursemember",
+  "pk": 2,
+  "fields": {
+    "course": 2,
+    "user": 1,
+    "role_in_course": "STUDENT",
+    "added_at": "2026-03-02T08:06:29.661Z"
+  }
+},
+{
+  "model": "professor.coursemember",
+  "pk": 3,
+  "fields": {
+    "course": 2,
+    "user": 5,
+    "role_in_course": "GRADING_ASSISTANT",
+    "added_at": "2026-03-02T08:07:20.603Z"
+  }
+},
+{
+  "model": "professor.coursemember",
+  "pk": 4,
+  "fields": {
+    "course": 3,
+    "user": 1,
+    "role_in_course": "STUDENT",
+    "added_at": "2026-03-02T17:02:45.611Z"
+  }
+},
+{
+  "model": "professor.coursemember",
+  "pk": 5,
+  "fields": {
+    "course": 3,
+    "user": 5,
+    "role_in_course": "GRADING_ASSISTANT",
+    "added_at": "2026-03-02T17:03:42.247Z"
+  }
+},
+{
+  "model": "grading.student",
+  "pk": 1,
+  "fields": {
+    "user": 1,
+    "enrollment_date": "2026-03-02"
+  }
+},
+{
+  "model": "grading.assignment",
+  "pk": 1,
+  "fields": {
+    "name": "Sample Assignment",
+    "description": "Proper test assignment.",
+    "course": 1,
+    "points": 100,
+    "due_date": "2026-03-09T07:50:14.382Z",
+    "no_due_date": false,
+    "allowed_language": "python",
+    "public_test_data": "",
+    "expected_outputs": "",
+    "status": "published",
+    "created_at": "2026-03-02T07:50:14.382Z"
+  }
+},
+{
+  "model": "grading.assignment",
+  "pk": 2,
+  "fields": {
+    "name": "Test",
+    "description": "hello",
+    "course": 2,
+    "points": 100,
+    "due_date": null,
+    "no_due_date": true,
+    "allowed_language": "python",
+    "public_test_data": "",
+    "expected_outputs": "",
+    "status": "published",
+    "created_at": "2026-03-02T08:07:36.390Z"
+  }
+},
+{
+  "model": "grading.assignment",
+  "pk": 3,
+  "fields": {
+    "name": "Demo",
+    "description": "post here",
+    "course": 3,
+    "points": 72,
+    "due_date": "2026-03-04T05:59:00Z",
+    "no_due_date": false,
+    "allowed_language": "python",
+    "public_test_data": "",
+    "expected_outputs": "",
+    "status": "published",
+    "created_at": "2026-03-02T17:04:35.153Z"
+  }
+},
+{
+  "model": "grading.assignment",
+  "pk": 4,
+  "fields": {
+    "name": "wdasd",
+    "description": "asdasd",
+    "course": 2,
+    "points": 100,
+    "due_date": null,
+    "no_due_date": true,
+    "allowed_language": "python",
+    "public_test_data": "",
+    "expected_outputs": "",
+    "status": "published",
+    "created_at": "2026-03-06T20:44:08.113Z"
+  }
+},
+{
+  "model": "grading.submission",
+  "pk": 1,
+  "fields": {
+    "student": 1,
+    "assignment": 3,
+    "file_path": "submissions/KnapsackDriver.java",
+    "submission_time": "2026-03-02T17:05:09.315Z"
+  }
+},
+{
+  "model": "grading.grade",
+  "pk": 1,
+  "fields": {
+    "submission": 1,
+    "score": "59.00",
+    "feedback": "",
+    "graded_at": "2026-03-02T17:08:45.794Z"
+  }
+}
+]
