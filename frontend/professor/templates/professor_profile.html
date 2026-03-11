@@ -1,0 +1,71 @@
+{% extends 'base_professor.html' %}
+{% load static %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h2 class="page-title">Professor Profile</h2>
+        <p class="profile-subtitle">Manage your personal information and account settings</p>
+    </div>
+    
+    <hr class="divider">
+
+    <div class="profile-card">
+        <div class="profile-cover"></div>
+        
+        <div class="profile-avatar-container">
+            <div class="profile-avatar">
+                <i class="fa-solid fa-user-tie"></i>
+            </div>
+            <button class="edit-avatar-btn" title="Change Profile Picture">
+                <i class="fa-solid fa-camera"></i>
+            </button>
+        </div>
+
+        <div class="profile-details-section">
+            <div class="profile-info-grid">
+                
+                <div class="info-group">
+                    <label>Full Name</label>
+                    <div class="info-value">{{ user.first_name }} {{ user.last_name }}{% if not user.first_name and not user.last_name %}{{ user.username }}{% endif %}</div>
+                </div>
+
+                <div class="info-group">
+                    <label>Email Address</label>
+                    <div class="info-value">{{ user.email }}</div>
+                </div>
+
+                <div class="info-group">
+                    <label>Role</label>
+                    <div class="info-value role-badge">{{ profile.role|default:"Faculty" }}</div>
+                </div>
+
+                <div class="info-group">
+                    <label>Username</label>
+                    <div class="info-value">{{ user.username }}</div>
+                </div>
+
+                <div class="info-group">
+                    <label>Date Joined</label>
+                    <div class="info-value">{{ user.date_joined|date:"F j, Y" }}</div>
+                </div>
+
+                <div class="info-group">
+                    <label>Department</label>
+                    <div class="info-value">Computer Science (Default)</div>
+                </div>
+
+            </div>
+
+            <div class="profile-actions">
+                <button class="btn-primary-action">
+                    <i class="fa-solid fa-pen"></i> Edit Profile
+                </button>
+                <button class="btn-secondary-action">
+                    <i class="fa-solid fa-key"></i> Change Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

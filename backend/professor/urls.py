@@ -5,6 +5,7 @@ from grading.views import professor_course_view
 
 urlpatterns = [
     path('dashboard/', views.dashboard, name='professor_dashboard'),
+    path('profile/', views.profile, name='professor_profile'),
     path('create-course/', views.create_course, name='create_course'),
     path('classes/<int:course_id>/', professor_course_view, name='professor_course'),
     

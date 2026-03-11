@@ -21,8 +21,8 @@ def dashboard(request):
     courses = Course.objects.filter(professor=user).distinct()
     
     # Check if user is primarily a faculty member to show 'Create Class' button
-    profile, _ = UserProfile.objects.get_or_create(user=user)
-    is_faculty = profile.role == 'FACULTY'
+    profile_obj, _ = UserProfile.objects.get_or_create(user=user)
+    is_faculty = profile_obj.role == 'FACULTY'
 
     # The original mock 'poudelb2' is treated as a faculty member by default in our context
     if user.username == 'poudelb2':
@@ -33,6 +33,18 @@ def dashboard(request):
         'is_faculty': is_faculty,
     }
     return render(request, 'professor_dashboard.html', context)
+
+@login_required
+def profile(request):
+    user = get_user_from_request(request)
+    request.session['active_role'] = 'INSTRUCTOR'
+    
+    profile_obj, _ = UserProfile.objects.get_or_create(user=user)
+    
+    context = {
+        'profile': profile_obj,
+    }
+    return render(request, 'professor_profile.html', context)
 
 @login_required
 def ga_dashboard(request):
