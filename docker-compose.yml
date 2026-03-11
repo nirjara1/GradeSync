@@ -14,10 +14,19 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+    environment:
+      # Execution sandbox settings (override in .env if needed)
+      - EXECUTION_TIMEOUT_SECONDS=5
     volumes:
       - ./backend:/app
       - ./app/data:/app/data
       - ./frontend:/frontend
+      # Mount Docker socket so Django can spawn sibling containers (DooD pattern)
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Shared sandbox directory — same path on host AND inside this container.
+      # Django writes student code here; the host Docker daemon can then find it
+      # when we pass this path to `docker run -v ...` from inside this container.
+      - /tmp/gradesync_sandbox:/tmp/gradesync_sandbox
     ports:
       - "80:8000"
     depends_on:
@@ -26,3 +35,5 @@ services:
 
 volumes:
   postgres_data:
+
+

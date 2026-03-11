@@ -73,10 +73,54 @@
                 style="background: none; border: 1px solid #ddd; border-radius: 4px; padding: 5px 10px; cursor: pointer; color: #555; font-size: 13px;">
                 <i class="fa-solid fa-plus"></i> Add File
             </button>
+            <!-- ▶ Run Code Button -->
+            <button type="button" id="runCodeBtn" onclick="runCode()"
+                style="background: #1e7e34; color: white; border: none; border-radius: 4px; padding: 6px 14px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: background 0.2s;">
+                <i id="runIcon" class="fa-solid fa-play"></i>
+                <span id="runBtnText">Run Code</span>
+            </button>
         </div>
 
         <div id="monaco-editor-container-submission"
-            style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px;">
+            style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 0;">
+        </div>
+
+        <!-- ════════════════════════════════════════════════
+             TERMINAL OUTPUT PANEL
+             ════════════════════════════════════════════════ -->
+        <div id="terminalPanel"
+            style="display: none; margin-top: 0; margin-bottom: 25px; border: 1px solid #333; border-top: none; border-radius: 0 0 6px 6px; background: #1a1a2e; overflow: hidden;">
+
+            <!-- Terminal title bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center;
+                        background: #16213e; padding: 8px 12px; border-bottom: 1px solid #333;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <!-- Traffic-light dots -->
+                    <span style="width:11px;height:11px;background:#ff5f57;border-radius:50%;display:inline-block;"></span>
+                    <span style="width:11px;height:11px;background:#ffbd2e;border-radius:50%;display:inline-block;"></span>
+                    <span style="width:11px;height:11px;background:#28c840;border-radius:50%;display:inline-block;"></span>
+                    <span style="color:#aaa;font-size:12px;margin-left:8px;font-family:monospace;">
+                        <i class="fa-solid fa-terminal" style="margin-right:5px;"></i>GradeSync Terminal
+                    </span>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <span id="terminalExitBadge" style="display:none;font-size:11px;padding:2px 8px;
+                          border-radius:12px;font-weight:600;font-family:monospace;"></span>
+                    <button type="button" onclick="clearTerminal()"
+                        style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;padding:2px 6px;
+                               border-radius:3px;transition:color 0.2s;"
+                        onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">
+                        <i class="fa-solid fa-xmark"></i> Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Terminal output body -->
+            <div id="terminalOutput"
+                style="padding: 14px 16px; min-height: 180px; max-height: 340px; overflow-y: auto;
+                       font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.6;
+                       color: #e0e0e0; white-space: pre-wrap; word-break: break-all; background: #1a1a2e;">
+            </div>
         </div>
 
         <!-- Hidden input to stash code on submit -->
@@ -419,6 +463,120 @@
         }
     }
 
+    // ──────────────────────────────────────────────────────
+    // TERMINAL HELPERS
+    // ──────────────────────────────────────────────────────
+
+    const terminalPanel  = document.getElementById('terminalPanel');
+    const terminalOutput = document.getElementById('terminalOutput');
+    const runCodeBtn     = document.getElementById('runCodeBtn');
+    const runIcon        = document.getElementById('runIcon');
+    const runBtnText     = document.getElementById('runBtnText');
+    const exitBadge      = document.getElementById('terminalExitBadge');
+
+    function termWrite(text, color) {
+        const span = document.createElement('span');
+        span.style.color = color || '#e0e0e0';
+        span.textContent = text;
+        terminalOutput.appendChild(span);
+        terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+
+    function clearTerminal() {
+        terminalOutput.innerHTML = '';
+        exitBadge.style.display  = 'none';
+    }
+
+    function setRunning(isRunning) {
+        runCodeBtn.disabled       = isRunning;
+        runCodeBtn.style.opacity  = isRunning ? '0.7' : '1';
+        runCodeBtn.style.cursor   = isRunning ? 'wait' : 'pointer';
+        runIcon.className         = isRunning ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-play';
+        runBtnText.textContent    = isRunning ? 'Running…' : 'Run Code';
+    }
+
+    async function runCode() {
+        if (!editorInstance) return;
+
+        // Gather the active file
+        const code     = editorInstance.getValue();
+        const fileName = files[activeFileIndex]  ? files[activeFileIndex].name  : 'main.py';
+        const language = files[activeFileIndex]  ? files[activeFileIndex].language : 'python';
+
+        // Show the terminal panel
+        terminalPanel.style.display = 'block';
+        clearTerminal();
+        termWrite('$ Running ' + fileName + ' …\n', '#888');
+        setRunning(true);
+
+        // Grab CSRF token from cookie (Django standard)
+        function getCookie(name) {
+            const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return v ? v.pop() : '';
+        }
+
+        try {
+            const resp = await fetch('/grading/api/execute/', {
+                method:  'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken':  getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    code:     code,
+                    language: language,
+                    filename: fileName,
+                }),
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({ error: 'Unknown server error' }));
+                termWrite('Error: ' + (err.error || resp.statusText) + '\n', '#ff6b6b');
+                setRunning(false);
+                return;
+            }
+
+            const data = await resp.json();
+
+            // Show stdout
+            if (data.stdout) {
+                termWrite(data.stdout, '#e0e0e0');
+                if (!data.stdout.endsWith('\n')) termWrite('\n', '#e0e0e0');
+            }
+
+            // Show stderr in yellow
+            if (data.stderr) {
+                termWrite(data.stderr, '#ffbd2e');
+                if (!data.stderr.endsWith('\n')) termWrite('\n', '#ffbd2e');
+            }
+
+            // Empty output
+            if (!data.stdout && !data.stderr) {
+                termWrite('(no output)\n', '#888');
+            }
+
+            // Show exit badge
+            const isOk = data.exit_code === 0 && !data.timed_out;
+            exitBadge.textContent    = data.timed_out ? '⏱ TIMED OUT' :
+                                       (data.exit_code === 0 ? '✓ exit 0' : '✗ exit ' + data.exit_code);
+            exitBadge.style.display  = 'inline-block';
+            exitBadge.style.background = isOk ? '#1e7e34' : '#c0392b';
+            exitBadge.style.color      = 'white';
+
+            // Process done prompt
+            termWrite('\n[Process exited with code ' + data.exit_code + ']\n', '#888');
+
+        } catch (err) {
+            termWrite('Network error: ' + err.message + '\n', '#ff6b6b');
+        } finally {
+            setRunning(false);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────
+    // FORM SUBMIT
+    // ──────────────────────────────────────────────────────
     submissionForm.addEventListener('submit', function (e) {
         if (files.length === 0) {
             e.preventDefault();
