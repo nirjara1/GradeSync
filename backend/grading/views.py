@@ -275,10 +275,23 @@ def assignment_detail_view(request, pk):
                     filename = f"submission_{user.username}_{assignment.id}{ext}"
                     submission.file_path.save(filename, ContentFile(content))
                     
+                # Ensure the submission is fully saved to the database before analysis
+                submission.save()
+
                 # --- AUTO-GRADER TRIGGER ---
                 # This is where we would trigger the backend autograder service.
                 # Example: run_autograder(submission.id)
                 # The mockup requirements specify this happens automatically on submission.
+
+                # --- AI AND PLAGIARISM DETECTION ---
+                try:
+                    from grading.services import run_submission_analysis
+                    # Run the analysis service synchronously so it gets saved on page reload
+                    run_submission_analysis(submission.id)
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error triggering Code Analysis service: {e}")
                 
                 messages.success(request, "Submission successful.")
                 return redirect('assignment_detail', pk=pk)
@@ -325,8 +338,6 @@ def assignment_detail_view(request, pk):
                         basename = os.path.basename(latest_submission.file_path.name)
                         submission_files.append({"name": basename, "content": content, "language": lang})
                 except Exception as e:
-                    import logging
-                    logger = logging.getLogger(__name__)
                     logger.error(f"Error reading file for preview: {e}")
                     
     if course_role == 'INSTRUCTOR':
@@ -392,6 +403,8 @@ def grade_submission_view(request, pk):
             messages.error(request, "Score is required.")
             
     course_role = get_user_course_role(user, assignment.course, request)
+    is_instructor = (course_role == 'INSTRUCTOR')
+    
     if course_role == 'INSTRUCTOR':
         base_template = 'base_professor.html'
     elif course_role == 'STUDENT':
@@ -444,7 +457,8 @@ def grade_submission_view(request, pk):
         'grade': grade,
         'base_template': base_template,
         'can_preview_code': can_preview_code,
-        'submission_files_json': submission_files_json
+        'submission_files_json': submission_files_json,
+        'is_instructor': is_instructor
     }
     return render(request, 'grade_submission.html', context)
 

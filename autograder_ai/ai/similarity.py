@@ -56,3 +56,34 @@ class SimilarityEngine:
                     continue
                     
         return sorted(results, key=lambda x: x[1], reverse=True)[:3]
+
+    def check_similarity_from_texts(self, submission_text: str, corpus_texts: dict) -> List[Tuple[str, float]]:
+        """
+        Compares submission_text against a dictionary of {identifier: code_content}
+        to avoid comparing against itself safely and extracting from ZIPs beforehand.
+        """
+        sub_tokens = self._tokenize(submission_text)
+        sub_ngrams = self._get_ngrams(sub_tokens)
+        
+        if not sub_ngrams:
+            return []
+            
+        results = []
+        for identifier, corpus_text in corpus_texts.items():
+            try:
+                corpus_tokens = self._tokenize(corpus_text)
+                corpus_ngrams = self._get_ngrams(corpus_tokens)
+                
+                if not corpus_ngrams:
+                    continue
+                    
+                intersection = len(sub_ngrams.intersection(corpus_ngrams))
+                union = len(sub_ngrams.union(corpus_ngrams))
+                jaccard = intersection / union if union > 0 else 0.0
+                
+                if jaccard > 0.5: # Threshold
+                    results.append((identifier, jaccard))
+            except Exception:
+                continue
+                
+        return sorted(results, key=lambda x: x[1], reverse=True)[:3]

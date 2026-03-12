@@ -12,9 +12,17 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Add autograder_ai parent to Python path
+sys.path.append(str(BASE_DIR.parent))
+
+# Load environment variables from the root .env file
+load_dotenv(BASE_DIR.parent / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -89,24 +97,16 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-if os.getenv("POSTGRES_DB"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("POSTGRES_DB"),
-            "USER": os.getenv("POSTGRES_USER"),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-            "HOST": os.getenv("DB_HOST", "db"),
-            "PORT": os.getenv("DB_PORT", "5432"),
-        }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "gradesync"),
+        "USER": os.getenv("POSTGRES_USER", "gradesync"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "gradesync"),
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR.parent / "database" / "db.sqlite3",
-        }
-    }
+}
 
 
 

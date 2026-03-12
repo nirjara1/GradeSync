@@ -39,6 +39,15 @@ class Submission(models.Model):
     file_path = models.FileField(upload_to='submissions/')
     submission_time = models.DateTimeField(auto_now_add=True)
 
+    # Code Analysis Fields
+    ai_likelihood_score = models.FloatField(null=True, blank=True)
+    ai_confidence_score = models.FloatField(null=True, blank=True)
+    ai_explanation = models.TextField(blank=True)
+    
+    plagiarism_score = models.FloatField(null=True, blank=True)
+    plagiarism_confidence_score = models.FloatField(null=True, blank=True)
+    plagiarism_match_info = models.TextField(blank=True)
+
     class Meta:
         unique_together = ('student', 'assignment')
 
