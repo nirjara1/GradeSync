@@ -21,8 +21,8 @@ def dashboard(request):
     courses = Course.objects.filter(professor=user).distinct()
     
     # Check if user is primarily a faculty member to show 'Create Class' button
-    profile, _ = UserProfile.objects.get_or_create(user=user)
-    is_faculty = profile.role == 'FACULTY'
+    profile_obj, _ = UserProfile.objects.get_or_create(user=user)
+    is_faculty = profile_obj.role == 'FACULTY'
 
     # The original mock 'poudelb2' is treated as a faculty member by default in our context
     if user.username == 'poudelb2':
@@ -33,6 +33,18 @@ def dashboard(request):
         'is_faculty': is_faculty,
     }
     return render(request, 'professor_dashboard.html', context)
+
+@login_required
+def profile(request):
+    user = get_user_from_request(request)
+    request.session['active_role'] = 'INSTRUCTOR'
+    
+    profile_obj, _ = UserProfile.objects.get_or_create(user=user)
+    
+    context = {
+        'profile': profile_obj,
+    }
+    return render(request, 'professor_profile.html', context)
 
 @login_required
 def ga_dashboard(request):
@@ -81,6 +93,9 @@ def create_course(request):
 
 def register_view(request):
     if request.user.is_authenticated:
+        # Superusers go straight to admin, not professor dashboard
+        if request.user.is_superuser or request.user.is_staff:
+            return redirect('/admin/')
         return redirect('professor_dashboard')
 
     if request.method == 'POST':
@@ -113,21 +128,32 @@ def register_view(request):
     return render(request, 'registration/register.html', {'form': form})
 
 class CustomLoginView(LoginView):
+    """
+    Priority order for post-login redirect:
+      1. Superuser / staff  →  Django admin panel  (/admin/)
+      2. FACULTY            →  Professor dashboard (/professor/dashboard/)
+      3. GRADING_ASSISTANT  →  GA dashboard        (/ga/dashboard/)
+      4. STUDENT            →  Student dashboard   (/student/dashboard/)
+      5. No profile found   →  Falls back to LOGIN_REDIRECT_URL
+    """
     def get_success_url(self):
-        # Default destination fallback
-        url = super().get_success_url()
-        
-        # Try to get the user's profile role
+        user = self.request.user
+
+        # ── Priority 1: Django superuser / staff → Admin panel ──────────────
+        if user.is_superuser or user.is_staff:
+            return '/admin/'
+
+        # ── Priority 2-4: Role from UserProfile ─────────────────────────────
         try:
-            profile = UserProfile.objects.get(user=self.request.user)
+            profile = UserProfile.objects.get(user=user)
             if profile.role == 'FACULTY':
-                url = '/professor/dashboard/'
-            elif profile.role == 'STUDENT':
-                url = '/student/dashboard/'  # Make sure this matches your student UI route
+                return '/professor/dashboard/'
             elif profile.role == 'GRADING_ASSISTANT':
-                url = '/ga/dashboard/'  # Modify if GA has a distinct dashboard
+                return '/ga/dashboard/'
+            elif profile.role == 'STUDENT':
+                return '/student/dashboard/'
         except UserProfile.DoesNotExist:
-            # If no profile, perhaps they are a superuser, default to professor dashboard
             pass
-            
-        return url
+
+        # ── Fallback: LOGIN_REDIRECT_URL defined in settings.py ─────────────
+        return super().get_success_url()

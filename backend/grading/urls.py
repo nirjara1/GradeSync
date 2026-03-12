@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .execute_view import execute_code_view
 
 urlpatterns = [
     path('assignments/', views.assignments_dashboard, name='assignments_dashboard'),
@@ -11,4 +12,6 @@ urlpatterns = [
     path('submissions/<int:pk>/grade/', views.grade_submission_view, name='grade_submission'),
     path('submissions/<int:pk>/download/', views.download_submission_view, name='download_submission'),
     path('submissions/<int:pk>/delete/', views.delete_submission_view, name='delete_submission'),
+    # Remote code execution sandbox endpoint
+    path('api/execute/', execute_code_view, name='execute_code'),
 ]
