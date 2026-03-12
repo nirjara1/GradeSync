@@ -29,7 +29,7 @@
                         style="font-size: 24px; color: var(--text-muted); margin-right: 10px;"></i>
                     <span style="font-family: monospace; font-size: 14px;">{{ submission.file_path.name }}</span>
                 </div>
-                <a href="{{ submission.file_path.url }}" target="_blank" class="btn-publish"
+                <a href="{% url 'download_submission' submission.pk %}" class="btn-publish"
                     style="text-decoration: none; padding: 8px 15px;">
                     Download File
                 </a>
@@ -142,6 +142,7 @@
                 containing .py or .java files.</p>
         </div>
         {% endif %}
+
     </div>
 
     <!-- Right Column: Grading Panel -->
@@ -190,6 +191,101 @@
                 <button type="submit" class="btn-publish" style="flex: 1;">Save Grade</button>
             </div>
         </form>
+
+        <!-- AI & Integrity Analysis Panel (Only visible to Instructors/GAs) -->
+        {% if is_instructor or request.session.active_role == 'GRADING_ASSISTANT' %}
+        <div style="margin-top: 30px; background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ddd; border-left: 4px solid var(--maroon); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--maroon); font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <i class="fa-solid fa-shield-halved" style="margin-right: 8px;"></i> AI & Integrity Analysis
+            </h3>
+            
+            {% if submission.ai_likelihood_score is not None or submission.plagiarism_score is not None %}
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                
+                <!-- Section A - AI Detection -->
+                <div style="background: #fdfdfd; padding: 15px; border: 1px solid #eee; border-radius: 6px;">
+                    <h4 style="margin-top: 0; font-size: 15px; color: #444; margin-bottom: 15px;">AI Detection</h4>
+                    
+                    {% if submission.ai_likelihood_score is not None %}
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="color: #666; font-size: 14px;">Likelihood:</span>
+                        <span style="font-weight: bold; font-size: 15px; color: {% if submission.ai_likelihood_score <= 30.0 %}#2e7d32{% elif submission.ai_likelihood_score <= 70.0 %}#f57f17{% else %}#d32f2f{% endif %};">
+                            {{ submission.ai_likelihood_score }}%
+                            
+                            {% if submission.ai_likelihood_score <= 30.0 %}
+                            <span style="background:#e8f5e9; color:#2e7d32; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">Low</span>
+                            {% elif submission.ai_likelihood_score <= 70.0 %}
+                            <span style="background:#fff3e0; color:#f57f17; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">Medium</span>
+                            {% else %}
+                            <span style="background:#ffebee; color:#d32f2f; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">High</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
+                        <span style="color: #666; font-size: 14px;">Estimated Confidence:</span>
+                        <span style="font-weight: bold; font-size: 14px;">{{ submission.ai_confidence_score }}%</span>
+                    </div>
+                    
+                    <p style="font-size: 13px; color: #555; margin: 0; font-style: italic;">
+                        <i class="fa-solid fa-circle-info" style="color: #888; margin-right: 5px;"></i>
+                        {{ submission.ai_explanation|default:"Pattern analysis suggests likely AI-assisted generation." }}
+                    </p>
+                    {% else %}
+                    <p style="font-size: 13px; color: #777; margin: 0; font-style: italic; text-align: center;">
+                        AI analysis unavailable
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Section B - Plagiarism Detection -->
+                <div style="background: #fdfdfd; padding: 15px; border: 1px solid #eee; border-radius: 6px;">
+                    <h4 style="margin-top: 0; font-size: 15px; color: #444; margin-bottom: 15px;">Plagiarism Similarity</h4>
+                    
+                    {% if submission.plagiarism_score is not None %}
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="color: #666; font-size: 14px;">Similarity:</span>
+                        <span style="font-weight: bold; font-size: 15px; color: {% if submission.plagiarism_score <= 20.0 %}#2e7d32{% elif submission.plagiarism_score <= 50.0 %}#f57f17{% else %}#d32f2f{% endif %};">
+                            {{ submission.plagiarism_score }}%
+                            
+                            {% if submission.plagiarism_score <= 20.0 %}
+                            <span style="background:#e8f5e9; color:#2e7d32; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">Low</span>
+                            {% elif submission.plagiarism_score <= 50.0 %}
+                            <span style="background:#fff3e0; color:#f57f17; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">Medium</span>
+                            {% else %}
+                            <span style="background:#ffebee; color:#d32f2f; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">High</span>
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
+                        <span style="color: #666; font-size: 14px;">Estimated Confidence:</span>
+                        <span style="font-weight: bold; font-size: 14px;">{{ submission.plagiarism_confidence_score }}%</span>
+                    </div>
+                    
+                    <p style="font-size: 13px; color: #555; margin: 0; word-break: break-all;">
+                        <strong>Closest Match:</strong> <span style="font-family: monospace;">{{ submission.plagiarism_match_info|default:"None" }}</span>
+                    </p>
+                    {% else %}
+                    <p style="font-size: 13px; color: #777; margin: 0; font-style: italic; text-align: center;">
+                        Plagiarism analysis unavailable
+                    </p>
+                    {% endif %}
+                </div>
+                
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-size: 12px; color: #666;">
+                <strong>Note:</strong> AI detection and similarity metrics are advisory tools only. They do not automatically imply misconduct and should be reviewed in context.
+                <br>* Confidence scores are currently estimated heuristically based on extremity and available comparison corpus due to model limitations.
+            </div>
+            {% else %}
+            <div style="padding: 15px; text-align: center; color: #777; font-style: italic; background: #fdfdfd; border: 1px dashed #ccc; border-radius: 6px;">
+                {{ submission.ai_explanation|default:"AI and Plagiarism analysis is currently not available for this submission." }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
