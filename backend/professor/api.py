@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from .models import Course, CourseMember, UserProfile
 import json
+import csv
+import io
 
 def get_user_from_request(request):
     if request.user.is_authenticated:
@@ -25,21 +27,58 @@ def _add_members(request, course_id, expected_role):
     current_user = get_user_from_request(request)
     course = get_object_or_404(Course, id=course_id, professor=current_user)
     
+    emails = []
+    
+    # 1. Parse manual emails from FormData
+    manual_emails_raw = request.POST.get('manual_emails', '[]')
     try:
-        data = json.loads(request.body)
-        emails = data.get('emails', [])
+        manual_emails = json.loads(manual_emails_raw)
+        if isinstance(manual_emails, list):
+            emails.extend(manual_emails)
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        pass
+        
+    # 2. Parse CSV file if provided
+    csv_file = request.FILES.get('csv_file')
+    if csv_file:
+        try:
+            # Decode file safely (handling optional BOM)
+            file_data = csv_file.read().decode('utf-8-sig', errors='replace')
+            reader = csv.DictReader(io.StringIO(file_data))
+            
+            # Find the header matching "sis login id" (case-insensitive, tolerant of underscores/spaces)
+            if reader.fieldnames:
+                sis_col = None
+                for header in reader.fieldnames:
+                    normalized = header.lower().replace('_', ' ').strip()
+                    if normalized == 'sis login id' or normalized == 'sis loginid':
+                        sis_col = header
+                        break
+                
+                if sis_col:
+                    for row in reader:
+                        raw_id = row.get(sis_col, "").strip()
+                        if raw_id:
+                            csv_email = f"{raw_id}@warhawks.ulm.edu"
+                            emails.append(csv_email)
+        except Exception as e:
+            return JsonResponse({'error': f'Error parsing CSV: {str(e)}'}, status=400)
     
     if not emails:
-        return JsonResponse({'error': 'No emails provided'}, status=400)
+        return JsonResponse({'error': 'No emails or valid CSV provided'}, status=400)
     
+    # 3. Deduplicate
+    unique_emails = []
+    seen = set()
+    for e in emails:
+        clean_e = str(e).strip().lower()
+        if clean_e and clean_e not in seen:
+            seen.add(clean_e)
+            unique_emails.append(clean_e)
+            
     results = []
     
-    for raw_email in emails:
-        email = str(raw_email).strip().lower()
-        if not email:
-            continue
+    for email in unique_emails:
             
         try:
             # Look up user by email
