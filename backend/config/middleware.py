@@ -60,14 +60,8 @@ class RoleBasedRoutingMiddleware(MiddlewareMixin):
                 request._role_redirected = True
                 return redirect('/professor/dashboard/')
 
-        elif role == 'GRADING_ASSISTANT':
-            if path.startswith('/professor/') or path.startswith('/student/'):
-                logger.info("[Route Guard] Blocked GRADING_ASSISTANT from %s → /ga/dashboard/", path)
-                request._role_redirected = True
-                return redirect('/ga/dashboard/')
-
         elif role == 'STUDENT':
-            if path.startswith('/professor/') or path.startswith('/ga/'):
+            if path.startswith('/professor/'):
                 logger.info("[Route Guard] Blocked STUDENT from %s → /student/dashboard/", path)
                 request._role_redirected = True
                 return redirect('/student/dashboard/')

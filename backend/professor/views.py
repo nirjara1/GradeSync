@@ -46,21 +46,6 @@ def profile(request):
     }
     return render(request, 'professor_profile.html', context)
 
-@login_required
-def ga_dashboard(request):
-    user = get_user_from_request(request)
-    request.session['active_role'] = 'GRADING_ASSISTANT'
-    
-    # Get courses where user is a Grading Assistant
-    courses = Course.objects.filter(
-        members__user=user, 
-        members__role_in_course='GRADING_ASSISTANT'
-    ).distinct()
-    
-    context = {
-        'courses': courses,
-    }
-    return render(request, 'ga_dashboard.html', context)
 
 @login_required
 def create_course(request):
@@ -118,8 +103,6 @@ def register_view(request):
             
             if role == 'STUDENT':
                 return redirect('student_dashboard')
-            elif role == 'GRADING_ASSISTANT':
-                return redirect('ga_dashboard')
             else:
                 return redirect('professor_dashboard')
     else:
@@ -132,9 +115,8 @@ class CustomLoginView(LoginView):
     Priority order for post-login redirect:
       1. Superuser / staff  →  Django admin panel  (/admin/)
       2. FACULTY            →  Professor dashboard (/professor/dashboard/)
-      3. GRADING_ASSISTANT  →  GA dashboard        (/ga/dashboard/)
-      4. STUDENT            →  Student dashboard   (/student/dashboard/)
-      5. No profile found   →  Falls back to LOGIN_REDIRECT_URL
+      3. STUDENT            →  Student dashboard   (/student/dashboard/)
+      4. No profile found   →  Falls back to LOGIN_REDIRECT_URL
     """
     def get_success_url(self):
         user = self.request.user
@@ -148,8 +130,6 @@ class CustomLoginView(LoginView):
             profile = UserProfile.objects.get(user=user)
             if profile.role == 'FACULTY':
                 return '/professor/dashboard/'
-            elif profile.role == 'GRADING_ASSISTANT':
-                return '/ga/dashboard/'
             elif profile.role == 'STUDENT':
                 return '/student/dashboard/'
         except UserProfile.DoesNotExist:
