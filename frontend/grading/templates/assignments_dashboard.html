@@ -43,14 +43,8 @@
         <div class="assignment-actions" style="display: flex; gap: 10px; align-items: flex-start; margin-top: 5px;">
             <a href="{% url 'edit_assignment' assignment.pk %}" title="Edit Assignment"
                 style="color: var(--text-muted); font-size: 18px;"><i class="fa-solid fa-pen"></i></a>
-            <form method="POST" action="{% url 'delete_assignment' assignment.pk %}"
-                onsubmit="return confirm('Are you sure you want to delete this assignment?');" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" title="Delete Assignment"
-                    style="background: none; border: none; color: var(--red-link); font-size: 18px; cursor: pointer; padding: 0;">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </form>
+            <a href="{% url 'delete_assignment' assignment.pk %}" title="Delete Assignment"
+                style="color: var(--red-link); font-size: 18px;"><i class="fa-solid fa-trash"></i></a>
         </div>
         {% endif %}
     </div>
