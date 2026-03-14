@@ -7,22 +7,30 @@
 </div>
 <hr class="divider" style="margin-top: 0;">
 
-{% if courses %}
+{% if enrollments %}
 <div class="course-grid">
-    {% for course in courses %}
-    <a href="{% url 'student_course' course.id %}" class="course-card">
+    {% for enrollment in enrollments %}
+    <a href="{% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}{% url 'ga_course' enrollment.course.id %}{% else %}{% url 'student_course' enrollment.course.id %}{% endif %}" class="course-card" style="position: relative;">
+        
+        <!-- GA Badge -->
+        {% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}
+        <div style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.75); color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
+            <i class="fa-solid fa-user-tie" style="margin-right: 4px;"></i> Assistant
+        </div>
+        {% endif %}
+
         <!-- Cover Image -->
-        {% if course.image_url %}
-        <img src="{{ course.image_url }}" alt="{{ course.title }} cover" class="card-image">
+        {% if enrollment.course.image_url %}
+        <img src="{{ enrollment.course.image_url }}" alt="{{ enrollment.course.title }} cover" class="card-image">
         {% else %}
         <!-- Default local image -->
         <img src="{% static 'images/course default.png' %}" alt="Placeholder Building" class="card-image">
         {% endif %}
 
         <div class="card-content">
-            <p class="course-title">{{ course.code }}-{{ course.section|default:"001" }} - {{ course.title }}</p>
-            <p class="course-prof">{{ course.professor.get_full_name|default:course.professor.username }}</p>
-            <p class="course-term">{{ course.term }}</p>
+            <p class="course-title">{{ enrollment.course.code }}-{{ enrollment.course.section|default:"001" }} - {{ enrollment.course.title }}</p>
+            <p class="course-prof">{{ enrollment.course.professor.get_full_name|default:enrollment.course.professor.username }}</p>
+            <p class="course-term">{{ enrollment.course.term }}</p>
         </div>
     </a>
     {% endfor %}

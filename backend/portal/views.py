@@ -15,17 +15,14 @@ def student_dashboard_view(request):
              return redirect('professor_dashboard')
         return redirect('login')
 
-    # Get the courses this user is enrolled in as a STUDENT
+    # Get the courses this user is enrolled in as a STUDENT or GRADING_ASSISTANT
     enrollments = CourseMember.objects.filter(
         user=request.user,
-        role_in_course='STUDENT'
+        role_in_course__in=['STUDENT', 'GRADING_ASSISTANT']
     ).select_related('course', 'course__professor')
 
-    # Extract the actual courses
-    courses = [enrollment.course for enrollment in enrollments]
-
     context = {
-        'courses': courses,
+        'enrollments': enrollments,
     }
     
     return render(request, 'portal/dashboard.html', context)
