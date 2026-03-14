@@ -100,11 +100,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "gradesync"),
-        "USER": os.getenv("POSTGRES_USER", "gradesync"),
+        "NAME":     os.getenv("POSTGRES_DB",       "gradesync"),
+        "USER":     os.getenv("POSTGRES_USER",     "gradesync"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "gradesync"),
-        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        # Try POSTGRES_HOST first, then DB_HOST (as used in .env), default to
+        # 'db' which is the Docker Compose service name for Postgres.
+        "HOST":     os.getenv("POSTGRES_HOST") or os.getenv("DB_HOST", "db"),
+        "PORT":     os.getenv("POSTGRES_PORT") or os.getenv("DB_PORT", "5432"),
     }
 }
 
