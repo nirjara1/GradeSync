@@ -269,41 +269,91 @@
         files.forEach((file, index) => {
             const isActive = index === activeFileIndex;
 
-            // Create wrapper
+            // Tab wrapper
             const tabWrapper = document.createElement('div');
-            tabWrapper.style.display = 'inline-flex';
-            tabWrapper.style.alignItems = 'center';
-            tabWrapper.style.padding = '8px 15px';
-            tabWrapper.style.border = '1px solid #ddd';
-            tabWrapper.style.background = isActive ? 'white' : '#f5f5f5';
-            tabWrapper.style.borderBottom = isActive ? '2px solid white' : '1px solid #ddd';
-            tabWrapper.style.marginBottom = isActive ? '-6px' : '0';
-            tabWrapper.style.borderRadius = '6px 6px 0 0';
-            tabWrapper.style.cursor = 'pointer';
-            tabWrapper.style.position = 'relative';
-            tabWrapper.style.zIndex = isActive ? '2' : '1';
+            tabWrapper.style.cssText = [
+                'display:inline-flex', 'align-items:center',
+                `padding:8px 15px`,
+                'border:1px solid #ddd',
+                `background:${isActive ? 'white' : '#f5f5f5'}`,
+                `border-bottom:${isActive ? '2px solid white' : '1px solid #ddd'}`,
+                `margin-bottom:${isActive ? '-6px' : '0'}`,
+                'border-radius:6px 6px 0 0',
+                'cursor:pointer', 'position:relative',
+                `z-index:${isActive ? 2 : 1}`,
+            ].join(';');
             tabWrapper.onclick = () => switchTab(index);
 
-            // Create text
+            // ── Inline-editable filename ─────────────────────────────────────
+            // Clicking the filename (not the × button) enters edit mode.
+            // The text becomes an <input> whose value is committed back to
+            // files[index].name on blur or Enter, then passed to the backend
+            // when "Run Code" is clicked.
             const tabText = document.createElement('span');
             tabText.textContent = file.name;
-            tabText.style.fontSize = '13px';
-            tabText.style.color = isActive ? 'var(--maroon)' : '#666';
-            tabText.style.fontWeight = isActive ? 'bold' : 'normal';
-            tabText.style.marginRight = files.length > 1 ? '8px' : '0';
+            tabText.style.cssText = [
+                'font-size:13px',
+                `color:${isActive ? 'var(--maroon)' : '#666'}`,
+                `font-weight:${isActive ? 'bold' : 'normal'}`,
+                `margin-right:${files.length > 1 ? '8px' : '0'}`,
+                'cursor:text',
+                'user-select:none',
+            ].join(';');
+
+            tabText.title = 'Click to rename';
+
+            tabText.onclick = (e) => {
+                e.stopPropagation();   // don't trigger switchTab
+
+                // Swap span → input
+                const input = document.createElement('input');
+                input.type  = 'text';
+                input.value = files[index].name;
+                input.style.cssText = [
+                    'font-size:13px',
+                    `color:${isActive ? 'var(--maroon)' : '#666'}`,
+                    `font-weight:${isActive ? 'bold' : 'normal'}`,
+                    'border:none', 'outline:none',
+                    'background:transparent',
+                    `width:${Math.max(60, files[index].name.length * 8)}px`,
+                    'padding:0', 'margin:0',
+                ].join(';');
+
+                tabText.replaceWith(input);
+                input.focus();
+                input.select();
+
+                const commit = () => {
+                    const newName = input.value.trim();
+                    if (newName && newName !== files[index].name) {
+                        // Validate extension matches the assignment language
+                        const expectedExt = configLang === 'java' ? '.java' : '.py';
+                        if (!newName.endsWith(expectedExt)) {
+                            alert(`File must end with ${expectedExt}`);
+                            input.value = files[index].name;   // reset
+                        } else {
+                            files[index].name = newName;
+                        }
+                    }
+                    renderTabs();   // re-render to get back a span
+                };
+
+                input.addEventListener('blur',    commit);
+                input.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter')  { input.blur(); }
+                    if (ev.key === 'Escape') { input.value = files[index].name; input.blur(); }
+                });
+            };
 
             tabWrapper.appendChild(tabText);
 
-            // Create delete button if more than 1 file
+            // Delete button (only when >1 file)
             if (files.length > 1) {
                 const deleteBtn = document.createElement('i');
                 deleteBtn.className = 'fa-solid fa-times';
-                deleteBtn.style.fontSize = '12px';
-                deleteBtn.style.color = '#999';
-                deleteBtn.style.padding = '2px';
-                deleteBtn.style.borderRadius = '50%';
+                deleteBtn.style.cssText = 'font-size:12px;color:#999;padding:2px;border-radius:50%;';
                 deleteBtn.onmouseover = () => { deleteBtn.style.color = 'var(--red-link)'; deleteBtn.style.background = '#ffebee'; };
-                deleteBtn.onmouseout = () => { deleteBtn.style.color = '#999'; deleteBtn.style.background = 'transparent'; };
+                deleteBtn.onmouseout  = () => { deleteBtn.style.color = '#999'; deleteBtn.style.background = 'transparent'; };
                 deleteBtn.onclick = (e) => deleteTab(index, e);
                 tabWrapper.appendChild(deleteBtn);
             }

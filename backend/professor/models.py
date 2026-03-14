@@ -19,7 +19,8 @@ class Course(models.Model):
 
 class UserProfile(models.Model):
     ROLE_CHOICES = [
-        ('FACULTY', 'Faculty'),
+        ('FACULTY', 'Faculty / Professor'),
+        ('GRADING_ASSISTANT', 'Grading Assistant'),
         ('STUDENT', 'Student'),
     ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
