@@ -59,6 +59,10 @@
                 <i class="fa-solid fa-book-open"></i>
                 <span>Assignments</span>
             </a>
+            <a href="{% url 'student_calendar' %}" class="nav-item {% if request.resolver_match.url_name == 'student_calendar' %}active{% endif %}">
+                <i class="fa-regular fa-calendar-days"></i>
+                <span>Calendar</span>
+            </a>
             <a href="{% url 'student_inbox' %}" class="nav-item {% if request.resolver_match.url_name == 'student_inbox' %}active{% endif %}">
                 <i class="fa-solid fa-inbox"></i>
                 <span>Inbox</span>

@@ -11,6 +11,7 @@ urlpatterns = [
     path('inbox/', views.inbox, name='professor_inbox'),
     path('help/', views.help_page, name='professor_help'),
     path('create-course/', views.create_course, name='create_course'),
+    path('calendar/', views.calendar_view, name='professor_calendar'),
     path('classes/<int:course_id>/', professor_course_view, name='professor_course'),
     path('classes/<int:course_id>/archive/', views.archive_course, name='archive_course'),
     
