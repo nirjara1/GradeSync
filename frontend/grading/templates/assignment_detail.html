@@ -637,7 +637,12 @@
 <!-- Instructor Submissions Table -->
 {% if not is_student %}
 <div style="margin-top: 30px;">
-    <h3 style="margin-bottom: 20px; font-size: 20px; font-weight: 600; color: #333;">Submissions</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: #333;">Submissions</h3>
+        <a href="{% url 'grade_report' assignment.pk %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; background-color: var(--maroon); color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">
+            <i class="fa-solid fa-chart-bar"></i> Grade Report
+        </a>
+    </div>
 
     <div
         style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #eee;">
