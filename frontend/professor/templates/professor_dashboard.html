@@ -16,25 +16,52 @@
 {% if courses %}
 <div class="course-grid">
     {% for course in courses %}
-    <a href="{% url 'professor_course' course.id %}" class="course-card">
-        <!-- Cover Image -->
-        {% if course.image_url %}
-        <img src="{{ course.image_url }}" alt="{{ course.title }} cover" class="card-image">
-        {% else %}
-        <!-- Default local image from screenshot -->
-        <img src="{% static 'images/course default.png' %}" alt="Placeholder Building" class="card-image">
-        {% endif %}
-
-        <div class="card-content">
-            <p class="course-title">{{ course.code }}-{{ course.section }} - {{ course.title }}</p>
-            <p class="course-prof">{{ course.professor.get_full_name|default:course.professor.username }}</p>
-            <p class="course-term">{{ course.term }}</p>
-        </div>
-    </a>
+    <div class="course-card-wrapper" style="position: relative;">
+        <a href="{% url 'professor_course' course.id %}" class="course-card" style="display: block; text-decoration: none; color: inherit;">
+            {% if course.image_url %}
+            <img src="{{ course.image_url }}" alt="{{ course.title }} cover" class="card-image">
+            {% else %}
+            <img src="{% static 'images/course default.png' %}" alt="Placeholder Building" class="card-image">
+            {% endif %}
+            <div class="card-content">
+                <p class="course-title">{{ course.code }}-{{ course.section }} - {{ course.title }}</p>
+                <p class="course-prof">{{ course.professor.get_full_name|default:course.professor.username }}</p>
+                <p class="course-term">{{ course.term }}</p>
+            </div>
+        </a>
+        <form method="post" action="{% url 'archive_course' course.id %}" style="position: absolute; top: 10px; right: 10px; z-index: 2;" onsubmit="return confirm('Move this class to Archived Classes?');">
+            {% csrf_token %}
+            <button type="submit" title="Move to Archived Classes" style="background: rgba(0,0,0,0.5); color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                <i class="fa-solid fa-archive"></i> Archive
+            </button>
+        </form>
+    </div>
     {% endfor %}
 </div>
 {% else %}
 <p>No courses assigned to you yet. Welcome to GradeSync!</p>
+{% endif %}
+
+{% if archived_courses %}
+<div style="margin-top: 40px; padding-top: 25px; border-top: 1px solid #e5e7eb;">
+    <h3 class="page-title" style="font-size: 20px; margin-bottom: 16px; color: #6b7280;">Archived Classes</h3>
+    <div class="course-grid">
+        {% for course in archived_courses %}
+        <a href="{% url 'professor_course' course.id %}" class="course-card" style="opacity: 0.85;">
+            {% if course.image_url %}
+            <img src="{{ course.image_url }}" alt="{{ course.title }} cover" class="card-image">
+            {% else %}
+            <img src="{% static 'images/course default.png' %}" alt="Placeholder Building" class="card-image">
+            {% endif %}
+            <div class="card-content">
+                <p class="course-title">{{ course.code }}-{{ course.section }} - {{ course.title }}</p>
+                <p class="course-prof">{{ course.professor.get_full_name|default:course.professor.username }}</p>
+                <p class="course-term">{{ course.term }}</p>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
 {% endif %}
 
 {% endblock %}

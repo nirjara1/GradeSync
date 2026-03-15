@@ -366,17 +366,56 @@ def assignment_detail_view(request, pk):
     }
     return render(request, 'assignment_detail.html', context)
 
+
+@login_required
+def gradebook_view(request, pk):
+    """Gradebook for an assignment: list of submissions with links to grade."""
+    user = get_user_from_request(request)
+    assignment = get_object_or_404(Assignment, pk=pk)
+    if not has_course_access(user, assignment.course, request):
+        return HttpResponseForbidden("You do not have permission to view this gradebook.")
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+    submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade').order_by('id')
+    context = {
+        'assignment': assignment,
+        'submissions': submissions,
+        'base_template': base_template,
+    }
+    return render(request, 'gradebook.html', context)
+
+
 @login_required
 def grade_submission_view(request, pk):
     user = get_user_from_request(request)
     submission = get_object_or_404(Submission, pk=pk)
     assignment = submission.assignment
-    
+
     if not has_course_access(user, assignment.course, request):
         return HttpResponseForbidden("You do not have permission to grade this assignment.")
-        
+
+    # Previous/next submission within same assignment (stable order: id)
+    submission_ids = list(
+        Submission.objects.filter(assignment=assignment).order_by('id').values_list('pk', flat=True)
+    )
+    try:
+        current_index = submission_ids.index(submission.pk)
+    except ValueError:
+        current_index = -1
+    previous_submission = None
+    next_submission = None
+    if current_index > 0:
+        previous_submission = Submission.objects.filter(pk=submission_ids[current_index - 1]).first()
+    if current_index >= 0 and current_index + 1 < len(submission_ids):
+        next_submission = Submission.objects.filter(pk=submission_ids[current_index + 1]).first()
+
     grade = getattr(submission, 'grade', None)
-    
+
     if request.method == 'POST':
         score = request.POST.get('score')
         feedback = request.POST.get('feedback', '')
@@ -458,7 +497,9 @@ def grade_submission_view(request, pk):
         'base_template': base_template,
         'can_preview_code': can_preview_code,
         'submission_files_json': submission_files_json,
-        'is_instructor': is_instructor
+        'is_instructor': is_instructor,
+        'previous_submission': previous_submission,
+        'next_submission': next_submission,
     }
     return render(request, 'grade_submission.html', context)
 

@@ -670,7 +670,7 @@
                         {% endif %}
                     </td>
                     <td style="padding: 15px; text-align: center;">
-                        <a href="{% url 'grade_submission' submission.pk %}" class="btn-publish"
+                        <a href="{% url 'grade_submission' submission.pk %}" target="_blank" rel="noopener noreferrer" class="btn-publish"
                             style="padding: 8px 18px; font-size: 13px; text-decoration: none; display: inline-block; font-weight: 600;">
                             {% if submission.grade %}Edit Grade{% else %}Grade{% endif %}
                         </a>

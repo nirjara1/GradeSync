@@ -28,7 +28,7 @@
                 <h1 class="header-left-title">GradeSync</h1>
             </a>
             <div class="user-controls">
-                <span class="username">Welcome, <a href="{% url 'user_profile' %}" class="username-bold">{{ display_name }}</a></span>
+                <span class="username">Welcome, <a href="{% url 'user_profile' %}" class="username-bold">{{ display_name|default:request.user.username }}</a></span>
                 <div class="nav-separator"></div>
                 <form method="post" action="{% url 'logout' %}" style="display: inline;">
                     {% csrf_token %}
@@ -39,41 +39,10 @@
             </div>
         </div>
     </header>
+    <div class="gold-line"></div>
 
-    <div class="dashboard-layout">
-        <aside class="sidebar">
-            <a href="#" class="nav-item">
-                <i class="fa-solid fa-user-circle"></i>
-                <span>Profile</span>
-            </a>
-            <a href="{% url 'student_dashboard' %}"
-                class="nav-item {% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
-                <i class="fa-solid fa-gauge-high"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="#" class="nav-item">
-                <i class="fa-solid fa-book"></i>
-                <span>Courses</span>
-            </a>
-            <a href="#" class="nav-item">
-                <i class="fa-solid fa-book-open"></i>
-                <span>Assignments</span>
-            </a>
-            <a href="#" class="nav-item">
-                <i class="fa-solid fa-inbox"></i>
-                <span>Inbox</span>
-            </a>
-            <a href="#" class="nav-item">
-                <i class="fa-solid fa-question-circle"></i>
-                <span>Help</span>
-            </a>
-        </aside>
-
-        <main class="main-content">
-            {% block content %}
-            {% endblock %}
-        </main>
-    </div>
+    {% block content %}
+    {% endblock %}
 
 </body>
 

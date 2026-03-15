@@ -29,3 +29,9 @@ def student_dashboard_view(request):
     }
     
     return render(request, 'portal/dashboard.html', context)
+
+
+@login_required
+def user_profile_view(request):
+    """Placeholder user profile page (to be implemented)."""
+    return render(request, 'portal/user_profile.html')
