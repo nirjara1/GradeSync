@@ -1,0 +1,12 @@
+{% extends base_template %}
+
+{% block content %}
+<div class="main-content">
+    <h2 class="page-title" style="margin-bottom: 25px;">Add Grading Criteria / Rubric</h2>
+    <hr class="divider" style="margin-top: 0;">
+    <p style="color: #666; margin-bottom: 20px;">Save your assignment first (as draft or publish). Then open the assignment page and click <strong>Add Rubric</strong> there to add weighted or unweighted criteria.</p>
+    <a href="{% url 'assignments_dashboard' %}" style="display: inline-block; margin-top: 10px; color: var(--maroon); font-weight: 600; text-decoration: none;">
+        <i class="fa-solid fa-arrow-left"></i> Back to Assignments
+    </a>
+</div>
+{% endblock %}

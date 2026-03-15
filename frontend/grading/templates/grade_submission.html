@@ -55,15 +55,22 @@
             padding: 24px;
         }
         .grade-submission-sidebar-area {
-            width: 320px;
+            width: 360px;
             flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             padding: 24px;
             background: #f9fafb;
+            overflow-y: auto;
         }
         .placeholder-label { color: #6b7280; font-size: 0.95rem; }
+        .rubric-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333; }
+        .rubric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; }
+        .rubric-row label { font-size: 13px; color: #555; flex: 1; min-width: 0; }
+        .rubric-row input[type="number"] { width: 70px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .rubric-total { margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; font-weight: 600; }
+        .btn-submit-grade { background: #840029; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 12px; width: 100%; }
+        .btn-submit-grade:hover { opacity: 0.9; }
+        .rubric-feedback { margin-top: 10px; }
+        .rubric-feedback textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; min-height: 60px; }
     </style>
 </head>
 <body>
@@ -95,9 +102,51 @@
             <span class="placeholder-label">Code Editor Placeholder</span>
         </div>
         <div class="grade-submission-sidebar-area">
+            {% if rubric and criteria %}
+            <div class="rubric-title">Rubric — {{ assignment.points }} pts total</div>
+            <form method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="submit_grade_rubric" value="1">
+                {% for row in criteria_with_scores %}
+                <div class="rubric-row">
+                    <label for="score_criterion_{{ row.criterion.id }}">{{ row.criterion.name }}{% if rubric.is_weighted %} ({{ row.criterion.weight|floatformat:0 }}%){% else %} ({{ row.criterion.points }} pts){% endif %}</label>
+                    <input type="number" id="score_criterion_{{ row.criterion.id }}" name="score_criterion_{{ row.criterion.id }}" step="0.5" min="0" value="{{ row.points_earned }}" placeholder="0">
+                </div>
+                {% endfor %}
+                <div class="rubric-total" id="rubric-total-display">Total: <span id="rubric-sum">0</span> / {{ assignment.points }}</div>
+                <div class="rubric-feedback">
+                    <label style="font-size: 12px; color: #666;">Feedback (optional)</label>
+                    <textarea name="feedback" placeholder="Optional feedback for student">{{ grade.feedback|default:'' }}</textarea>
+                </div>
+                <button type="submit" class="btn-submit-grade">Submit Grade</button>
+            </form>
+            {% else %}
             <span class="placeholder-label">Grading Sidebar Placeholder</span>
+            <p style="font-size: 12px; color: #999; margin-top: 10px;">Add a rubric from the assignment page to grade by criteria.</p>
+            {% endif %}
         </div>
     </div>
 </div>
+{% if rubric and criteria %}
+<script>
+(function () {
+    var inputs = document.querySelectorAll('.grade-submission-sidebar-area input[type="number"][name^="score_criterion_"]');
+    var sumEl = document.getElementById('rubric-sum');
+    function updateTotal() {
+        var sum = 0;
+        inputs.forEach(function (inp) {
+            var v = parseFloat(inp.value) || 0;
+            sum += v;
+        });
+        sumEl.textContent = sum;
+    }
+    inputs.forEach(function (inp) {
+        inp.addEventListener('input', updateTotal);
+        inp.addEventListener('change', updateTotal);
+    });
+    updateTotal();
+})();
+</script>
+{% endif %}
 </body>
 </html>
