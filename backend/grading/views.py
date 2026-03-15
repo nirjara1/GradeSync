@@ -1,14 +1,22 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Max
-from django.http import HttpResponseForbidden, FileResponse, Http404
-from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade
-from .forms import AssignmentForm, SubmissionForm
+from django.db.models import Max, Q, Count
+from django.http import HttpResponseForbidden, FileResponse, Http404, JsonResponse
+from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult
+from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
+from .services import grade_submission
+from .tasks import bulk_grade_assignment
 from professor.models import Course, UserProfile
 from professor.utils import is_course_instructor, has_course_access, is_enrolled, get_user_course_role
 
 from django.contrib.auth.decorators import login_required
 import logging
+import json
+import csv
+import openpyxl
+from io import TextIOWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +130,27 @@ def create_assignment(request, course_id=None):
                 assignment.status = 'published'
                 
             assignment.save()
+            
+            # Process test cases from CSV (if provided)
+            test_cases_json = request.POST.get('test_cases_json', '')
+            if test_cases_json:
+                try:
+                    import json
+                    test_cases_data = json.loads(test_cases_json)
+                    for idx, tc_data in enumerate(test_cases_data, 1):
+                        TestCase.objects.create(
+                            assignment=assignment,
+                            name=f"Test Case {idx}",
+                            input_data=tc_data.get('input_data', ''),
+                            expected_output=tc_data.get('expected_output', ''),
+                            is_private=tc_data.get('is_private', False),
+                            points_awarded=tc_data.get('points', 5),
+                            order=idx
+                        )
+                    logger.info(f"Created {len(test_cases_data)} test cases for assignment {assignment.id}")
+                except Exception as e:
+                    logger.error(f"Error processing test cases for assignment {assignment.id}: {e}")
+            
             messages.success(request, f"Assignment '{assignment.name}' successfully {assignment.status}!")
             
             if course:
@@ -243,7 +272,7 @@ def edit_assignment(request, pk):
         return HttpResponseForbidden("Only instructors can edit assignments.")
         
     if request.method == 'POST':
-        form = AssignmentForm(request.POST, instance=assignment)
+        form = AssignmentForm(request.POST, request.FILES, instance=assignment)
         if form.is_valid():
             form.save()
             messages.success(request, "Assignment updated successfully!")
@@ -685,3 +714,725 @@ def delete_submission_view(request, pk):
         return redirect('assignment_detail', pk=assignment_id)
         
     return HttpResponseForbidden("Invalid request method.")
+
+
+@login_required
+def upload_test_cases(request, assignment_id):
+    """
+    Professor uploads test cases via JSON, CSV, or Excel file.
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    user = get_user_from_request(request)
+    
+    # Check permission - must be course instructor
+    if not is_course_instructor(user, assignment.course):
+        return HttpResponseForbidden("You do not have permission to manage this assignment.")
+    
+    if request.method == 'POST':
+        form = TestCaseUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                test_file = request.FILES['test_file']
+                file_format = form.cleaned_data['file_format']
+                clear_existing = form.cleaned_data['clear_existing']
+                
+                # Clear existing test cases if requested
+                if clear_existing:
+                    TestCase.objects.filter(assignment=assignment).delete()
+                
+                # Parse and import test cases
+                test_cases = parse_test_cases(test_file, file_format)
+                
+                # Get the maximum order to append new tests
+                max_order = TestCase.objects.filter(assignment=assignment).aggregate(Max('order'))['order__max'] or 0
+                
+                # Create TestCase objects
+                created_count = 0
+                for idx, tc in enumerate(test_cases):
+                    TestCase.objects.create(
+                        assignment=assignment,
+                        name=tc.get('name', f'Test {max_order + idx + 1}'),
+                        description=tc.get('description', ''),
+                        input_data=tc.get('input_data', ''),
+                        expected_output=tc.get('expected_output', ''),
+                        points_awarded=float(tc.get('points_awarded', 1)),
+                        is_hidden=tc.get('is_hidden', False),
+                        is_private=tc.get('is_private', False),
+                        order=max_order + idx + 1,
+                    )
+                    created_count += 1
+                
+                messages.success(request, f'Successfully imported {created_count} test cases.')
+                return redirect('assignment_detail', pk=assignment_id)
+                
+            except Exception as e:
+                messages.error(request, f'Error importing test cases: {str(e)}')
+                logger.exception(f"Error importing test cases for assignment {assignment_id}")
+    else:
+        form = TestCaseUploadForm()
+    
+    return render(request, 'grading/upload_test_cases.html', {
+        'form': form,
+        'assignment': assignment,
+        'base_template': 'base_professor.html'
+    })
+
+
+@login_required
+def configure_rules(request, assignment_id):
+    """
+    Professor configures static analysis rules for an assignment.
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    user = get_user_from_request(request)
+    
+    # Check permission - must be course instructor
+    if not is_course_instructor(user, assignment.course):
+        return HttpResponseForbidden("You do not have permission to manage this assignment.")
+    
+    # Get or create RuleSet for this assignment
+    rule_set, created = RuleSet.objects.get_or_create(assignment=assignment)
+    
+    if request.method == 'POST':
+        form = RuleSetForm(request.POST, instance=rule_set)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Static analysis rules updated successfully.')
+            return redirect('assignment_detail', pk=assignment_id)
+    else:
+        form = RuleSetForm(instance=rule_set)
+    
+    return render(request, 'grading/configure_rules.html', {
+        'form': form,
+        'assignment': assignment,
+        'base_template': 'base_professor.html'
+    })
+
+
+@login_required
+def manage_test_cases(request, assignment_id):
+    """
+    Professor view to manage test cases - view, create, edit, delete.
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    user = get_user_from_request(request)
+    
+    # Check permission - must be course instructor
+    if not is_course_instructor(user, assignment.course):
+        return HttpResponseForbidden("You do not have permission to manage this assignment.")
+    
+    test_cases = TestCase.objects.filter(assignment=assignment).order_by('order')
+    
+    return render(request, 'grading/manage_test_cases.html', {
+        'assignment': assignment,
+        'test_cases': test_cases,
+        'base_template': 'base_professor.html'
+    })
+
+
+@login_required
+def create_test_case(request, assignment_id):
+    """
+    Professor creates a new test case.
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    user = get_user_from_request(request)
+    
+    # Check permission - must be course instructor
+    if not is_course_instructor(user, assignment.course):
+        return HttpResponseForbidden("You do not have permission to manage this assignment.")
+    
+    if request.method == 'POST':
+        form = TestCaseForm(request.POST)
+        if form.is_valid():
+            test_case = form.save(commit=False)
+            test_case.assignment = assignment
+            
+            # Auto-assign order if not provided
+            if not test_case.order:
+                max_order = TestCase.objects.filter(assignment=assignment).aggregate(Max('order'))['order__max'] or 0
+                test_case.order = max_order + 1
+            
+            test_case.save()
+            messages.success(request, 'Test case created successfully.')
+            return redirect('manage_test_cases', assignment_id=assignment_id)
+    else:
+        form = TestCaseForm()
+    
+    return render(request, 'grading/create_test_case.html', {
+        'form': form,
+        'assignment': assignment,
+        'base_template': 'base_professor.html'
+    })
+
+
+@login_required
+def edit_test_case(request, test_case_id):
+    """
+    Professor edits an existing test case.
+    """
+    test_case = get_object_or_404(TestCase, id=test_case_id)
+    assignment = test_case.assignment
+    user = get_user_from_request(request)
+    
+    # Check permission - must be course instructor
+    if not is_course_instructor(user, assignment.course):
+        return HttpResponseForbidden("You do not have permission to manage this assignment.")
+    
+    if request.method == 'POST':
+        form = TestCaseForm(request.POST, instance=test_case)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Test case updated successfully.')
+            return redirect('manage_test_cases', assignment_id=assignment.id)
+    else:
+        form = TestCaseForm(instance=test_case)
+    
+    return render(request, 'grading/edit_test_case.html', {
+        'form': form,
+        'test_case': test_case,
+        'assignment': assignment,
+        'base_template': 'base_professor.html'
+    })
+
+
+@login_required
+def delete_test_case(request, test_case_id):
+    """
+    Professor deletes a test case.
+    """
+    test_case = get_object_or_404(TestCase, id=test_case_id)
+    assignment = test_case.assignment
+    user = get_user_from_request(request)
+    
+    # Check permission - must be course instructor
+    if not is_course_instructor(user, assignment.course):
+        return HttpResponseForbidden("You do not have permission to manage this assignment.")
+    
+    if request.method == 'POST':
+        test_case.delete()
+        messages.success(request, 'Test case deleted successfully.')
+        return redirect('manage_test_cases', assignment_id=assignment.id)
+    
+    return render(request, 'grading/delete_test_case_confirm.html', {
+        'test_case': test_case,
+        'assignment': assignment,
+        'base_template': 'base_professor.html'
+    })
+
+
+@login_required
+def toggle_test_case_visibility(request, test_case_id):
+    """
+    AJAX endpoint to toggle test case visibility (visible/hidden).
+    """
+    test_case = get_object_or_404(TestCase, id=test_case_id)
+    assignment = test_case.assignment
+    user = get_user_from_request(request)
+    
+    # Check permission - must be course instructor
+    if not is_course_instructor(user, assignment.course):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    test_case.is_hidden = not test_case.is_hidden
+    test_case.save()
+    
+    return JsonResponse({
+        'success': True,
+        'is_hidden': test_case.is_hidden,
+        'status': 'Hidden' if test_case.is_hidden else 'Visible'
+    })
+
+
+def parse_test_cases(test_file, file_format):
+    """
+    Parse test cases from uploaded file.
+    Supports JSON, CSV, and Excel formats.
+    
+    JSON format expected:
+    [
+        {
+            "name": "Test 1",
+            "description": "...",
+            "input_data": "...",
+            "expected_output": "...",
+            "points_awarded": 1,
+            "is_hidden": false,
+            "is_private": false
+        }
+    ]
+    
+    CSV format expected columns:
+    name, description, input_data, expected_output, points_awarded, is_hidden, is_private
+    
+    Excel format expected same as CSV.
+    """
+    test_cases = []
+    
+    if file_format == 'json':
+        content = test_file.read().decode('utf-8')
+        test_cases = json.loads(content)
+        if not isinstance(test_cases, list):
+            raise ValueError('JSON must be an array of test case objects')
+    
+    elif file_format == 'csv':
+        text_file = TextIOWrapper(test_file.file, encoding='utf-8')
+        reader = csv.DictReader(text_file)
+        
+        required_fields = {'input_data', 'expected_output'}
+        for row in reader:
+            if not all(row.get(field) for field in required_fields):
+                raise ValueError('CSV must contain "input_data" and "expected_output" columns')
+            
+            # Convert is_hidden to boolean
+            is_hidden_str = str(row.get('is_hidden', 'false')).lower()
+            is_hidden = is_hidden_str in ('true', '1', 'yes')
+
+            # Convert is_private to boolean
+            is_private_str = str(row.get('is_private', 'false')).lower()
+            is_private = is_private_str in ('true', '1', 'yes')
+            
+            test_cases.append({
+                'name': row.get('name', ''),
+                'description': row.get('description', ''),
+                'input_data': row.get('input_data', ''),
+                'expected_output': row.get('expected_output', ''),
+                'points_awarded': float(row.get('points_awarded', 1)),
+                'is_hidden': is_hidden,
+                'is_private': is_private,
+            })
+    
+    elif file_format == 'excel':
+        workbook = openpyxl.load_workbook(test_file)
+        worksheet = workbook.active
+        
+        # Get headers from first row
+        headers = [cell.value for cell in worksheet[1]]
+        required_fields = {'input_data', 'expected_output'}
+        
+        if not all(field in headers for field in required_fields):
+            raise ValueError('Excel must contain "input_data" and "expected_output" columns')
+        
+        for row_idx, row in enumerate(worksheet.iter_rows(min_row=2, values_only=True), start=2):
+            row_dict = dict(zip(headers, row))
+            
+            is_hidden_val = row_dict.get('is_hidden', False)
+            is_hidden = str(is_hidden_val).lower() in ('true', '1', 'yes') if is_hidden_val else False
+
+            is_private_val = row_dict.get('is_private', False)
+            is_private = str(is_private_val).lower() in ('true', '1', 'yes') if is_private_val else False
+            
+            test_cases.append({
+                'name': row_dict.get('name', ''),
+                'description': row_dict.get('description', ''),
+                'input_data': row_dict.get('input_data', ''),
+                'expected_output': row_dict.get('expected_output', ''),
+                'points_awarded': float(row_dict.get('points_awarded', 1)),
+                'is_hidden': is_hidden,
+                'is_private': is_private,
+            })
+    
+    else:
+        raise ValueError(f'Unsupported file format: {file_format}')
+    
+    return test_cases
+
+
+@login_required
+@require_POST
+def grade_submission_api(request, submission_id):
+    """
+    API endpoint to trigger grading of a submission.
+    
+    Returns JSON with test results and rule violations.
+    """
+    submission = get_object_or_404(Submission, id=submission_id)
+    assignment = submission.assignment
+    user = get_user_from_request(request)
+    
+    # Check permission - must be student submitting their own work or course instructor
+    is_student_owner = submission.student.user == user
+    is_instructor = is_course_instructor(user, assignment.course)
+    
+    if not (is_student_owner or is_instructor):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    try:
+        result = grade_submission(submission_id)
+        return JsonResponse(result)
+    except Exception as e:
+        logger.exception(f"Error grading submission {submission_id}")
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+def submission_test_results(request, submission_id):
+    """
+    View test results for a submission (student or instructor only).
+    """
+    submission = get_object_or_404(Submission, id=submission_id)
+    assignment = submission.assignment
+    user = get_user_from_request(request)
+    
+    # Check permission
+    is_student_owner = submission.student.user == user
+    is_instructor = is_course_instructor(user, assignment.course)
+    
+    if not (is_student_owner or is_instructor):
+        return HttpResponseForbidden("You do not have permission to view these results.")
+    
+    test_results = TestResult.objects.filter(submission=submission).select_related('test_case').order_by('test_case__order')
+    
+    # Count results
+    total_tests = test_results.count()
+    passed_tests = test_results.filter(passed=True).count()
+    
+    # Get rule violations
+    rule_violations = submission.get_rule_violations_list()
+    
+    # Determine which tests are visible to student
+    if not is_instructor:
+        # Students only see visible tests
+        visible_results = []
+        for result in test_results:
+            if not result.test_case.is_hidden:
+                visible_results.append(result)
+        test_results = visible_results
+    
+    context = {
+        'submission': submission,
+        'assignment': assignment,
+        'test_results': test_results,
+        'total_tests': total_tests,
+        'passed_tests': passed_tests,
+        'rule_violations': rule_violations,
+        'is_instructor': is_instructor,
+        'is_student': is_student_owner,
+    }
+    
+    return render(request, 'grading/submission_test_results.html', context)
+
+
+@login_required
+def student_submit_and_test(request, assignment_id):
+    """
+    Student-facing view to submit code and run tests.
+    Displays file upload, Run Tests button, and test feedback.
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    user = get_user_from_request(request)
+    
+    # Check if student is enrolled
+    if not is_enrolled(user, assignment.course, request):
+        return HttpResponseForbidden("You are not enrolled in this course.")
+    
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role != 'STUDENT':
+        return HttpResponseForbidden("Only students can access this view.")
+    
+    student_profile, _ = Student.objects.get_or_create(user=user)
+    
+    # Get existing submission if any
+    submission = Submission.objects.filter(
+        student=student_profile,
+        assignment=assignment
+    ).first()
+    
+    # Handle file upload
+    if request.method == 'POST':
+        form = SubmissionForm(request.POST, request.FILES)
+        if form.is_valid():
+            if not submission:
+                submission = Submission(student=student_profile, assignment=assignment)
+            
+            submission.file_path = form.cleaned_data['file_path']
+            submission.save()
+            
+            messages.success(request, 'Code submitted successfully!')
+            return redirect('student_submit_and_test', assignment_id=assignment_id)
+    else:
+        form = SubmissionForm()
+    
+    # Get visible test cases
+    test_cases = TestCase.objects.filter(
+        assignment=assignment,
+        is_hidden=False
+    ).order_by('order')
+    
+    # Get test results for current submission
+    test_results = None
+    if submission:
+        test_results = TestResult.objects.filter(submission=submission).select_related('test_case').order_by('test_case__order')
+        passed_count = test_results.filter(passed=True).count()
+        total_count = test_results.count()
+    else:
+        passed_count = 0
+        total_count = 0
+    
+    context = {
+        'assignment': assignment,
+        'submission': submission,
+        'form': form,
+        'test_cases': test_cases,
+        'test_results': test_results,
+        'passed_count': passed_count,
+        'total_count': total_count,
+        'base_template': 'portal/base_portal.html',
+    }
+    
+    return render(request, 'grading/student_submit_and_test.html', context)
+
+
+@login_required
+@require_POST
+def trigger_bulk_grade(request, assignment_id):
+    """
+    Trigger bulk grading for all submissions in an assignment.
+    Only accessible to course instructors.
+    
+    POST endpoint that queues a Celery task and returns task_id for progress tracking.
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    user = get_user_from_request(request)
+    
+    # Check permission - must be course instructor
+    if not is_course_instructor(user, assignment.course):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'You do not have permission to grade this assignment.'
+        }, status=403)
+    
+    try:
+        # Queue the bulk grading task
+        task = bulk_grade_assignment.delay(assignment_id)
+        
+        return JsonResponse({
+            'status': 'success',
+            'task_id': task.id,
+            'message': f'Bulk grading started for "{assignment.name}"'
+        })
+    except Exception as e:
+        logger.error(f"Error queueing bulk grade task: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Failed to start bulk grading. Please try again.'
+        }, status=500)
+
+
+@login_required
+def get_bulk_grade_status(request, task_id):
+    """
+    Get the status of a bulk grading task.
+    """
+    from celery.result import AsyncResult
+    
+    try:
+        task_result = AsyncResult(task_id)
+        
+        response = {
+            'task_id': task_id,
+            'status': task_result.status,
+        }
+        
+        if task_result.state == 'PROGRESS':
+            response['progress'] = task_result.info
+        elif task_result.state == 'SUCCESS':
+            response['result'] = task_result.result
+        elif task_result.state == 'FAILURE':
+            response['error'] = str(task_result.info)
+        
+        return JsonResponse(response)
+    except Exception as e:
+        logger.error(f"Error getting task status: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Failed to get task status.'
+        }, status=500)
+
+
+@login_required
+def grade_report(request, assignment_id):
+    """
+    Display a grade report for an assignment showing:
+    - All students in the course
+    - Their submission status
+    - Scores and pass rates
+    - Missing submissions (students without any submission)
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    user = get_user_from_request(request)
+    
+    # Check permission - must be course instructor
+    if not is_course_instructor(user, assignment.course):
+        return HttpResponseForbidden("You do not have permission to view this report.")
+    
+    # Get all students in the course
+    students = Student.objects.filter(course=assignment.course).select_related('user')
+    
+    # Get all submissions for this assignment
+    submissions = Submission.objects.filter(
+        assignment=assignment
+    ).select_related('student__user')
+    
+    # Build grade report data
+    grade_data = []
+    missing_submissions = []
+    
+    submission_dict = {sub.student_id: sub for sub in submissions}
+    
+    for student in students:
+        submission = submission_dict.get(student.id)
+        
+        if submission is None:
+            # Student has no submission
+            missing_submissions.append({
+                'id': student.id,
+                'name': student.user.get_full_name() or student.user.username,
+                'email': student.user.email,
+                'status': 'missing'
+            })
+        else:
+            # Get test results for this submission
+            test_results = submission.testresult_set.all()
+            passed = test_results.filter(passed=True).count()
+            total = test_results.count()
+            
+            grade_data.append({
+                'id': student.id,
+                'name': student.user.get_full_name() or student.user.username,
+                'email': student.user.email,
+                'submission_id': submission.id,
+                'status': submission.status,
+                'submitted_at': submission.submitted_at,
+                'score': submission.total_score or 0,
+                'max_score': submission.max_score or 0,
+                'passed_tests': passed,
+                'total_tests': total,
+                'pass_rate': round((passed / total * 100) if total > 0 else 0, 1),
+                'grade': submission.grade_set.first() if submission.grade_set.exists() else None,
+            })
+    
+    # Sort by name
+    grade_data.sort(key=lambda x: x['name'])
+    missing_submissions.sort(key=lambda x: x['name'])
+    
+    # Calculate statistics
+    total_students = len(grade_data) + len(missing_submissions)
+    submitted = len(grade_data)
+    
+    avg_score = sum(g['score'] for g in grade_data) / submitted if submitted > 0 else 0
+    avg_pass_rate = sum(g['pass_rate'] for g in grade_data) / submitted if submitted > 0 else 0
+    
+    context = {
+        'assignment': assignment,
+        'grade_data': grade_data,
+        'missing_submissions': missing_submissions,
+        'total_students': total_students,
+        'submitted': submitted,
+        'missing': len(missing_submissions),
+        'avg_score': round(avg_score, 2),
+        'max_score': assignment.max_points or 100,
+        'avg_pass_rate': round(avg_pass_rate, 1),
+        'base_template': 'base_professor.html'
+    }
+    
+    return render(request, 'grading/grade_report.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def run_public_tests_api(request):
+    """
+    API endpoint to run only public test cases (is_private=False) against student code.
+    
+    Expects JSON payload:
+    {
+        "code": "student code here",
+        "language": "python" or "java",
+        "filename": "main.py",
+        "assignment_id": 123
+    }
+    
+    Returns JSON with test results:
+    {
+        "results": [
+            {
+                "passed": true/false,
+                "expected_output": "...",
+                "actual_output": "..."
+            },
+            ...
+        ]
+    }
+    """
+    import json
+    from django.http import JsonResponse
+    from .execute_view import _run_in_docker_with_input
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    
+    code = data.get('code', '')
+    language = data.get('language', 'python')
+    filename = data.get('filename', 'main.py')
+    assignment_id = data.get('assignment_id')
+    
+    if not code or not assignment_id:
+        return JsonResponse({'error': 'Missing required fields: code, assignment_id'}, status=400)
+    
+    # Fetch assignment and get public test cases
+    try:
+        assignment = Assignment.objects.get(id=assignment_id)
+    except Assignment.DoesNotExist:
+        return JsonResponse({'error': 'Assignment not found'}, status=404)
+    
+    # Get only public test cases (is_private=False)
+    public_test_cases = TestCase.objects.filter(
+        assignment=assignment,
+        is_private=False
+    ).order_by('order')
+    
+    if not public_test_cases.exists():
+        return JsonResponse({
+            'results': []
+        })
+    
+    results = []
+    
+    for test_case in public_test_cases:
+        try:
+            # Execute student code with test input
+            exec_result = _run_in_docker_with_input(
+                code=code,
+                language=language,
+                input_data=test_case.input_data
+            )
+            
+            actual_output = exec_result.get('stdout', '')
+            expected_output = test_case.expected_output
+            
+            # Simple string comparison (can be extended with normalization)
+            passed = actual_output.strip() == expected_output.strip()
+            
+            results.append({
+                'test_case_id': test_case.id,
+                'passed': passed,
+                'expected_output': expected_output,
+                'actual_output': actual_output
+            })
+            
+        except Exception as e:
+            logger.error(f"Error executing test case {test_case.id}: {e}")
+            results.append({
+                'passed': False,
+                'expected_output': test_case.expected_output,
+                'actual_output': f"Error: {str(e)}",
+                'test_name': test_case.name
+            })
+    
+    return JsonResponse({'results': results})

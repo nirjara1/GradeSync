@@ -156,9 +156,37 @@ def inbox(request):
 
 @login_required
 def help_page(request):
-    user = get_user_from_request(request)
     request.session['active_role'] = 'INSTRUCTOR'
     return render(request, 'professor_help.html')
+
+import json
+from django.core.serializers.json import DjangoJSONEncoder
+from grading.models import Assignment
+
+@login_required
+def calendar_view(request):
+    user = get_user_from_request(request)
+    request.session['active_role'] = 'INSTRUCTOR'
+    
+    # Fetch assignments for courses taught by this professor
+    assignments = Assignment.objects.filter(course__professor=user, due_date__isnull=False)
+    
+    # Serialize for FullCalendar
+    events = []
+    for assignment in assignments:
+        events.append({
+            'title': f"{assignment.course.code}: {assignment.name}",
+            'start': assignment.due_date.isoformat(),
+            'url': f"/professor/classes/{assignment.course.id}/", # Link to the course for now
+            'backgroundColor': 'var(--maroon)',
+            'borderColor': 'var(--maroon)'
+        })
+        
+    context = {
+        'events_json': json.dumps(events, cls=DjangoJSONEncoder)
+    }
+    
+    return render(request, 'professor_calendar.html', context)
 
 @login_required
 def create_course(request):

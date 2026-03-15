@@ -1,0 +1,79 @@
+{% extends 'base_professor.html' %}
+{% load static %}
+
+{% block extra_css %}
+<!-- FullCalendar via CDN -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
+<style>
+    .fc-event {
+        cursor: pointer;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .fc-event:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    }
+    .fc-toolbar-title {
+        color: var(--maroon);
+        font-weight: bold;
+    }
+    .fc-button-primary {
+        background-color: var(--maroon) !important;
+        border-color: var(--maroon) !important;
+    }
+    .fc-button-primary:not(:disabled):active,
+    .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: #6a0020 !important;
+        border-color: #6a0020 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calendar-container">
+    <div class="calendar-header" style="margin-bottom: 20px;">
+        <h2 class="page-title">Course Calendar</h2>
+        <p class="profile-subtitle">Track important dates and assignment deadlines.</p>
+    </div>
+    
+    <hr class="divider">
+
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eaeaea;">
+        <div id='calendar'></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        
+        // Parse the events JSON passed from django view
+        var eventsData = JSON.parse('{{ events_json|escapejs }}');
+
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: eventsData,
+            eventClick: function(info) {
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    info.jsEvent.preventDefault(); // Don't let the browser navigate normally before we do
+                }
+            },
+            height: 'auto',
+            aspectRatio: 1.5,
+        });
+
+        calendar.render();
+    });
+</script>
+{% endblock %}

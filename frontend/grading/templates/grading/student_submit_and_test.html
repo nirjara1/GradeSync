@@ -1,0 +1,274 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Submit & Test - {{ assignment.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>{{ assignment.name }}</h2>
+            <p class="text-muted">{{ assignment.description }}</p>
+
+            <!-- Assignment Info -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Assignment Details</h6>
+                            <p><strong>Language:</strong> {{ assignment.get_allowed_language_display }}</p>
+                            <p><strong>Points:</strong> {{ assignment.points }}</p>
+                            <p><strong>Total Tests:</strong> {{ test_cases.count }}</p>
+                            {% if assignment.due_date %}
+                                <p><strong>Due Date:</strong> {{ assignment.due_date|date:"M d, Y H:i" }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Your Progress</h6>
+                            {% if submission %}
+                                <p><strong>Status:</strong>
+                                    <span class="badge bg-{% if submission.status == 'graded' %}success{% elif submission.status == 'grading' %}warning{% else %}secondary{% endif %}">
+                                        {{ submission.get_status_display }}
+                                    </span>
+                                </p>
+                                {% if test_results %}
+                                    <p><strong>Tests Passed:</strong> <span class="badge bg-success">{{ passed_count }}/{{ total_count }}</span></p>
+                                    <p><strong>Score:</strong> <span class="text-primary">{{ submission.total_score }}/{{ submission.max_score }}</span></p>
+                                {% endif %}
+                            {% else %}
+                                <p class="text-muted">No submission yet</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Upload Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Submit Your Code</h5>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data" id="submission-form">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.file_path.id_for_label }}" class="form-label">{{ form.file_path.label }}</label>
+                            {{ form.file_path }}
+                            {% if form.file_path.errors %}<div class="text-danger">{{ form.file_path.errors }}</div>{% endif %}
+                            <small class="form-text text-muted d-block mt-2">
+                                Upload a .py or .java file (or .zip for multiple files)
+                            </small>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Submit Code
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Test Cases Section -->
+            {% if test_cases %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Available Test Cases</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Test Name</th>
+                                    <th>Description</th>
+                                    <th>Points</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for test_case in test_cases %}
+                                    <tr>
+                                        <td><strong>{{ test_case.name }}</strong></td>
+                                        <td>{{ test_case.description|truncatewords:10 }}</td>
+                                        <td>{{ test_case.points_awarded }} pts</td>
+                                        <td>
+                                            {% if test_results %}
+                                                {% with matching=test_results|dictsort:"test_case_id" %}
+                                                    {% for result in matching %}
+                                                        {% if result.test_case_id == test_case.id %}
+                                                            {% if result.passed %}
+                                                                <span class="badge bg-success">PASSED</span>
+                                                            {% else %}
+                                                                <span class="badge bg-danger">FAILED</span>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <span class="badge bg-secondary">Not run</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Test Results Section -->
+            {% if submission and test_results %}
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h3 class="text-success">{{ passed_count }}</h3>
+                                    <p class="text-muted">Tests Passed</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h3 class="text-danger">{{ total_count|add:"-"|add:passed_count }}</h3>
+                                    <p class="text-muted">Tests Failed</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h3 class="text-primary">
+                                        {% if total_count > 0 %}
+                                            {{ passed_count|floatformat:0 }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </h3>
+                                    <p class="text-muted">Pass Rate</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detailed Results -->
+                        <div class="accordion" id="testResultsAccordion">
+                            {% for result in test_results %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button {% if not result.passed %}collapsed{% endif %}" 
+                                                type="button" data-bs-toggle="collapse" 
+                                                data-bs-target="#result{{ result.id }}">
+                                            <span class="badge {% if result.passed %}bg-success{% else %}bg-danger{% endif %} me-2">
+                                                {% if result.passed %}✓{% else %}✗{% endif %}
+                                            </span>
+                                            {{ result.test_case.name }}
+                                            <span class="ms-auto text-muted me-2">{{ result.execution_time|floatformat:3 }}s</span>
+                                        </button>
+                                    </h2>
+                                    <div id="result{{ result.id }}" class="accordion-collapse collapse" 
+                                         data-bs-parent="#testResultsAccordion">
+                                        <div class="accordion-body">
+                                            {% if not result.passed %}
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6>Expected Output:</h6>
+                                                        <pre class="bg-light p-3 rounded"><code>{{ result.test_case.expected_output }}</code></pre>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6>Your Output:</h6>
+                                                        <pre class="bg-light p-3 rounded"><code>{{ result.actual_output }}</code></pre>
+                                                        {% if result.error_message %}
+                                                            <h6 class="text-danger mt-3">Error:</h6>
+                                                            <pre class="bg-danger bg-opacity-10 p-3 rounded text-danger"><code>{{ result.error_message }}</code></pre>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <p class="text-success"><i class="fas fa-check-circle"></i> Test passed successfully!</p>
+                                                <p><strong>Execution Time:</strong> {{ result.execution_time|floatformat:3 }}s</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Run Tests Button -->
+                <div class="mb-4">
+                    <button id="run-tests-btn" class="btn btn-lg btn-success" onclick="runTests()">
+                        <i class="fas fa-play"></i> Re-run Tests
+                    </button>
+                </div>
+            {% endif %}
+
+            <!-- Back Link -->
+            <div class="mt-4">
+                <a href="{% url 'assignments_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Assignments
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function runTests() {
+    const btn = document.getElementById('run-tests-btn');
+    if (!btn) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running Tests...';
+    
+    {% if submission %}
+    fetch('{% url "grade_submission_api" submission.id %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            // Reload the page to show updated results
+            location.reload();
+        } else {
+            alert('Error running tests: ' + (data.error || 'Unknown error'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-play"></i> Re-run Tests';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error running tests');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Re-run Tests';
+    });
+    {% else %}
+    alert('Please submit your code first');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-play"></i> Run Tests';
+    {% endif %}
+}
+
+// Auto-refresh if grading
+{% if submission.status == 'grading' %}
+setTimeout(() => {
+    location.reload();
+}, 3000);
+{% endif %}
+</script>

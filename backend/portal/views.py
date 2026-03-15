@@ -131,3 +131,59 @@ def student_inbox(request):
 def student_help(request):
     request.session['active_role'] = 'STUDENT'
     return render(request, 'portal/student_help.html')
+
+import json
+from django.core.serializers.json import DjangoJSONEncoder
+from grading.models import Assignment
+
+@login_required
+def student_calendar_view(request):
+    request.session['active_role'] = 'STUDENT'
+    
+    # Fetch assignments for courses the student is enrolled in
+    assignments = Assignment.objects.filter(
+        course__members__user=request.user, 
+        course__members__role_in_course__in=['STUDENT', 'GRADING_ASSISTANT'],
+        due_date__isnull=False
+    ).distinct()
+    
+    # Serialize for FullCalendar
+    events = []
+    for assignment in assignments:
+        # Determine URL based on GA vs Student
+        is_ga = assignment.course.members.filter(user=request.user, role_in_course='GRADING_ASSISTANT').exists()
+        url = f"/ga/classes/{assignment.course.id}/" if is_ga else f"/student/classes/{assignment.course.id}/"
+        
+        events.append({
+            'title': f"{assignment.course.code}: {assignment.name}",
+            'start': assignment.due_date.isoformat(),
+            'url': url,
+            'backgroundColor': '#fdb913' if is_ga else 'var(--maroon)',
+            'borderColor': '#fdb913' if is_ga else 'var(--maroon)'
+        })
+        
+    context = {
+        'events_json': json.dumps(events, cls=DjangoJSONEncoder)
+    }
+    
+    return render(request, 'portal/student_calendar.html', context)
+
+@login_required
+def execution_sandbox(request):
+    user = request.user
+    
+    # Determine which base template to use based on the user's role
+    profile_obj, _ = UserProfile.objects.get_or_create(user=user)
+    
+    if profile_obj.role in ['FACULTY', 'INSTRUCTOR']:
+        base_template = 'base_professor.html'
+    elif profile_obj.role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        # Default fallback or for GRADING_ASSISTANT etc.
+        base_template = 'base_grading_assistant.html'
+        
+    context = {
+        'base_template': base_template,
+    }
+    return render(request, 'shared/sandbox.html', context)

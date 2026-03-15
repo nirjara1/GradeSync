@@ -6,10 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grade Submission - {{ submission.assignment.name }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Load Monaco Editor -->
+    <script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; width: 100%; overflow: hidden; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f6f8; }
+        
         .grade-submission-scaffold {
             --maroon: #840029;
             display: flex;
@@ -17,6 +25,8 @@
             width: 100%;
             height: 100%;
         }
+        
+        /* Header */
         .grade-submission-header {
             background-color: var(--maroon);
             color: #fff;
@@ -26,127 +36,412 @@
             padding: 12px 24px;
             gap: 16px;
             flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 10;
         }
-        .grade-submission-header a { color: #fff; text-decoration: none; }
-        .grade-submission-header a:hover { opacity: 0.9; }
+        .grade-submission-header a { color: #fff; text-decoration: none; transition: opacity 0.2s; }
+        .grade-submission-header a:hover { opacity: 0.8; }
         .grade-submission-header .header-left { display: flex; align-items: center; gap: 16px; }
-        .grade-submission-header .header-center { flex: 1; min-width: 0; text-align: center; font-weight: 600; font-size: 1.1rem; }
+        .grade-submission-header .header-center { flex: 1; min-width: 0; text-align: center; font-weight: 600; font-size: 1.1rem; letter-spacing: 0.5px; }
         .grade-submission-header .header-right { display: flex; align-items: center; gap: 16px; }
         .grade-submission-header .nav-arrow {
             display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 6px;
-            background: rgba(255,255,255,0.2); color: #fff; text-decoration: none; font-size: 1.2rem;
+            width: 32px; height: 32px; border-radius: 4px;
+            background: rgba(255,255,255,0.15); color: #fff; text-decoration: none; font-size: 1.1rem;
+            transition: all 0.2s ease;
         }
-        .grade-submission-header .nav-arrow:hover:not(.disabled) { background: rgba(255,255,255,0.35); }
-        .grade-submission-header .nav-arrow.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+        .grade-submission-header .nav-arrow:hover:not(.disabled) { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+        .grade-submission-header .nav-arrow.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+        
+        /* Body Layout */
         .grade-submission-body {
             flex: 1;
             display: flex;
             min-height: 0;
-            background: #fff;
         }
+        
+        /* Code Editor Left Panel */
         .grade-submission-editor-area {
             flex: 1;
             min-width: 0;
             display: flex;
+            flex-direction: column;
+            background: #1e1e1e; /* Match VS Code Dark Theme */
+            border-right: 1px solid #ddd;
+        }
+        
+        .file-tabs {
+            display: flex;
+            background-color: #2d2d2d;
+            border-bottom: 1px solid #1e1e1e;
+            overflow-x: auto;
+            padding: 8px 8px 0 8px;
+            gap: 4px;
+        }
+        .file-tab {
+            padding: 8px 16px;
+            background-color: #3e3e42;
+            color: #ccc;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 6px 6px 0 0;
+            border-top: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .file-tab:hover { background-color: #4e4e52; color: #fff; }
+        .file-tab.active { background-color: #1e1e1e; color: #fff; border-top: 2px solid var(--maroon); font-weight: 500; }
+        
+        .editor-container {
+            flex: 1;
+            width: 100%;
+        }
+        
+        .no-code-message {
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-right: 1px solid #e5e7eb;
-            padding: 24px;
+            height: 100%;
+            color: #888;
+            font-size: 15px;
+            text-align: center;
+            background: #fff;
         }
+        
+        /* Grading Sidebar Right Panel */
         .grade-submission-sidebar-area {
-            width: 360px;
+            width: 380px;
             flex-shrink: 0;
-            padding: 24px;
-            background: #f9fafb;
+            background: #fff;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
-        .placeholder-label { color: #6b7280; font-size: 0.95rem; }
-        .rubric-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333; }
-        .rubric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; }
-        .rubric-row label { font-size: 13px; color: #555; flex: 1; min-width: 0; }
-        .rubric-row input[type="number"] { width: 70px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; }
-        .rubric-total { margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; font-weight: 600; }
-        .btn-submit-grade { background: #840029; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 12px; width: 100%; }
-        .btn-submit-grade:hover { opacity: 0.9; }
-        .rubric-feedback { margin-top: 10px; }
-        .rubric-feedback textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; min-height: 60px; }
+        
+        .sidebar-header {
+            padding: 20px 24px 15px 24px;
+            border-bottom: 1px solid #eee;
+            background: #fafafa;
+        }
+        .sidebar-header h3 { margin: 0; font-size: 16px; color: #333; font-weight: 600; }
+        .sidebar-header p { margin: 4px 0 0 0; font-size: 13px; color: #666; }
+        
+        .sidebar-content {
+            padding: 24px;
+            flex: 1;
+        }
+        
+        .rubric-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .rubric-card-header {
+            background: #f9fafb;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .rubric-row {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            border-bottom: 1px solid #f3f4f6;
+            gap: 10px;
+        }
+        .rubric-row:last-child { border-bottom: none; }
+        
+        .rubric-row-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .rubric-row label { font-size: 14px; color: #4b5563; flex: 1; font-weight: 500; }
+        .rubric-row input[type="number"] { 
+            width: 70px; 
+            padding: 8px; 
+            border: 1px solid #d1d5db; 
+            border-radius: 6px; 
+            font-size: 14px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .rubric-row input[type="number"]:focus { border-color: var(--maroon); outline: none; box-shadow: 0 0 0 2px rgba(132,0,41,0.1); }
+        
+        .rubric-total-box {
+            padding: 16px;
+            background: #fdf8f8;
+            border-top: 1px solid #fecaca;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            color: var(--maroon);
+            font-size: 16px;
+        }
+        
+        .feedback-section {
+            margin-bottom: 20px;
+        }
+        .feedback-section label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        .feedback-section textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            min-height: 120px;
+            resize: vertical;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        .feedback-section textarea:focus { border-color: var(--maroon); outline: none; box-shadow: 0 0 0 2px rgba(132,0,41,0.1); }
+        
+        .btn-submit-grade {
+            background: var(--maroon);
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(132,0,41,0.2);
+        }
+        .btn-submit-grade:hover { background: #6b0021; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(132,0,41,0.3); }
+        
+        /* Empty State */
+        .empty-rubric {
+            text-align: center;
+            padding: 40px 20px;
+            background: #f9fafb;
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+        }
+        .empty-rubric i { font-size: 32px; color: #9ca3af; margin-bottom: 12px; }
+        .empty-rubric p { color: #6b7280; font-size: 14px; margin-bottom: 0; }
     </style>
 </head>
 <body>
 <div class="grade-submission-scaffold">
+    
+    <!-- Top Nav Bar -->
     <header class="grade-submission-header">
         <div class="header-left">
-            <a href="{% url 'gradebook' pk=submission.assignment.pk %}" title="Gradebook">
-                <i class="fa-solid fa-table-list" style="font-size: 1.5rem;"></i>
+            <a href="{% url 'gradebook' pk=submission.assignment.pk %}" title="Back to Gradebook">
+                <i class="fa-solid fa-arrow-left" style="margin-right: 6px;"></i> Gradebook
             </a>
-            <span class="header-center">{{ submission.assignment.name }}</span>
+        </div>
+        <div class="header-center">
+            {{ submission.assignment.course.code }} - {{ submission.assignment.name }}
         </div>
         <div class="header-right">
-            <span>{{ submission.student.user.get_full_name|default:submission.student.user.username }}</span>
+            <span style="font-weight: 500;"><i class="fa-solid fa-user-graduate" style="margin-right: 5px;"></i> {{ submission.student.user.get_full_name|default:submission.student.user.username }}</span>
+            <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.3); margin: 0 8px;"></div>
             {% if previous_submission %}
-            <a href="{% url 'grade_submission' previous_submission.pk %}" class="nav-arrow" title="Previous submission">&larr;</a>
+                <a href="{% url 'grade_submission' previous_submission.pk %}" class="nav-arrow" title="Previous Student"><i class="fa-solid fa-chevron-left"></i></a>
             {% else %}
-            <span class="nav-arrow disabled" title="No previous submission">&larr;</span>
+                <span class="nav-arrow disabled" title="No previous submission"><i class="fa-solid fa-chevron-left"></i></span>
             {% endif %}
+            
             {% if next_submission %}
-            <a href="{% url 'grade_submission' next_submission.pk %}" class="nav-arrow" title="Next submission">&rarr;</a>
+                <a href="{% url 'grade_submission' next_submission.pk %}" class="nav-arrow" title="Next Student"><i class="fa-solid fa-chevron-right"></i></a>
             {% else %}
-            <span class="nav-arrow disabled" title="No next submission">&rarr;</span>
+                <span class="nav-arrow disabled" title="No next submission"><i class="fa-solid fa-chevron-right"></i></span>
             {% endif %}
         </div>
     </header>
 
     <div class="grade-submission-body">
+        
+        <!-- Left Column: Code Editor -->
         <div class="grade-submission-editor-area">
-            <span class="placeholder-label">Code Editor Placeholder</span>
-        </div>
-        <div class="grade-submission-sidebar-area">
-            {% if rubric and criteria %}
-            <div class="rubric-title">Rubric — {{ assignment.points }} pts total</div>
-            <form method="post" action="">
-                {% csrf_token %}
-                <input type="hidden" name="submit_grade_rubric" value="1">
-                {% for row in criteria_with_scores %}
-                <div class="rubric-row">
-                    <label for="score_criterion_{{ row.criterion.id }}">{{ row.criterion.name }}{% if rubric.is_weighted %} ({{ row.criterion.weight|floatformat:0 }}%){% else %} ({{ row.criterion.points }} pts){% endif %}</label>
-                    <input type="number" id="score_criterion_{{ row.criterion.id }}" name="score_criterion_{{ row.criterion.id }}" step="0.5" min="0" value="{{ row.points_earned }}" placeholder="0">
-                </div>
-                {% endfor %}
-                <div class="rubric-total" id="rubric-total-display">Total: <span id="rubric-sum">0</span> / {{ assignment.points }}</div>
-                <div class="rubric-feedback">
-                    <label style="font-size: 12px; color: #666;">Feedback (optional)</label>
-                    <textarea name="feedback" placeholder="Optional feedback for student">{{ grade.feedback|default:'' }}</textarea>
-                </div>
-                <button type="submit" class="btn-submit-grade">Submit Grade</button>
-            </form>
+            {% if can_preview_code %}
+                <div class="file-tabs" id="evaluationTabs"></div>
+                <div id="evaluationEditorContainer" class="editor-container"></div>
             {% else %}
-            <span class="placeholder-label">Grading Sidebar Placeholder</span>
-            <p style="font-size: 12px; color: #999; margin-top: 10px;">Add a rubric from the assignment page to grade by criteria.</p>
+                <div class="no-code-message">
+                    <i class="fa-solid fa-file-circle-xmark" style="font-size: 48px; color: #ddd; margin-bottom: 16px;"></i>
+                    <h3 style="color: #555; margin-bottom: 8px;">No Readable Source Code</h3>
+                    <p>The student has not submitted any files, or the submitted files cannot be opened in the editor.</p>
+                </div>
             {% endif %}
         </div>
+
+        <!-- Right Column: Grading Panel -->
+        <div class="grade-submission-sidebar-area">
+            <div class="sidebar-header">
+                <h3>Evaluation Pane</h3>
+                <p>Review and assign grades based on the rubric.</p>
+            </div>
+            
+            <div class="sidebar-content">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    
+                    {% if rubric and criteria %}
+                        <input type="hidden" name="submit_grade_rubric" value="1">
+                        
+                        <div class="rubric-card">
+                            <div class="rubric-card-header">
+                                <span>Grading Criteria</span>
+                                <span>{{ assignment.points }} pts total</span>
+                            </div>
+                            
+                            {% for row in criteria_with_scores %}
+                            <div class="rubric-row">
+                                <div class="rubric-row-top">
+                                    <label for="score_criterion_{{ row.criterion.id }}">
+                                        {{ row.criterion.name }}
+                                        <span style="color: #9ca3af; font-size: 12px; margin-left: 4px; font-weight: normal;">
+                                            {% if rubric.is_weighted %}({{ row.criterion.weight|floatformat:0 }}%){% else %}({{ row.criterion.points }} pts){% endif %}
+                                        </span>
+                                    </label>
+                                    <input type="number" id="score_criterion_{{ row.criterion.id }}" name="score_criterion_{{ row.criterion.id }}" step="0.5" min="0" value="{{ row.points_earned|default:'0' }}">
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            <div class="rubric-total-box">
+                                <span>Overall Score:</span>
+                                <div><span id="rubric-sum">0</span> / {{ assignment.points }}</div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="empty-rubric">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                            <p>No rubric attached to this assignment.</p>
+                        </div>
+                    {% endif %}
+
+                    <!-- Feedback Area -->
+                    <div class="feedback-section" style="margin-top: 25px;">
+                        <label for="feedback"><i class="fa-regular fa-comment-dots" style="margin-right: 6px; color: #6b7280;"></i> Instructor Feedback</label>
+                        <textarea id="feedback" name="feedback" placeholder="Provide constructive feedback for the student here...">{{ grade.feedback|default:'' }}</textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-submit-grade">
+                        <i class="fa-solid fa-check"></i> Save Evaluation
+                    </button>
+                    
+                </form>
+            </div>
+        </div>
+        
     </div>
 </div>
-{% if rubric and criteria %}
+
+<!-- Scripts for Rubric Calculation and Monaco Editor -->
 <script>
-(function () {
-    var inputs = document.querySelectorAll('.grade-submission-sidebar-area input[type="number"][name^="score_criterion_"]');
-    var sumEl = document.getElementById('rubric-sum');
-    function updateTotal() {
-        var sum = 0;
+    // Rubric Auto-Calculation
+    {% if rubric and criteria %}
+    (function () {
+        var inputs = document.querySelectorAll('.rubric-row input[type="number"]');
+        var sumEl = document.getElementById('rubric-sum');
+        
+        function updateTotal() {
+            var sum = 0;
+            inputs.forEach(function (inp) {
+                var v = parseFloat(inp.value) || 0;
+                sum += v;
+            });
+            sumEl.textContent = sum.toFixed(1).replace(/\.0$/, ''); // Format to 1 decimal, remove .0
+        }
+        
         inputs.forEach(function (inp) {
-            var v = parseFloat(inp.value) || 0;
-            sum += v;
+            inp.addEventListener('input', updateTotal);
+            inp.addEventListener('change', updateTotal);
         });
-        sumEl.textContent = sum;
-    }
-    inputs.forEach(function (inp) {
-        inp.addEventListener('input', updateTotal);
-        inp.addEventListener('change', updateTotal);
+        updateTotal();
+    })();
+    {% endif %}
+
+    // Monaco Editor Initialization
+    {% if can_preview_code %}
+    document.addEventListener("DOMContentLoaded", function () {
+        if (typeof monaco !== 'undefined') {
+            const rawFilesJSON = '{{ submission_files_json|escapejs }}';
+            let files = [];
+            try {
+                files = JSON.parse(rawFilesJSON);
+            } catch (e) {
+                console.error("Failed to parse submission files JSON", e);
+            }
+
+            if (files.length > 0) {
+                const editorContainer = document.getElementById('evaluationEditorContainer');
+                const tabsContainer = document.getElementById('evaluationTabs');
+                
+                // Initialize Editor
+                let evaluationEditor = monaco.editor.create(editorContainer, {
+                    value: files[0].content,
+                    language: files[0].language,
+                    theme: 'vs-dark', // Dark theme for evaluation
+                    automaticLayout: true,
+                    readOnly: true, // Instructors shouldn't edit student code directly here
+                    fontSize: 14,
+                    minimap: { enabled: true },
+                    padding: { top: 16 }
+                });
+
+                // File Icon Mapping
+                function getIcon(lang) {
+                    if (lang === 'python') return '<i class="fa-brands fa-python" style="color: #4B8BBE;"></i>';
+                    if (lang === 'java') return '<i class="fa-brands fa-java" style="color: #f89820;"></i>';
+                    return '<i class="fa-regular fa-file-code"></i>';
+                }
+
+                // Render Tabs
+                files.forEach((file, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = `file-tab ${index === 0 ? 'active' : ''}`;
+                    btn.innerHTML = `${getIcon(file.language)} ${file.name}`;
+                    
+                    btn.onclick = () => {
+                        // Update active tab UI
+                        document.querySelectorAll('.file-tab').forEach(t => t.classList.remove('active'));
+                        btn.classList.add('active');
+                        
+                        // Switch editor model
+                        monaco.editor.setModelLanguage(evaluationEditor.getModel(), file.language);
+                        evaluationEditor.setValue(file.content);
+                    };
+                    tabsContainer.appendChild(btn);
+                });
+            }
+        }
     });
-    updateTotal();
-})();
+    {% endif %}
 </script>
-{% endif %}
+
 </body>
 </html>
