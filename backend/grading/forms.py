@@ -5,15 +5,9 @@ import csv
 import openpyxl
 
 class AssignmentForm(forms.ModelForm):
-    # New field for CSV-parsed test cases
-    test_cases_json = forms.CharField(
-        required=False,
-        widget=forms.HiddenInput()
-    )
-    
     class Meta:
         model = Assignment
-        fields = ['name', 'description', 'course', 'points', 'due_date', 'no_due_date', 'allowed_language', 'public_test_data', 'expected_outputs', 'status']
+        fields = ['name', 'description', 'course', 'points', 'due_date', 'no_due_date', 'allowed_language', 'public_test_data', 'expected_outputs', 'test_cases_file', 'status']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'placeholder': 'Assignment Title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Description'}),
@@ -22,12 +16,14 @@ class AssignmentForm(forms.ModelForm):
             'due_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'no_due_date': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'allowed_language': forms.RadioSelect(attrs={'class': 'form-check-input'}),
-            'public_test_data': forms.FileInput(attrs={'class': 'form-control-file', 'style': 'display: none;', 'id': 'public_test_data_upload'}),
-            'expected_outputs': forms.FileInput(attrs={'class': 'form-control-file', 'style': 'display: none;', 'id': 'expected_outputs_upload'}),
-            'status': forms.HiddenInput(),
+            'public_test_data': forms.FileInput(attrs={'class': 'form-control-file'}),
+            'expected_outputs': forms.FileInput(attrs={'class': 'form-control-file'}),
+            'test_cases_file': forms.FileInput(attrs={'class': 'form-control-file'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
             'name': 'Assignment Title',
+            'test_cases_file': 'Test cases json',
         }
 
     def __init__(self, *args, **kwargs):
@@ -37,6 +33,7 @@ class AssignmentForm(forms.ModelForm):
         self.fields['course'].required = False
         self.fields['public_test_data'].required = False
         self.fields['expected_outputs'].required = False
+        self.fields['test_cases_file'].required = False
 
 
 class SubmissionForm(forms.ModelForm):

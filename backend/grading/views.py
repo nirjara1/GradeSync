@@ -272,7 +272,7 @@ def edit_assignment(request, pk):
         return HttpResponseForbidden("Only instructors can edit assignments.")
         
     if request.method == 'POST':
-        form = AssignmentForm(request.POST, instance=assignment)
+        form = AssignmentForm(request.POST, request.FILES, instance=assignment)
         if form.is_valid():
             form.save()
             messages.success(request, "Assignment updated successfully!")
@@ -745,6 +745,7 @@ def upload_test_cases(request, assignment_id):
                         expected_output=tc.get('expected_output', ''),
                         points_awarded=float(tc.get('points_awarded', 1)),
                         is_hidden=tc.get('is_hidden', False),
+                        is_private=tc.get('is_private', False),
                         order=max_order + idx + 1,
                     )
                     created_count += 1
@@ -944,12 +945,13 @@ def parse_test_cases(test_file, file_format):
             "input_data": "...",
             "expected_output": "...",
             "points_awarded": 1,
-            "is_hidden": false
+            "is_hidden": false,
+            "is_private": false
         }
     ]
     
     CSV format expected columns:
-    name, description, input_data, expected_output, points_awarded, is_hidden
+    name, description, input_data, expected_output, points_awarded, is_hidden, is_private
     
     Excel format expected same as CSV.
     """
@@ -971,8 +973,12 @@ def parse_test_cases(test_file, file_format):
                 raise ValueError('CSV must contain "input_data" and "expected_output" columns')
             
             # Convert is_hidden to boolean
-            is_hidden_str = row.get('is_hidden', 'false').lower()
+            is_hidden_str = str(row.get('is_hidden', 'false')).lower()
             is_hidden = is_hidden_str in ('true', '1', 'yes')
+
+            # Convert is_private to boolean
+            is_private_str = str(row.get('is_private', 'false')).lower()
+            is_private = is_private_str in ('true', '1', 'yes')
             
             test_cases.append({
                 'name': row.get('name', ''),
@@ -981,6 +987,7 @@ def parse_test_cases(test_file, file_format):
                 'expected_output': row.get('expected_output', ''),
                 'points_awarded': float(row.get('points_awarded', 1)),
                 'is_hidden': is_hidden,
+                'is_private': is_private,
             })
     
     elif file_format == 'excel':
@@ -999,6 +1006,9 @@ def parse_test_cases(test_file, file_format):
             
             is_hidden_val = row_dict.get('is_hidden', False)
             is_hidden = str(is_hidden_val).lower() in ('true', '1', 'yes') if is_hidden_val else False
+
+            is_private_val = row_dict.get('is_private', False)
+            is_private = str(is_private_val).lower() in ('true', '1', 'yes') if is_private_val else False
             
             test_cases.append({
                 'name': row_dict.get('name', ''),
@@ -1007,6 +1017,7 @@ def parse_test_cases(test_file, file_format):
                 'expected_output': row_dict.get('expected_output', ''),
                 'points_awarded': float(row_dict.get('points_awarded', 1)),
                 'is_hidden': is_hidden,
+                'is_private': is_private,
             })
     
     else:
@@ -1397,10 +1408,10 @@ def run_public_tests_api(request):
             passed = actual_output.strip() == expected_output.strip()
             
             results.append({
+                'test_case_id': test_case.id,
                 'passed': passed,
                 'expected_output': expected_output,
-                'actual_output': actual_output,
-                'test_name': test_case.name
+                'actual_output': actual_output
             })
             
         except Exception as e:
