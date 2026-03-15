@@ -42,7 +42,7 @@
 
     <div class="dashboard-layout">
         <aside class="sidebar">
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_profile' %}" class="nav-item {% if request.resolver_match.url_name == 'student_profile' %}active{% endif %}">
                 <i class="fa-solid fa-user-circle"></i>
                 <span>Profile</span>
             </a>
@@ -51,19 +51,19 @@
                 <i class="fa-solid fa-gauge-high"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_courses_list' %}" class="nav-item {% if request.resolver_match.url_name == 'student_courses_list' %}active{% endif %}">
                 <i class="fa-solid fa-book"></i>
                 <span>Courses</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_assignments' %}" class="nav-item {% if request.resolver_match.url_name == 'student_assignments' %}active{% endif %}">
                 <i class="fa-solid fa-book-open"></i>
                 <span>Assignments</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_inbox' %}" class="nav-item {% if request.resolver_match.url_name == 'student_inbox' %}active{% endif %}">
                 <i class="fa-solid fa-inbox"></i>
                 <span>Inbox</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_help' %}" class="nav-item {% if request.resolver_match.url_name == 'student_help' %}active{% endif %}">
                 <i class="fa-solid fa-question-circle"></i>
                 <span>Help</span>
             </a>
