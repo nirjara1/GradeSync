@@ -1,0 +1,89 @@
+{% extends 'base_professor.html' %}
+{% load static %}
+
+{% block content %}
+<div class="reports-container">
+    <div class="reports-header" style="margin-bottom: 20px;">
+        <h2 class="page-title">Performance Reports</h2>
+        <p class="profile-subtitle">View class analytics and grade distributions.</p>
+    </div>
+    
+    <hr class="divider">
+
+    <div class="reports-layout" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">
+        <!-- Mock Report Card 1 -->
+        <div class="report-card" style="background: white; border-radius: 8px; border: 1px solid #eaeaea; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: var(--maroon);">Class Averages</h3>
+                <i class="fa-solid fa-chart-bar" style="color: var(--gold); font-size: 24px;"></i>
+            </div>
+            <div style="height: 200px; display: flex; align-items: flex-end; justify-content: space-around; padding-top: 20px; border-bottom: 1px solid #eee;">
+                {% if courses %}
+                    {% for course in courses %}
+                        {% if forloop.counter <= 4 %}
+                            <div style="width: 40px; background: {% if forloop.last %}var(--gold){% else %}var(--maroon){% endif %}; height: {% cycle '85%' '92%' '78%' '70%' %}; border-radius: 4px 4px 0 0; text-align: center; color: white; font-size: 12px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px;" title="{{ course.title }}">
+                                {% cycle '85%' '92%' '78%' '70%' %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    <!-- Average Bar -->
+                    <div style="width: 40px; background: #666; height: 84%; border-radius: 4px 4px 0 0; text-align: center; color: white; font-size: 12px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px;" title="Overall Average">
+                        84%
+                    </div>
+                {% else %}
+                    <p style="color: #888; text-align: center; width: 100%;">No courses assigned yet to display analytics.</p>
+                {% endif %}
+            </div>
+            
+            {% if courses %}
+            <div style="display: flex; justify-content: space-around; margin-top: 10px; font-size: 12px; font-weight: bold; color: #666;">
+                {% for course in courses %}
+                    {% if forloop.counter <= 4 %}
+                        <span>{{ course.code }}</span>
+                    {% endif %}
+                {% endfor %}
+                <span>Average</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Mock Report Card 2 -->
+        <div class="report-card" style="background: white; border-radius: 8px; border: 1px solid #eaeaea; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: var(--maroon);">Recent Activity</h3>
+                <i class="fa-solid fa-chart-line" style="color: var(--gold); font-size: 24px;"></i>
+            </div>
+            
+            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 15px;">
+                <li style="display: flex; gap: 15px; align-items: center;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: var(--maroon);">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                    </div>
+                    <div>
+                        <strong style="display: block; font-size: 14px;">Assignment 3 Submissions</strong>
+                        <span style="color: #666; font-size: 12px;">32/40 students submitted</span>
+                    </div>
+                </li>
+                <li style="display: flex; gap: 15px; align-items: center;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: var(--maroon);">
+                        <i class="fa-solid fa-check-double"></i>
+                    </div>
+                    <div>
+                        <strong style="display: block; font-size: 14px;">Midterm Grading</strong>
+                        <span style="color: #666; font-size: 12px;">Grading 100% complete</span>
+                    </div>
+                </li>
+                <li style="display: flex; gap: 15px; align-items: center;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: var(--maroon);">
+                        <i class="fa-solid fa-user-plus"></i>
+                    </div>
+                    <div>
+                        <strong style="display: block; font-size: 14px;">Roster Update</strong>
+                        <span style="color: #666; font-size: 12px;">2 students dropped CSCI4060</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
