@@ -435,7 +435,17 @@ def assignment_detail_view(request, pk):
     if len(submission_files) > 0:
         can_preview_code = True
 
-    has_rubric = Rubric.objects.filter(assignment=assignment).exists()
+    rubric = getattr(assignment, 'rubric', None)
+    criteria = list(rubric.criteria.all()) if rubric else []
+    total_pts = int(assignment.points) if assignment.points is not None else 0
+    criteria_with_display = []
+    for c in criteria:
+        if rubric.is_weighted and c.weight is not None:
+            display_pts = round(float(total_pts) * float(c.weight) / 100)
+        else:
+            display_pts = int(c.points) if c.points is not None else 0
+        criteria_with_display.append({'criterion': c, 'display_points': display_pts})
+    has_rubric = rubric is not None
     context = {
         'assignment': assignment,
         'submissions': submissions,
@@ -447,6 +457,8 @@ def assignment_detail_view(request, pk):
         'base_template': base_template,
         'form': form,
         'has_rubric': has_rubric,
+        'rubric': rubric,
+        'criteria_with_display': criteria_with_display,
     }
     return render(request, 'assignment_detail.html', context)
 
