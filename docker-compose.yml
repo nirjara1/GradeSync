@@ -8,6 +8,14 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
   web:
     build:
       context: .
@@ -17,6 +25,8 @@ services:
     environment:
       # Execution sandbox settings (override in .env if needed)
       - EXECUTION_TIMEOUT_SECONDS=5
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
     volumes:
       - ./backend:/app
       - ./app/data:/app/data
@@ -31,9 +41,30 @@ services:
       - "80:8000"
     depends_on:
       - db
+      - redis
     command: python manage.py runserver 0.0.0.0:8000
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - EXECUTION_TIMEOUT_SECONDS=5
+    volumes:
+      - ./backend:/app
+      - ./app/data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/gradesync_sandbox:/tmp/gradesync_sandbox
+    depends_on:
+      - db
+      - redis
+    command: celery -A config worker --loglevel=info
 
 volumes:
   postgres_data:
-
+  redis_data:
 

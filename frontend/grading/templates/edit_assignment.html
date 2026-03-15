@@ -17,12 +17,27 @@
 
 <div
     style="background: var(--white); padding: 30px; border-radius: 8px; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-    <form method="POST" action="{% url 'edit_assignment' assignment.pk %}">
+    <form method="POST" enctype="multipart/form-data" action="{% url 'edit_assignment' assignment.pk %}">
         {% csrf_token %}
 
         {% for field in form %}
         <div class="form-group">
             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            
+            {% if field.name == 'public_test_data' and form.instance.public_test_data %}
+                <div class="current-file" style="margin-bottom: 5px; font-size: 14px;">
+                    Currently: <a href="{{ form.instance.public_test_data.url }}" target="_blank">{{ form.instance.public_test_data.name }}</a>
+                </div>
+            {% elif field.name == 'expected_outputs' and form.instance.expected_outputs %}
+                <div class="current-file" style="margin-bottom: 5px; font-size: 14px;">
+                    Currently: <a href="{{ form.instance.expected_outputs.url }}" target="_blank">{{ form.instance.expected_outputs.name }}</a>
+                </div>
+            {% elif field.name == 'test_cases_file' and form.instance.test_cases_file %}
+                <div class="current-file" style="margin-bottom: 5px; font-size: 14px;">
+                    Currently: <a href="{{ form.instance.test_cases_file.url }}" target="_blank">{{ form.instance.test_cases_file.name }}</a>
+                </div>
+            {% endif %}
+
             {{ field }}
             {% if field.help_text %}
             <small style="color: grey">{{ field.help_text }}</small>

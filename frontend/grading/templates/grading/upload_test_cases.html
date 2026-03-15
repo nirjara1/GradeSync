@@ -1,0 +1,117 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Upload Test Cases - {{ assignment.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2>Upload Test Cases</h2>
+            <p class="text-muted">{{ assignment.name }}</p>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_test_file" class="form-label">Select File</label>
+                            {{ form.test_file }}
+                            {% if form.test_file.errors %}
+                                <div class="text-danger mt-2">{{ form.test_file.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted d-block mt-2">
+                                {{ form.test_file.help_text }}
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">File Format</label>
+                            <div>
+                                {% for value, label in form.file_format.field.choices %}
+                                    <div class="form-check">
+                                        <input type="radio" class="form-check-input" name="file_format" 
+                                               value="{{ value }}" id="id_file_format_{{ value }}"
+                                               {% if form.file_format.value == value %}checked{% endif %}>
+                                        <label class="form-check-label" for="id_file_format_{{ value }}">
+                                            {{ label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.file_format.errors %}
+                                <div class="text-danger mt-2">{{ form.file_format.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.clear_existing }}
+                                <label class="form-check-label" for="{{ form.clear_existing.id_for_label }}">
+                                    {{ form.clear_existing.label }}
+                                </label>
+                            </div>
+                            <small class="form-text text-muted d-block mt-2">
+                                {{ form.clear_existing.help_text }}
+                            </small>
+                        </div>
+
+                        <div class="alert alert-info" role="alert">
+                            <h6 class="alert-heading">File Format Examples</h6>
+                            
+                            <strong>JSON Format:</strong>
+                            <pre><code>[
+  {
+    "name": "Test 1",
+    "description": "Basic test",
+    "input_data": "5",
+    "expected_output": "25",
+    "points_awarded": 1,
+    "is_hidden": false
+  },
+  {
+    "name": "Test 2 (Hidden)",
+    "input_data": "10",
+    "expected_output": "100",
+    "points_awarded": 1,
+    "is_hidden": true
+  }
+]</code></pre>
+
+                            <strong>CSV Format:</strong>
+                            <pre><code>name,description,input_data,expected_output,points_awarded,is_hidden
+Test 1,Basic test,5,25,1,false
+Test 2 (Hidden),,10,100,1,true</code></pre>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Upload Test Cases
+                            </button>
+                            <a href="{% url 'manage_test_cases' assignment.id %}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a href="{% url 'manage_test_cases' assignment.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Test Cases
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

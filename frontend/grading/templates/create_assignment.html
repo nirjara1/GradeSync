@@ -157,25 +157,52 @@
         <!-- Testing & Grading Section -->
         <h3 style="margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #333;">Testing & Grading</h3>
 
-        <div class="upload-section" style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
-            <!-- Public Test Data -->
-            <div class="upload-box" onclick="document.getElementById('public_test_data_upload').click()">
-                <i class="fa-solid fa-arrow-up-from-bracket"
-                    style="font-size: 18px; color: #555; margin-bottom: 10px;"></i>
-                <p style="margin: 0; font-size: 14px; color: #555;">Public Test Data (*Required)</p>
-                {{ form.public_test_data }}
-                <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.public_test_data.errors }}</div>
-            </div>
-
-            <!-- Expected Outputs -->
-            <div class="upload-box" onclick="document.getElementById('expected_outputs_upload').click()">
-                <i class="fa-solid fa-arrow-up-from-bracket"
-                    style="font-size: 18px; color: #555; margin-bottom: 10px;"></i>
-                <p style="margin: 0; font-size: 14px; color: #555;">Expected Outputs (*Required)</p>
-                {{ form.expected_outputs }}
-                <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.expected_outputs.errors }}</div>
-            </div>
+        <!-- CSV Upload Zone -->
+        <div id="csvUploadContainer" class="upload-box" 
+            style="width: 100%; margin-bottom: 20px; cursor: pointer; transition: all 0.3s ease;"
+            onclick="document.getElementById('test_cases_csv').click()"
+            ondrop="handleCsvDrop(event)"
+            ondragover="handleCsvDragOver(event)"
+            ondragleave="handleCsvDragLeave(event)">
+            <i class="fa-solid fa-arrow-up-from-bracket" style="font-size: 24px; color: #555; margin-bottom: 12px;"></i>
+            <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 500; color: #333;">Upload Test Cases (.csv)</p>
+            <p style="margin: 0; font-size: 13px; color: #888;">Drag and drop or click to browse</p>
+            <input type="file" id="test_cases_csv" accept=".csv" style="display: none;" onchange="handleCsvFileSelect(event)">
         </div>
+
+        <!-- Download Template Link -->
+        <div style="margin-bottom: 20px;">
+            <a href="/static/test_case_template.csv" download="test_case_template.csv" 
+                style="color: var(--maroon); text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 5px;">
+                <i class="fa-solid fa-download"></i> Download CSV Template
+            </a>
+            <span style="color: #999; font-size: 13px; margin-left: 10px;">
+                (Required columns: input_data, expected_output, is_private, points)
+            </span>
+        </div>
+
+        <!-- CSV Preview Table -->
+        <div id="previewTableContainer" style="display: none; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #333;">Test Case Preview</h4>
+            <div style="overflow-x: auto; border: 1px solid #ddd; border-radius: 6px;">
+                <table id="previewTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead style="background-color: #f5f5f5;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #ddd; font-weight: 600; color: #333;">Input</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid #ddd; font-weight: 600; color: #333;">Expected Output</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd; font-weight: 600; color: #333; width: 150px;">Test Type</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd; font-weight: 600; color: #333; width: 80px;">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div id="previewError" style="color: #d32f2f; font-size: 13px; margin-top: 8px; display: none;"></div>
+        </div>
+
+        <!-- Hidden input to store parsed test cases as JSON -->
+        <input type="hidden" id="testCasesJsonInput" name="test_cases_json" value="">
 
         <!-- Add Rubric Button -->
         <button type="button" class="btn-upload-criteria" onclick="window.location.href='{% url 'rubric' %}'">
@@ -188,4 +215,215 @@
         </div>
     </form>
 </div>
+
+<script>
+let parsedTestCases = [];
+
+function handleCsvDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('csvUploadContainer').style.backgroundColor = '#f0f0f0';
+    document.getElementById('csvUploadContainer').style.borderColor = 'var(--maroon)';
+}
+
+function handleCsvDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('csvUploadContainer').style.backgroundColor = '#f9f9f9';
+    document.getElementById('csvUploadContainer').style.borderColor = '#bbb';
+}
+
+function handleCsvDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('csvUploadContainer').style.backgroundColor = '#f9f9f9';
+    document.getElementById('csvUploadContainer').style.borderColor = '#bbb';
+    
+    if (event.dataTransfer.files.length > 0) {
+        document.getElementById('test_cases_csv').files = event.dataTransfer.files;
+        handleCsvFileSelect({ target: { files: event.dataTransfer.files } });
+    }
+}
+
+function handleCsvFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.csv')) {
+        showPreviewError('Please upload a CSV file.');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const csv = e.target.result;
+            parsedTestCases = parseCSV(csv);
+            
+            if (parsedTestCases.length === 0) {
+                showPreviewError('No valid test cases found in CSV.');
+                return;
+            }
+            
+            displayPreviewTable(parsedTestCases);
+            storeTestCasesAsJson(parsedTestCases);
+        } catch (error) {
+            showPreviewError('Error parsing CSV: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+function parseCSV(csvText) {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < csvText.length; i++) {
+        let char = csvText[i];
+        let nextChar = csvText[i + 1];
+        
+        if (inQuotes) {
+            if (char === '"' && nextChar === '"') {
+                currentCell += '"';
+                i++; // Skip the escaped quote
+            } else if (char === '"') {
+                inQuotes = false;
+            } else {
+                currentCell += char;
+            }
+        } else {
+            if (char === '"') {
+                inQuotes = true;
+            } else if (char === ',') {
+                currentRow.push(currentCell);
+                currentCell = '';
+            } else if (char === '\r' && nextChar === '\n') {
+                currentRow.push(currentCell);
+                currentCell = '';
+                rows.push(currentRow);
+                currentRow = [];
+                i++; // Skip \n
+            } else if (char === '\n' || char === '\r') {
+                currentRow.push(currentCell);
+                currentCell = '';
+                rows.push(currentRow);
+                currentRow = [];
+            } else {
+                currentCell += char;
+            }
+        }
+    }
+    
+    // Push the last cell and row if any
+    if (currentCell !== '' || currentRow.length > 0) {
+        currentRow.push(currentCell);
+        rows.push(currentRow);
+    }
+    
+    // Filter out completely empty rows
+    const validRows = rows.filter(row => row.join('').trim() !== '');
+    
+    if (validRows.length < 2) {
+        throw new Error('CSV must have header row plus at least one data row');
+    }
+    
+    const headers = validRows[0].map(h => h.trim().toLowerCase());
+    const requiredColumns = ['input_data', 'expected_output', 'is_private', 'points'];
+    
+    for (let col of requiredColumns) {
+        if (!headers.includes(col)) {
+            throw new Error(`Missing required column: ${col}`);
+        }
+    }
+    
+    const testCases = [];
+    for (let i = 1; i < validRows.length; i++) {
+        const row = validRows[i];
+        const obj = {};
+        
+        headers.forEach((h, idx) => {
+            obj[h] = row[idx] !== undefined ? row[idx].trim() : ''; 
+        });
+        
+        const pt = parseInt(obj.points) || 5;
+        const isPriv = obj.is_private.toLowerCase() === 'true';
+        
+        testCases.push({
+            input_data: obj.input_data,      // Render preserving actual layout
+            expected_output: obj.expected_output,
+            is_private: isPriv,
+            points: pt
+        });
+    }
+    
+    return testCases;
+}
+
+function displayPreviewTable(testCases) {
+    const tbody = document.getElementById('previewTableBody');
+    tbody.innerHTML = '';
+    
+    testCases.forEach((tc, idx) => {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+            <td style="padding: 12px; border-bottom: 1px solid #eee; font-family: monospace; font-size: 12px; color: #555; white-space: pre-wrap; max-width: 250px; vertical-align: top;">${escapeHtml(tc.input_data)}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; font-family: monospace; font-size: 12px; color: #555; white-space: pre-wrap; max-width: 250px; vertical-align: top;">${escapeHtml(tc.expected_output)}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; vertical-align: top;">
+                <select id="private_${idx}" style="padding: 4px 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;" onchange="updateTestCase(${idx})">
+                    <option value="false" ${!tc.is_private ? 'selected' : ''}>Public (Student)</option>
+                    <option value="true" ${tc.is_private ? 'selected' : ''}>Private (Grading)</option>
+                </select>
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; vertical-align: top;">
+                <input type="number" id="points_${idx}" value="${tc.points}" min="1" style="width: 50px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;" onchange="updateTestCase(${idx})">
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    document.getElementById('previewTableContainer').style.display = 'block';
+    document.getElementById('previewError').style.display = 'none';
+}
+
+function updateTestCase(idx) {
+    const isPrivate = document.getElementById(`private_${idx}`).value === 'true';
+    const points = parseInt(document.getElementById(`points_${idx}`).value) || 5;
+    
+    parsedTestCases[idx].is_private = isPrivate;
+    parsedTestCases[idx].points = points;
+    
+    storeTestCasesAsJson(parsedTestCases);
+}
+
+function storeTestCasesAsJson(testCases) {
+    document.getElementById('testCasesJsonInput').value = JSON.stringify(testCases);
+}
+
+function showPreviewError(message) {
+    document.getElementById('previewError').textContent = message;
+    document.getElementById('previewError').style.display = 'block';
+    document.getElementById('previewTableContainer').style.display = 'none';
+}
+
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// Prevent form submission if CSV parsing failed
+document.querySelector('form').addEventListener('submit', function(e) {
+    // CSV is optional for now - allow submission even without test cases
+    // They can be added via the upload_test_cases view later
+});
+</script>
+
 {% endblock %}

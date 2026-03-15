@@ -1,0 +1,219 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Test Results - {{ submission.assignment.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Test Results</h2>
+            <p class="text-muted">
+                {{ submission.assignment.name }} - {{ submission.student.user.get_full_name }}
+            </p>
+
+            <!-- Summary Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Submission Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Status:</strong>
+                            <span class="badge bg-{% if submission.status == 'graded' %}success{% elif submission.status == 'grading' %}warning{% else %}danger{% endif %}">
+                                {{ submission.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Score:</strong>
+                            <span class="text-primary">{{ submission.total_score }}/{{ submission.max_score }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Tests Passed:</strong>
+                            <span>{{ passed_tests }}/{{ total_tests }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Percentage:</strong>
+                            <span>
+                                {% if submission.max_score > 0 %}
+                                    {{ submission.total_score|floatformat:1 }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            {% if test_results %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Test Case Results ({{ test_results.count }})</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Test Case</th>
+                                    <th>Status</th>
+                                    <th>Points</th>
+                                    <th>Execution Time</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in test_results %}
+                                    <tr>
+                                        <td>
+                                            <strong>Test Case {{ forloop.counter }}: {{ result.test_case.name }}</strong>
+                                            {% if result.test_case.is_hidden %}
+                                                <span class="badge bg-secondary" style="font-size: 11px;">Hidden</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if result.passed %}
+                                                <span class="badge bg-success" style="font-size: 12px;">✓ PASSED</span>
+                                            {% else %}
+                                                <span class="badge bg-danger" style="font-size: 12px;">✗ FAILED</span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="font-weight: 600; min-width: 100px;">
+                                            {% if result.passed %}
+                                                <span style="color: #28a745;">+{{ result.points_earned }} pts</span>
+                                            {% else %}
+                                                <span style="color: #dc3545;">0 pts (of {{ result.test_case.points_awarded }})</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ result.execution_time|floatformat:3 }}s</small>
+                                        </td>
+                                        <td>
+                                            {% if not result.passed and not result.test_case.is_hidden or is_instructor %}
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        data-bs-toggle="collapse" 
+                                                        data-bs-target="#details-{{ result.id }}">
+                                                    View Output
+                                                </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% if not result.passed and not result.test_case.is_hidden or is_instructor %}
+                                        <tr class="collapse" id="details-{{ result.id }}" style="background-color: #f9f9f9;">
+                                            <td colspan="5">
+                                                <div class="p-3">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <strong>Expected Output:</strong>
+                                                            <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow: auto;"><code>{{ result.test_case.expected_output }}</code></pre>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <strong>Your Output:</strong>
+                                                            <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow: auto;"><code>{{ result.actual_output }}</code></pre>
+                                                            {% if result.error_message %}
+                                                                <strong class="text-danger">Error/Stderr:</strong>
+                                                                <pre class="bg-danger bg-opacity-10 p-2 rounded text-danger" style="max-height: 150px; overflow: auto;"><code>{{ result.error_message }}</code></pre>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Summary Line -->
+                    <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                        <div style="font-size: 14px; color: #333;">
+                            <strong>Total Score:</strong> 
+                            <span style="font-size: 16px; font-weight: 700; color: {% if submission.max_score > 0 and submission.total_score == submission.max_score %}#28a745{% else %}#dc3545{% endif %};">
+                                {{ submission.total_score }}/{{ submission.max_score }} points
+                            </span>
+                            {% if submission.max_score > 0 %}
+                                <span style="color: #666; margin-left: 10px;" id="percentageDisplay"></span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    No test results available yet. This submission may still be grading.
+                </div>
+            {% endif %}
+
+            <!-- Rule Violations -->
+            {% if rule_violations %}
+                <div class="card mb-4">
+                    <div class="card-header bg-warning">
+                        <h5 class="card-title mb-0">Code Quality Issues</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Issue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for violation in rule_violations %}
+                                    <tr>
+                                        <td>
+                                            {% if violation.type == 'missing_function' %}
+                                                <span class="badge bg-warning">Missing Function</span>
+                                            {% elif violation.type == 'forbidden_keyword' %}
+                                                <span class="badge bg-danger">Forbidden Keyword</span>
+                                            {% elif violation.type == 'missing_docstring' %}
+                                                <span class="badge bg-info">Missing Docstring</span>
+                                            {% elif violation.type == 'function_too_long' %}
+                                                <span class="badge bg-secondary">Code Style</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ violation.type }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ violation.message }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="mt-4">
+                <a href="{% url 'assignment_detail' submission.assignment.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Assignment
+                </a>
+                {% if is_instructor %}
+                    <a href="{% url 'grade_submission' submission.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-comment"></i> Provide Feedback
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Calculate and display percentage
+    const totalScore = {{ submission.total_score }};
+    const maxScore = {{ submission.max_score }};
+    if (maxScore > 0) {
+        const percentage = Math.round((totalScore / maxScore) * 100);
+        document.getElementById('percentageDisplay').textContent = `(${percentage}%)`;
+    }
+    
+    // Auto-refresh if submission is still grading
+    {% if submission.status == 'grading' %}
+    setTimeout(() => {
+        location.reload();
+    }, 3000);
+    {% endif %}
+</script>
+{% endblock %}
