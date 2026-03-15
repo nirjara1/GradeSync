@@ -17,6 +17,7 @@ urlpatterns = [
     path("accounts/register/", professor_views.register_view, name="register"),
     path("accounts/login/", professor_views.CustomLoginView.as_view(), name="login"),
     path("accounts/", include("django.contrib.auth.urls")),
+    path("sandbox/", portal_views.execution_sandbox, name="execution_sandbox"),
 ]
 
 from django.conf import settings

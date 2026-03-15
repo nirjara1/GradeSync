@@ -63,6 +63,10 @@
                 <i class="fa-regular fa-calendar-days"></i>
                 <span>Calendar</span>
             </a>
+            <a href="{% url 'execution_sandbox' %}" class="nav-item {% if request.resolver_match.url_name == 'execution_sandbox' %}active{% endif %}">
+                <i class="fa-solid fa-code"></i>
+                <span>Code Sandbox</span>
+            </a>
             <a href="{% url 'student_inbox' %}" class="nav-item {% if request.resolver_match.url_name == 'student_inbox' %}active{% endif %}">
                 <i class="fa-solid fa-inbox"></i>
                 <span>Inbox</span>

@@ -1,0 +1,367 @@
+{% extends base_template %}
+{% load static %}
+
+{% block content %}
+<div class="main-content" style="padding: 30px;">
+    <!-- Sandbox Header -->
+    <div style="margin-bottom: 25px;">
+        <h2 class="page-title" style="margin: 0; color: #333; font-size: 28px; font-weight: 600;">Code Sandbox</h2>
+        <p style="margin: 5px 0 0 0; color: #666; font-size: 15px;">
+            Write, execute, and test Python or Java code securely.
+        </p>
+    </div>
+
+    <hr style="border: none; border-top: 2px solid #333; margin: 20px 0 30px 0;">
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <!-- Left Column: Code Editor -->
+        <div style="flex: 2; min-width: 600px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #333;">Editor</h3>
+                
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <!-- Language Selection -->
+                    <select id="languageSelect" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: white; cursor: pointer;">
+                        <option value="python">Python 3</option>
+                        <option value="java">Java 17</option>
+                    </select>
+
+                    <!-- Run Button -->
+                    <button type="button" id="sandboxRunBtn" onclick="runSandboxCode()"
+                        style="background: #1e7e34; color: white; border: none; border-radius: 4px; padding: 8px 20px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                        onmouseover="this.style.background='#155d27'; this.style.transform='translateY(-1px)';"
+                        onmouseout="this.style.background='#1e7e34'; this.style.transform='translateY(0)';">
+                        <i id="sandboxRunIcon" class="fa-solid fa-play"></i>
+                        <span id="sandboxRunText">Run Code</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="sandbox-editor-container"
+                style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); background: white;">
+            </div>
+        </div>
+
+        <!-- Right Column: Input & Settings -->
+        <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px;">
+            
+            <!-- Standard Input Card -->
+            <div style="background: white; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden;">
+                <div style="background: #f8f9fa; padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
+                    <h4 style="margin: 0; font-size: 15px; color: #333; font-weight: 600;"><i class="fa-solid fa-keyboard" style="margin-right: 8px; color: #666;"></i> Standard Input</h4>
+                </div>
+                
+                <div style="padding: 15px;">
+                    <!-- Input Type Toggle -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button type="button" class="input-toggle active" id="btnManualInput" onclick="toggleInputType('manual')"
+                            style="flex: 1; padding: 8px; background: var(--maroon); color: white; border: 1px solid var(--maroon); border-radius: 4px; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            Manual Input
+                        </button>
+                        <button type="button" class="input-toggle" id="btnUploadInput" onclick="toggleInputType('upload')"
+                            style="flex: 1; padding: 8px; background: white; color: #555; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            Upload File
+                        </button>
+                    </div>
+
+                    <!-- Manual Textarea -->
+                    <div id="manualInputSection">
+                        <textarea id="sandboxStdin" placeholder="Enter input data here... (Simulates keyboard input / stdin)"
+                            style="width: 100%; height: 180px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 13px; resize: none; box-sizing: border-box;"></textarea>
+                    </div>
+
+                    <!-- File Upload Input -->
+                    <div id="uploadInputSection" style="display: none; height: 180px;">
+                        <div id="sandboxUploadCard"
+                            style="height: 100%; background: #fafafa; border-radius: 6px; border: 2px dashed #ddd; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease;"
+                            onmouseover="this.style.background='#f0f0f0'; this.style.borderColor='#bbb';"
+                            onmouseout="this.style.background='#fafafa'; this.style.borderColor='#ddd';">
+                            <i class="fa-solid fa-file-arrow-up" style="font-size: 32px; color: #999; margin-bottom: 12px;"></i>
+                            <span id="sandboxUploadLabel"
+                                style="font-size: 13px; color: var(--maroon); text-align: center; padding: 0 15px; font-weight: 500;">Select Test Dataset File</span>
+                            <input type="file" id="sandboxInputFile" style="display: none;" accept=".txt,.csv,.json" onchange="handleSandboxFileSelect(this)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execution Status -->
+            <div id="sandboxStatusCard" style="display: none; background: white; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden;">
+                <div style="background: #f8f9fa; padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
+                    <h4 style="margin: 0; font-size: 15px; color: #333; font-weight: 600;"><i class="fa-solid fa-chart-line" style="margin-right: 8px; color: #666;"></i> Execution Result</h4>
+                </div>
+                <div style="padding: 15px;">
+                     <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="color: #666; font-size: 13px;">Status:</span>
+                        <span id="sandboxExitStatus" style="font-weight: 600; font-size: 13px;">-</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #666; font-size: 13px;">Time:</span>
+                        <span id="sandboxExecTime" style="font-weight: 600; font-size: 13px; color: #555;">-</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div> <!-- End Flex Row -->
+
+    <!-- Terminal Output -->
+    <div style="margin-top: 25px;">
+        <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #333;">Terminal Output</h3>
+        
+        <div id="sandboxTerminalPanel"
+            style="border: 1px solid #333; border-radius: 6px; background: #1a1a2e; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            
+            <!-- Terminal Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #16213e; padding: 8px 12px; border-bottom: 1px solid #333;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="width:11px;height:11px;background:#ff5f57;border-radius:50%;display:inline-block;"></span>
+                    <span style="width:11px;height:11px;background:#ffbd2e;border-radius:50%;display:inline-block;"></span>
+                    <span style="width:11px;height:11px;background:#28c840;border-radius:50%;display:inline-block;"></span>
+                    <span style="color:#aaa;font-size:12px;margin-left:8px;font-family:monospace;">
+                        <i class="fa-solid fa-terminal" style="margin-right:5px;"></i>GradeSync Shell
+                    </span>
+                </div>
+                <button type="button" onclick="clearSandboxTerminal()"
+                    style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;padding:2px 6px; border-radius:3px;transition:color 0.2s;"
+                    onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">
+                    <i class="fa-solid fa-xmark"></i> Clear
+                </button>
+            </div>
+
+            <!-- Terminal Body -->
+            <div id="sandboxTerminalOutput"
+                style="padding: 16px; min-height: 250px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 14px; line-height: 1.6; color: #e0e0e0; white-space: pre-wrap; word-break: break-all;">
+                <span style="color: #666;">Welcome to GradeSync Sandbox. Enter code and press "Run" to test your logic...</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Load Monaco Editor -->
+<script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
+
+<script>
+    let sandboxEditor = null;
+    const defaultPrograms = {
+        'python': 'def main():\n    print("Hello, GradeSync Sandbox!")\n    \n    # Example reading input:\n    # name = input("Enter your name: ")\n    # print(f"Welcome, {name}!")\n\nif __name__ == "__main__":\n    main()\n',
+        'java': 'import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, GradeSync Sandbox!");\n\n        // Example reading input:\n        // Scanner scanner = new Scanner(System.in);\n        // String name = scanner.nextLine();\n        // System.out.println("Welcome, " + name + "!");\n    }\n}\n'
+    };
+
+    const textareaInput = document.getElementById('sandboxStdin');
+    let uploadedFileContent = "";
+    let activeInputType = "manual"; // 'manual' or 'upload'
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (typeof monaco !== 'undefined') {
+            sandboxEditor = monaco.editor.create(document.getElementById('sandbox-editor-container'), {
+                value: defaultPrograms['python'],
+                language: 'python',
+                theme: 'vs-light',
+                automaticLayout: true,
+                fontSize: 14,
+                minimap: { enabled: false },
+                padding: { top: 16 }
+            });
+
+            // Handle language change
+            document.getElementById('languageSelect').addEventListener('change', function(e) {
+                const newLang = e.target.value;
+                monaco.editor.setModelLanguage(sandboxEditor.getModel(), newLang);
+                
+                // Only replace if it looks untouched/empty to avoid wiping user code
+                if (sandboxEditor.getValue().trim() === '' || 
+                    sandboxEditor.getValue() === defaultPrograms['python'] || 
+                    sandboxEditor.getValue() === defaultPrograms['java']) {
+                    sandboxEditor.setValue(defaultPrograms[newLang]);
+                }
+            });
+        }
+    });
+
+    // --- Input Handling ---
+    function toggleInputType(type) {
+        activeInputType = type;
+        const btnManual = document.getElementById('btnManualInput');
+        const btnUpload = document.getElementById('btnUploadInput');
+        const secManual = document.getElementById('manualInputSection');
+        const secUpload = document.getElementById('uploadInputSection');
+
+        if (type === 'manual') {
+            btnManual.className = 'input-toggle active';
+            btnManual.style.background = 'var(--maroon)';
+            btnManual.style.color = 'white';
+            btnManual.style.borderColor = 'var(--maroon)';
+            
+            btnUpload.className = 'input-toggle';
+            btnUpload.style.background = 'white';
+            btnUpload.style.color = '#555';
+            btnUpload.style.borderColor = '#ccc';
+
+            secManual.style.display = 'block';
+            secUpload.style.display = 'none';
+        } else {
+            btnUpload.className = 'input-toggle active';
+            btnUpload.style.background = 'var(--maroon)';
+            btnUpload.style.color = 'white';
+            btnUpload.style.borderColor = 'var(--maroon)';
+
+            btnManual.className = 'input-toggle';
+            btnManual.style.background = 'white';
+            btnManual.style.color = '#555';
+            btnManual.style.borderColor = '#ccc';
+
+            secManual.style.display = 'none';
+            secUpload.style.display = 'block';
+        }
+    }
+
+    document.getElementById('sandboxUploadCard').addEventListener('click', () => {
+        document.getElementById('sandboxInputFile').click();
+    });
+
+    function handleSandboxFileSelect(input) {
+        if (input.files && input.files.length > 0) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            
+            // Limit file size to 2MB for browser memory
+            if (file.size > 2 * 1024 * 1024) {
+                alert("File is too large. Max size is 2MB.");
+                input.value = '';
+                return;
+            }
+
+            reader.onload = function(e) {
+                uploadedFileContent = e.target.result;
+                document.getElementById('sandboxUploadLabel').innerHTML = `<strong style="color: #333;">${file.name}</strong><br><span style="font-size:11px; color: #666;">Ready to use as Standard Input</span>`;
+                document.getElementById('sandboxUploadCard').style.borderColor = 'var(--maroon)';
+                document.getElementById('sandboxUploadCard').style.background = '#fffafb';
+            };
+            reader.readAsText(file);
+        }
+    }
+
+    // --- Execution ---
+    const termOutputContainer = document.getElementById('sandboxTerminalOutput');
+    
+    function appendTerminal(text, color) {
+        const span = document.createElement('span');
+        span.style.color = color || '#e0e0e0';
+        span.textContent = text;
+        termOutputContainer.appendChild(span);
+        termOutputContainer.scrollTop = termOutputContainer.scrollHeight;
+    }
+
+    function clearSandboxTerminal() {
+        termOutputContainer.innerHTML = '';
+    }
+
+    function getCookie(name) {
+        const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return v ? v.pop() : '';
+    }
+
+    async function runSandboxCode() {
+        if (!sandboxEditor) return;
+
+        const code = sandboxEditor.getValue();
+        const language = document.getElementById('languageSelect').value;
+        const filename = language === 'java' ? 'Main.java' : 'main.py';
+        
+        let stdinData = "";
+        if (activeInputType === 'manual') {
+            stdinData = textareaInput.value;
+        } else {
+            stdinData = uploadedFileContent;
+        }
+
+        const runBtn   = document.getElementById('sandboxRunBtn');
+        const runIcon  = document.getElementById('sandboxRunIcon');
+        const runText  = document.getElementById('sandboxRunText');
+        const statCard = document.getElementById('sandboxStatusCard');
+
+        // UI updates
+        runBtn.disabled = true;
+        runBtn.style.opacity = '0.7';
+        runIcon.className = 'fa-solid fa-spinner fa-spin';
+        runText.textContent = 'Running...';
+        statCard.style.display = 'none';
+        
+        clearSandboxTerminal();
+        appendTerminal(`$ Running ${language} sandbox...\n`, '#888');
+
+        try {
+            const startTime = performance.now();
+            
+            const resp = await fetch('/grading/api/execute/', {
+                method:  'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken':  getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    code: code,
+                    language: language,
+                    filename: filename,
+                    stdin: stdinData
+                }),
+            });
+
+            const endTime = performance.now();
+            const execMs = (endTime - startTime).toFixed(0);
+
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({ error: 'Server error' }));
+                appendTerminal(`Error: ${err.error || resp.statusText}\n`, '#ff6b6b');
+                return;
+            }
+
+            const data = await resp.json();
+
+            if (data.stdout) {
+                appendTerminal(data.stdout, '#e0e0e0');
+                if (!data.stdout.endsWith('\n')) appendTerminal('\n');
+            }
+            if (data.stderr) {
+                appendTerminal(data.stderr, '#ffbd2e');
+                if (!data.stderr.endsWith('\n')) appendTerminal('\n');
+            }
+            if (!data.stdout && !data.stderr) {
+                appendTerminal('(Program completed with no output)\n', '#888');
+            }
+
+            // Update Status Card
+            statCard.style.display = 'block';
+            document.getElementById('sandboxExecTime').textContent = `${execMs} ms`;
+            
+            const statusBadge = document.getElementById('sandboxExitStatus');
+            if (data.timed_out) {
+                statusBadge.textContent = "TIMED OUT";
+                statusBadge.style.color = "#c0392b";
+                appendTerminal(`\n[Process killed: Execution Timeout]\n`, '#ff6b6b');
+            } else if (data.exit_code === 0) {
+                statusBadge.textContent = "SUCCESS (0)";
+                statusBadge.style.color = "#1e7e34";
+                appendTerminal(`\n[Process exited normally]\n`, '#888');
+            } else {
+                statusBadge.textContent = `ERROR (${data.exit_code})`;
+                statusBadge.style.color = "#c0392b";
+                appendTerminal(`\n[Process exited with code ${data.exit_code}]\n`, '#888');
+            }
+
+        } catch (err) {
+            appendTerminal(`Network Error: ${err.message}\n`, '#ff6b6b');
+        } finally {
+            runBtn.disabled = false;
+            runBtn.style.opacity = '1';
+            runIcon.className = 'fa-solid fa-play';
+            runText.textContent = 'Run Code';
+        }
+    }
+</script>
+{% endblock %}

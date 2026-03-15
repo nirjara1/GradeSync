@@ -167,3 +167,23 @@ def student_calendar_view(request):
     }
     
     return render(request, 'portal/student_calendar.html', context)
+
+@login_required
+def execution_sandbox(request):
+    user = request.user
+    
+    # Determine which base template to use based on the user's role
+    profile_obj, _ = UserProfile.objects.get_or_create(user=user)
+    
+    if profile_obj.role in ['FACULTY', 'INSTRUCTOR']:
+        base_template = 'base_professor.html'
+    elif profile_obj.role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        # Default fallback or for GRADING_ASSISTANT etc.
+        base_template = 'base_grading_assistant.html'
+        
+    context = {
+        'base_template': base_template,
+    }
+    return render(request, 'shared/sandbox.html', context)
