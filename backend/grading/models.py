@@ -62,3 +62,42 @@ class Grade(models.Model):
 
     def __str__(self):
         return f"{self.score} for {self.submission}"
+
+
+class Rubric(models.Model):
+    """One rubric per assignment; criteria can be weighted or unweighted."""
+    assignment = models.OneToOneField(Assignment, on_delete=models.CASCADE, related_name='rubric')
+    is_weighted = models.BooleanField(default=False, help_text="True = criteria use weight %; False = criteria use points")
+
+    def __str__(self):
+        return f"Rubric for {self.assignment.name}"
+
+
+class RubricCriterion(models.Model):
+    """Single criterion in a rubric. For unweighted: points = max points. For weighted: weight = percentage (0-100)."""
+    rubric = models.ForeignKey(Rubric, on_delete=models.CASCADE, related_name='criteria')
+    name = models.CharField(max_length=255)
+    order = models.PositiveSmallIntegerField(default=0)
+    # Unweighted: max points for this criterion
+    points = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    # Weighted: percentage (0-100) of total assignment points
+    weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.name} ({self.rubric.assignment.name})"
+
+
+class CriterionGrade(models.Model):
+    """Points earned for one criterion on one submission."""
+    submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='criterion_grades')
+    criterion = models.ForeignKey(RubricCriterion, on_delete=models.CASCADE, related_name='grades')
+    points_earned = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
+    class Meta:
+        unique_together = ('submission', 'criterion')
+
+    def __str__(self):
+        return f"{self.points_earned} for {self.criterion.name} ({self.submission})"

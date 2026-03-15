@@ -13,6 +13,7 @@ class Course(models.Model):
     published = models.BooleanField(default=False)
     image_url = models.URLField(blank=True, null=True, help_text="Optional URL to a header image for the course")
     professor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='courses')
+    is_archived = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.code}-{self.section}: {self.title}"

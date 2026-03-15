@@ -31,6 +31,12 @@
             <i class="fa-solid fa-file-export"></i> Download Expected Outputs
         </a>
         {% endif %}
+        {% if not is_student %}
+        <a href="{% url 'assignment_rubric' assignment.pk %}"
+            style="color: var(--maroon); text-decoration: none; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-list-check"></i> {% if has_rubric %}Edit Rubric{% else %}Add Rubric{% endif %}
+        </a>
+        {% endif %}
     </div>
 </div>
 
@@ -670,7 +676,7 @@
                         {% endif %}
                     </td>
                     <td style="padding: 15px; text-align: center;">
-                        <a href="{% url 'grade_submission' submission.pk %}" class="btn-publish"
+                        <a href="{% url 'grade_submission' submission.pk %}" target="_blank" rel="noopener noreferrer" class="btn-publish"
                             style="padding: 8px 18px; font-size: 13px; text-decoration: none; display: inline-block; font-weight: 600;">
                             {% if submission.grade %}Edit Grade{% else %}Grade{% endif %}
                         </a>

@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.db.models import Max
 from django.http import HttpResponseForbidden, FileResponse, Http404
-from .models import Assignment, Submission, Grade, Student
+from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade
 from .forms import AssignmentForm, SubmissionForm
 from professor.models import Course, UserProfile
 from professor.utils import is_course_instructor, has_course_access, is_enrolled, get_user_course_role
@@ -151,6 +152,87 @@ def create_assignment(request, course_id=None):
         'base_template': base_template
     }
     return render(request, 'create_assignment.html', context)
+
+
+@login_required
+def rubric_view(request):
+    """Shown when opening rubric from create assignment (no assignment yet)."""
+    user = get_user_from_request(request)
+    role = request.session.get('active_role') or getattr(request, 'user_role', None)
+    if role == 'INSTRUCTOR' or (role in ['FACULTY', 'PROFESSOR']):
+        base_template = 'base_professor.html'
+    elif role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+    context = {'base_template': base_template}
+    return render(request, 'rubric_no_assignment.html', context)
+
+
+@login_required
+def assignment_rubric_view(request, assignment_id):
+    """Add/edit rubric and criteria for an assignment (weighted or unweighted)."""
+    user = get_user_from_request(request)
+    assignment = get_object_or_404(Assignment, pk=assignment_id)
+    if not is_course_instructor(user, assignment.course, request):
+        return HttpResponseForbidden("Only instructors can edit this rubric.")
+
+    rubric, _ = Rubric.objects.get_or_create(assignment=assignment, defaults={'is_weighted': False})
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'toggle_weighted':
+            rubric.is_weighted = request.POST.get('is_weighted') == 'on'
+            rubric.save()
+            messages.success(request, "Rubric type updated.")
+        elif action == 'add_criterion':
+            name = request.POST.get('criterion_name', '').strip()
+            if name:
+                max_order = RubricCriterion.objects.filter(rubric=rubric).aggregate(
+                    m=Max('order'))['m'] or 0
+                points = request.POST.get('criterion_points')
+                weight = request.POST.get('criterion_weight')
+                c = RubricCriterion.objects.create(
+                    rubric=rubric,
+                    name=name,
+                    order=max_order + 1,
+                    points=float(points or 0) if not rubric.is_weighted else 0,
+                    weight=float(weight or 0) if rubric.is_weighted else None,
+                )
+                messages.success(request, f"Criterion '{name}' added.")
+        elif action == 'delete_criterion':
+            cid = request.POST.get('criterion_id')
+            if cid:
+                RubricCriterion.objects.filter(rubric=rubric, id=cid).delete()
+                messages.success(request, "Criterion removed.")
+        return redirect('assignment_rubric', assignment_id=assignment.id)
+
+    criteria = list(rubric.criteria.all())
+    # For weighted criteria, compute points from weight using proper rounding (widthratio truncates and can show 99 for 100)
+    total_pts = int(assignment.points) if assignment.points is not None else 0
+    criteria_with_display = []
+    for c in criteria:
+        if rubric.is_weighted and c.weight is not None:
+            display_pts = round(float(total_pts) * float(c.weight) / 100)
+        else:
+            display_pts = int(c.points) if c.points is not None else 0
+        criteria_with_display.append({'criterion': c, 'display_points': display_pts})
+    role = request.session.get('active_role') or getattr(request, 'user_role', None)
+    if role == 'INSTRUCTOR' or (role in ['FACULTY', 'PROFESSOR']):
+        base_template = 'base_professor.html'
+    elif role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+    context = {
+        'base_template': base_template,
+        'assignment': assignment,
+        'rubric': rubric,
+        'criteria': criteria,
+        'criteria_with_display': criteria_with_display,
+    }
+    return render(request, 'rubric.html', context)
+
 
 @login_required
 def edit_assignment(request, pk):
@@ -353,6 +435,7 @@ def assignment_detail_view(request, pk):
     if len(submission_files) > 0:
         can_preview_code = True
 
+    has_rubric = Rubric.objects.filter(assignment=assignment).exists()
     context = {
         'assignment': assignment,
         'submissions': submissions,
@@ -362,25 +445,96 @@ def assignment_detail_view(request, pk):
         'is_instructor': is_instructor,
         'is_student': is_student,
         'base_template': base_template,
-        'form': form
+        'form': form,
+        'has_rubric': has_rubric,
     }
     return render(request, 'assignment_detail.html', context)
+
+
+@login_required
+def gradebook_view(request, pk):
+    """Gradebook for an assignment: list of submissions with links to grade."""
+    user = get_user_from_request(request)
+    assignment = get_object_or_404(Assignment, pk=pk)
+    if not has_course_access(user, assignment.course, request):
+        return HttpResponseForbidden("You do not have permission to view this gradebook.")
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+    submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade').order_by('id')
+    context = {
+        'assignment': assignment,
+        'submissions': submissions,
+        'base_template': base_template,
+    }
+    return render(request, 'gradebook.html', context)
+
 
 @login_required
 def grade_submission_view(request, pk):
     user = get_user_from_request(request)
     submission = get_object_or_404(Submission, pk=pk)
     assignment = submission.assignment
-    
+
     if not has_course_access(user, assignment.course, request):
         return HttpResponseForbidden("You do not have permission to grade this assignment.")
-        
+
+    # Previous/next submission within same assignment (stable order: id)
+    submission_ids = list(
+        Submission.objects.filter(assignment=assignment).order_by('id').values_list('pk', flat=True)
+    )
+    try:
+        current_index = submission_ids.index(submission.pk)
+    except ValueError:
+        current_index = -1
+    previous_submission = None
+    next_submission = None
+    if current_index > 0:
+        previous_submission = Submission.objects.filter(pk=submission_ids[current_index - 1]).first()
+    if current_index >= 0 and current_index + 1 < len(submission_ids):
+        next_submission = Submission.objects.filter(pk=submission_ids[current_index + 1]).first()
+
     grade = getattr(submission, 'grade', None)
-    
+    rubric = getattr(assignment, 'rubric', None)
+    criteria = list(rubric.criteria.all()) if rubric else []
+    criterion_grades = {}  # criterion_id -> points_earned
+    if submission and criteria:
+        for cg in CriterionGrade.objects.filter(submission=submission, criterion__in=criteria):
+            criterion_grades[cg.criterion_id] = cg.points_earned
+    criteria_with_scores = [{'criterion': c, 'points_earned': criterion_grades.get(c.id, 0)} for c in criteria]
+
     if request.method == 'POST':
-        score = request.POST.get('score')
         feedback = request.POST.get('feedback', '')
-        
+        if rubric and criteria and request.POST.get('submit_grade_rubric'):
+            # Save per-criterion scores and total from rubric
+            total = 0
+            for c in criteria:
+                raw = request.POST.get('score_criterion_' + str(c.id), '')
+                try:
+                    pts = float(raw) if raw else 0
+                except ValueError:
+                    pts = 0
+                total += pts
+                CriterionGrade.objects.update_or_create(
+                    submission=submission, criterion=c,
+                    defaults={'points_earned': pts}
+                )
+            if grade:
+                grade.score = total
+                grade.feedback = feedback
+                grade.save()
+            else:
+                Grade.objects.create(submission=submission, score=total, feedback=feedback)
+            messages.success(request, "Grade saved. Total: %s / %s" % (total, assignment.points))
+            if next_submission:
+                return redirect('grade_submission', pk=next_submission.pk)
+            return redirect('gradebook', pk=assignment.pk)
+        # Single score (no rubric)
+        score = request.POST.get('score')
         if score:
             try:
                 score_val = float(score)
@@ -395,7 +549,7 @@ def grade_submission_view(request, pk):
                         score=score_val,
                         feedback=feedback
                     )
-                    messages.success(request, "Grade submitted successfully.")
+                messages.success(request, "Grade submitted successfully.")
                 return redirect('assignment_detail', pk=assignment.pk)
             except ValueError:
                 messages.error(request, "Invalid score submitted.")
@@ -454,11 +608,18 @@ def grade_submission_view(request, pk):
         
     context = {
         'submission': submission,
+        'assignment': assignment,
         'grade': grade,
         'base_template': base_template,
         'can_preview_code': can_preview_code,
         'submission_files_json': submission_files_json,
-        'is_instructor': is_instructor
+        'is_instructor': is_instructor,
+        'previous_submission': previous_submission,
+        'next_submission': next_submission,
+        'rubric': rubric,
+        'criteria': criteria,
+        'criteria_with_scores': criteria_with_scores,
+        'criterion_grades': criterion_grades,
     }
     return render(request, 'grade_submission.html', context)
 
