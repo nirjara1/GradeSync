@@ -680,63 +680,146 @@
         testResultsList.innerHTML = '';
 
         if (!results || results.length === 0) {
-            testResultsList.innerHTML = '<div style="color: #999; font-size: 13px;">No test results available.</div>';
+            testResultsList.innerHTML = '<div style="color: #999; font-size: 13px; padding: 15px;">No test results available.</div>';
             return;
         }
 
         results.forEach((result, idx) => {
             const passed = result.passed;
-            const statusIcon = passed ? '✅' : '❌';
-            const statusColor = passed ? '#4caf50' : '#f44336';
-            const statusText = passed ? 'PASSED' : 'FAILED';
+            const isPrivate = result.is_private === true;
+            
+            let statusColor = '';
+            let statusText = '';
+            
+            if (isPrivate) {
+                statusColor = '#6c757d'; // Gray
+                statusText = 'HIDDEN';
+            } else if (passed) {
+                statusColor = '#28a745'; // Vibrant Green
+                statusText = 'PASSED';
+            } else {
+                statusColor = '#dc3545'; // Bright Red
+                statusText = 'FAILED';
+            }
 
             const resultDiv = document.createElement('div');
             resultDiv.style.cssText = `
-                margin-bottom: 12px;
-                border-radius: 4px;
+                margin-bottom: 10px;
+                border-radius: 6px;
+                border: 1px solid #2d2d2d;
+                background-color: #1a1a1a;
                 overflow: hidden;
-                border: 1px solid #333;
             `;
 
+            // HEADER (Clickable Accordion)
             const headerDiv = document.createElement('div');
             headerDiv.style.cssText = `
-                padding: 10px 12px;
-                background: ${passed ? '#1b5e20' : '#b71c1c'};
-                color: ${statusColor};
+                padding: 12px 16px;
+                background: #242424;
                 cursor: pointer;
                 display: flex;
+                justify-content: space-between;
                 align-items: center;
-                gap: 8px;
-                font-weight: 600;
-                font-size: 13px;
                 user-select: none;
+                transition: background-color 0.2s ease;
             `;
-            headerDiv.innerHTML = `<span>${statusIcon}</span><span>Test Case ${idx + 1}: ${statusText}</span>`;
+            headerDiv.onmouseover = () => headerDiv.style.background = '#2a2a2a';
+            headerDiv.onmouseout = () => headerDiv.style.background = '#242424';
 
+            const titleContainer = document.createElement('div');
+            titleContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+            
+            const expandIcon = document.createElement('i');
+            expandIcon.className = 'fa-solid fa-chevron-right';
+            expandIcon.style.cssText = 'color: #888; font-size: 12px; transition: transform 0.2s; width: 12px; text-align: center;';
+            
+            const titleSpan = document.createElement('span');
+            titleSpan.style.cssText = 'color: #e0e0e0; font-weight: 600; font-size: 14px;';
+            titleSpan.textContent = result.test_name || `Test Case ${idx + 1}`;
+            
+            titleContainer.appendChild(expandIcon);
+            titleContainer.appendChild(titleSpan);
+
+            const badgeSpan = document.createElement('span');
+            badgeSpan.style.cssText = `
+                background-color: ${statusColor};
+                color: white;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            `;
+            badgeSpan.textContent = statusText;
+
+            headerDiv.appendChild(titleContainer);
+            headerDiv.appendChild(badgeSpan);
             resultDiv.appendChild(headerDiv);
 
-            if (!passed) {
-                const detailsDiv = document.createElement('div');
-                detailsDiv.style.cssText = `
-                    padding: 12px;
-                    background: #0f0f0f;
-                    color: #e0e0e0;
-                    font-size: 12px;
-                    font-family: monospace;
+            // DETAILS PANE (Hidden by default, Flex/Grid)
+            const detailsDiv = document.createElement('div');
+            detailsDiv.style.cssText = `
+                display: none;
+                padding: 16px;
+                background: #141414;
+                border-top: 1px solid #333;
+            `;
+
+            // Toggle logic
+            headerDiv.onclick = () => {
+                const isHidden = detailsDiv.style.display === 'none';
+                detailsDiv.style.display = isHidden ? 'block' : 'none';
+                expandIcon.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+            };
+
+            if (isPrivate) {
+                detailsDiv.innerHTML = '<div style="color: #aaa; font-size: 13px; text-align: center; padding: 15px; font-style: italic;">The details of this private test case are hidden.</div>';
+            } else {
+                const gridContainer = document.createElement('div');
+                gridContainer.style.cssText = `
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 16px;
                 `;
 
-                const expectedDiv = document.createElement('div');
-                expectedDiv.style.cssText = 'margin-bottom: 10px;';
-                expectedDiv.innerHTML = `<div style="color: #888; font-weight: 600; margin-bottom: 4px;">Expected Output:</div><div style="background: #1a1a2e; padding: 8px; border-radius: 3px; overflow-x: auto;">${escapeHtml(result.expected_output)}</div>`;
-                detailsDiv.appendChild(expectedDiv);
+                // Expected Output Card
+                const expectedCard = document.createElement('div');
+                expectedCard.style.cssText = `
+                    background: #1e1e1e;
+                    border: 1px solid #333;
+                    border-radius: 6px;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                `;
+                expectedCard.innerHTML = `
+                    <div style="background: #252525; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #bbb; text-transform: uppercase; border-bottom: 1px solid #333;">Expected Output</div>
+                    <pre style="margin: 0; padding: 14px; color: #ddd; font-size: 13px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; word-wrap: break-word; flex-grow: 1;">${escapeHtml(result.expected_output || "")}</pre>
+                `;
 
-                const actualDiv = document.createElement('div');
-                actualDiv.innerHTML = `<div style="color: #888; font-weight: 600; margin-bottom: 4px;">Your Output:</div><div style="background: #1a1a2e; padding: 8px; border-radius: 3px; overflow-x: auto;">${escapeHtml(result.actual_output)}</div>`;
-                detailsDiv.appendChild(actualDiv);
+                // Actual Output Card
+                const actualCard = document.createElement('div');
+                const outputColor = passed ? '#4caf50' : '#ff5252';
+                actualCard.style.cssText = `
+                    background: #1e1e1e;
+                    border: 1px solid #333;
+                    border-radius: 6px;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                `;
+                actualCard.innerHTML = `
+                    <div style="background: #252525; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #bbb; text-transform: uppercase; border-bottom: 1px solid #333;">Your Actual Output</div>
+                    <pre style="margin: 0; padding: 14px; color: ${outputColor}; font-size: 13px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; word-wrap: break-word; flex-grow: 1;">${escapeHtml(result.actual_output || "")}</pre>
+                `;
 
-                resultDiv.appendChild(detailsDiv);
+                gridContainer.appendChild(expectedCard);
+                gridContainer.appendChild(actualCard);
+                detailsDiv.appendChild(gridContainer);
             }
 
+            resultDiv.appendChild(detailsDiv);
             testResultsList.appendChild(resultDiv);
         });
     }

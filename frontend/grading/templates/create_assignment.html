@@ -275,12 +275,61 @@ function handleCsvFileSelect(event) {
 }
 
 function parseCSV(csvText) {
-    const lines = csvText.trim().split('\n');
-    if (lines.length < 2) {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < csvText.length; i++) {
+        let char = csvText[i];
+        let nextChar = csvText[i + 1];
+        
+        if (inQuotes) {
+            if (char === '"' && nextChar === '"') {
+                currentCell += '"';
+                i++; // Skip the escaped quote
+            } else if (char === '"') {
+                inQuotes = false;
+            } else {
+                currentCell += char;
+            }
+        } else {
+            if (char === '"') {
+                inQuotes = true;
+            } else if (char === ',') {
+                currentRow.push(currentCell);
+                currentCell = '';
+            } else if (char === '\r' && nextChar === '\n') {
+                currentRow.push(currentCell);
+                currentCell = '';
+                rows.push(currentRow);
+                currentRow = [];
+                i++; // Skip \n
+            } else if (char === '\n' || char === '\r') {
+                currentRow.push(currentCell);
+                currentCell = '';
+                rows.push(currentRow);
+                currentRow = [];
+            } else {
+                currentCell += char;
+            }
+        }
+    }
+    
+    // Push the last cell and row if any
+    if (currentCell !== '' || currentRow.length > 0) {
+        currentRow.push(currentCell);
+        rows.push(currentRow);
+    }
+    
+    // Filter out completely empty rows
+    const validRows = rows.filter(row => row.join('').trim() !== '');
+    
+    if (validRows.length < 2) {
         throw new Error('CSV must have header row plus at least one data row');
     }
     
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const headers = validRows[0].map(h => h.trim().toLowerCase());
     const requiredColumns = ['input_data', 'expected_output', 'is_private', 'points'];
     
     for (let col of requiredColumns) {
@@ -290,50 +339,26 @@ function parseCSV(csvText) {
     }
     
     const testCases = [];
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        
-        // Simple CSV parsing (handles quoted fields)
-        const values = parseCSVLine(line);
+    for (let i = 1; i < validRows.length; i++) {
+        const row = validRows[i];
         const obj = {};
+        
         headers.forEach((h, idx) => {
-            obj[h] = values[idx] || '';
+            obj[h] = row[idx] !== undefined ? row[idx].trim() : ''; 
         });
         
-        const points = parseInt(obj.points) || 5;
-        const isPrivate = obj.is_private.toLowerCase() === 'true';
+        const pt = parseInt(obj.points) || 5;
+        const isPriv = obj.is_private.toLowerCase() === 'true';
         
         testCases.push({
-            input_data: obj.input_data,
+            input_data: obj.input_data,      // Render preserving actual layout
             expected_output: obj.expected_output,
-            is_private: isPrivate,
-            points: points
+            is_private: isPriv,
+            points: pt
         });
     }
     
     return testCases;
-}
-
-function parseCSVLine(line) {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        
-        if (char === '"') {
-            inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-            result.push(current.trim().replace(/^"|"$/g, ''));
-            current = '';
-        } else {
-            current += char;
-        }
-    }
-    result.push(current.trim().replace(/^"|"$/g, ''));
-    return result;
 }
 
 function displayPreviewTable(testCases) {
@@ -342,19 +367,17 @@ function displayPreviewTable(testCases) {
     
     testCases.forEach((tc, idx) => {
         const row = document.createElement('tr');
-        const inputPreview = tc.input_data.substring(0, 50) + (tc.input_data.length > 50 ? '...' : '');
-        const outputPreview = tc.expected_output.substring(0, 50) + (tc.expected_output.length > 50 ? '...' : '');
         
         row.innerHTML = `
-            <td style="padding: 12px; border-bottom: 1px solid #eee; font-family: monospace; font-size: 12px; color: #555;" title="${tc.input_data}">${escapeHtml(inputPreview)}</td>
-            <td style="padding: 12px; border-bottom: 1px solid #eee; font-family: monospace; font-size: 12px; color: #555;" title="${tc.expected_output}">${escapeHtml(outputPreview)}</td>
-            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
+            <td style="padding: 12px; border-bottom: 1px solid #eee; font-family: monospace; font-size: 12px; color: #555; white-space: pre-wrap; max-width: 250px; vertical-align: top;">${escapeHtml(tc.input_data)}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; font-family: monospace; font-size: 12px; color: #555; white-space: pre-wrap; max-width: 250px; vertical-align: top;">${escapeHtml(tc.expected_output)}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; vertical-align: top;">
                 <select id="private_${idx}" style="padding: 4px 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;" onchange="updateTestCase(${idx})">
                     <option value="false" ${!tc.is_private ? 'selected' : ''}>Public (Student)</option>
                     <option value="true" ${tc.is_private ? 'selected' : ''}>Private (Grading)</option>
                 </select>
             </td>
-            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; vertical-align: top;">
                 <input type="number" id="points_${idx}" value="${tc.points}" min="1" style="width: 50px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;" onchange="updateTestCase(${idx})">
             </td>
         `;
