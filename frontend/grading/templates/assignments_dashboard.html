@@ -10,6 +10,16 @@
 </h2>
 <hr class="divider">
 
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}" {% endif %}
+        style="color: var(--maroon); font-weight: bold; list-style: none;">
+        {{ message }}
+        </li>
+        {% endfor %}
+</ul>
+{% endif %}
 
 <div class="assignments-list">
     {% for assignment in assignments %}

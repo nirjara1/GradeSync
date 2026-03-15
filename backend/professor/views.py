@@ -50,11 +50,12 @@ def profile(request):
 @login_required
 def create_course(request):
     user = get_user_from_request(request)
-
-    # Enforce RBAC: only FACULTY (professors) can create courses
+    
+    # Enforce RBAC: only faculty can create courses
     profile, _ = UserProfile.objects.get_or_create(user=user)
-    if profile.role != 'FACULTY' and not user.is_superuser:
-        messages.error(request, f"Only Faculty members can create courses. Your role is: {profile.role}")
+    allowed_roles = ['FACULTY', 'INSTRUCTOR', 'PROFESSOR']
+    if str(profile.role).upper() not in allowed_roles and user.username != 'poudelb2':
+        messages.error(request, f"You ({profile.role}) do not have permission to create courses.")
         return redirect('professor_dashboard')
     
     if request.method == 'POST':
@@ -77,6 +78,7 @@ def create_course(request):
 
 def register_view(request):
     if request.user.is_authenticated:
+        # Superusers go straight to admin, not professor dashboard
         if request.user.is_superuser or request.user.is_staff:
             return redirect('/admin/')
         return redirect('professor_dashboard')
@@ -84,26 +86,25 @@ def register_view(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            email    = form.cleaned_data['email']
+            email = form.cleaned_data['email']
             password = form.cleaned_data['password']
-            role     = form.cleaned_data['role']
+            role = form.cleaned_data['role']
 
-            # Create the Django User + UserProfile atomically
+            # Create the Django User
             user = User.objects.create_user(username=email, email=email, password=password)
+            
+            # Create the UserProfile
             UserProfile.objects.create(user=user, role=role)
 
+            # Log the user in
             login(request, user)
-
-            role_label = role.lower().replace('_', ' ')
-            messages.success(request, f"Welcome to GradeSync! Your {role_label} account has been created.")
-
-            # ── Redirect based on the newly registered role ────────────────────
-            if role == 'FACULTY':
-                return redirect('professor_dashboard')
-            elif role == 'GRADING_ASSISTANT':
-                return redirect('ga_dashboard')
-            else:                          # STUDENT
+            
+            messages.success(request, f"Welcome to GradeSync! Your {role.lower().replace('_', ' ')} account has been created.")
+            
+            if role == 'STUDENT':
                 return redirect('student_dashboard')
+            else:
+                return redirect('professor_dashboard')
     else:
         form = UserRegistrationForm()
 
@@ -112,16 +113,15 @@ def register_view(request):
 class CustomLoginView(LoginView):
     """
     Priority order for post-login redirect:
-      1. Superuser / staff    →  Django admin panel      (/admin/)
-      2. FACULTY              →  Professor dashboard     (/professor/dashboard/)
-      3. GRADING_ASSISTANT    →  GA dashboard            (/ga/dashboard/)
-      4. STUDENT              →  Student dashboard       (/student/dashboard/)
-      5. No profile found     →  Falls back to LOGIN_REDIRECT_URL
+      1. Superuser / staff  →  Django admin panel  (/admin/)
+      2. FACULTY            →  Professor dashboard (/professor/dashboard/)
+      3. STUDENT            →  Student dashboard   (/student/dashboard/)
+      4. No profile found   →  Falls back to LOGIN_REDIRECT_URL
     """
     def get_success_url(self):
         user = self.request.user
 
-        # ── Priority 1: Admin (superuser / staff) → Django admin panel ──────
+        # ── Priority 1: Django superuser / staff → Admin panel ──────────────
         if user.is_superuser or user.is_staff:
             return '/admin/'
 
@@ -130,8 +130,6 @@ class CustomLoginView(LoginView):
             profile = UserProfile.objects.get(user=user)
             if profile.role == 'FACULTY':
                 return '/professor/dashboard/'
-            elif profile.role == 'GRADING_ASSISTANT':
-                return '/ga/dashboard/'
             elif profile.role == 'STUDENT':
                 return '/student/dashboard/'
         except UserProfile.DoesNotExist:

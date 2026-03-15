@@ -9,78 +9,9 @@
     <!-- Use FontAwesome for sidebar icons to match screenshot -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=3.1">
-    <style>
-        /* ── Global flash message toasts ─────────────────────────────────── */
-        .gs-toast-container {
-            position: fixed; top: 0; left: 0; right: 0;
-            z-index: 9999;
-            display: flex; flex-direction: column; align-items: center;
-            pointer-events: none;
-        }
-        .gs-toast {
-            pointer-events: all;
-            width: 100%; max-width: 680px;
-            margin: 8px auto 0;
-            padding: 14px 20px;
-            border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-            display: flex; align-items: center; gap: 14px;
-            font-size: 14px; font-weight: 500; color: #1f2937;
-            border-left: 5px solid #6b7280;
-            animation: gsSlideIn 0.3s ease forwards;
-            transition: opacity 0.4s ease;
-        }
-        .gs-toast.success { border-left-color: #16a34a; }
-        .gs-toast.error,
-        .gs-toast.warning { border-left-color: #dc2626; }
-        .gs-toast.info { border-left-color: #2563eb; }
-        .gs-toast .gs-icon { font-size: 18px; flex-shrink: 0; }
-        .gs-toast.success .gs-icon { color: #16a34a; }
-        .gs-toast.error   .gs-icon,
-        .gs-toast.warning .gs-icon { color: #dc2626; }
-        .gs-toast.info    .gs-icon { color: #2563eb; }
-        .gs-toast .gs-close {
-            margin-left: auto; background: none; border: none;
-            cursor: pointer; color: #9ca3af; font-size: 18px; line-height: 1; flex-shrink: 0;
-        }
-        .gs-toast .gs-close:hover { color: #374151; }
-        .gs-toast.gs-fade-out { opacity: 0; }
-        @keyframes gsSlideIn {
-            from { opacity: 0; transform: translateY(-12px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-    </style>
 </head>
 
 <body>
-
-{% if messages %}
-<div class="gs-toast-container" aria-live="polite" aria-atomic="false">
-    {% for message in messages %}
-    <div class="gs-toast {{ message.tags }}" role="alert">
-        {% if 'success' in message.tags %}
-            <i class="gs-icon fa-solid fa-circle-check"></i>
-        {% elif 'error' in message.tags or 'warning' in message.tags %}
-            <i class="gs-icon fa-solid fa-triangle-exclamation"></i>
-        {% else %}
-            <i class="gs-icon fa-solid fa-circle-info"></i>
-        {% endif %}
-        <span>{{ message }}</span>
-        <button class="gs-close" onclick="this.parentElement.remove()" aria-label="Dismiss">&times;</button>
-    </div>
-    {% endfor %}
-</div>
-<script>
-(function(){
-    var toasts = document.querySelectorAll('.gs-toast');
-    toasts.forEach(function(t){
-        setTimeout(function(){ t.classList.add('gs-fade-out'); }, 4000);
-        setTimeout(function(){ t.remove(); }, 4500);
-    });
-})();
-</script>
-{% endif %}
 
     <header class="top-header">
         <div class="maroon-band">
