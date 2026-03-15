@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Max, Q, Count
 from django.http import HttpResponseForbidden, FileResponse, Http404, JsonResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
@@ -143,7 +143,7 @@ def create_assignment(request, course_id=None):
                             name=f"Test Case {idx}",
                             input_data=tc_data.get('input_data', ''),
                             expected_output=tc_data.get('expected_output', ''),
-                            is_hidden=tc_data.get('is_hidden', False),
+                            is_private=tc_data.get('is_private', False),
                             points_awarded=tc_data.get('points', 5),
                             order=idx
                         )
@@ -1318,3 +1318,98 @@ def grade_report(request, assignment_id):
     
     return render(request, 'grading/grade_report.html', context)
 
+
+@login_required
+@require_http_methods(["POST"])
+def run_public_tests_api(request):
+    """
+    API endpoint to run only public test cases (is_private=False) against student code.
+    
+    Expects JSON payload:
+    {
+        "code": "student code here",
+        "language": "python" or "java",
+        "filename": "main.py",
+        "assignment_id": 123
+    }
+    
+    Returns JSON with test results:
+    {
+        "results": [
+            {
+                "passed": true/false,
+                "expected_output": "...",
+                "actual_output": "..."
+            },
+            ...
+        ]
+    }
+    """
+    import json
+    from django.http import JsonResponse
+    from .execute_view import _run_in_docker_with_input
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    
+    code = data.get('code', '')
+    language = data.get('language', 'python')
+    filename = data.get('filename', 'main.py')
+    assignment_id = data.get('assignment_id')
+    
+    if not code or not assignment_id:
+        return JsonResponse({'error': 'Missing required fields: code, assignment_id'}, status=400)
+    
+    # Fetch assignment and get public test cases
+    try:
+        assignment = Assignment.objects.get(id=assignment_id)
+    except Assignment.DoesNotExist:
+        return JsonResponse({'error': 'Assignment not found'}, status=404)
+    
+    # Get only public test cases (is_private=False)
+    public_test_cases = TestCase.objects.filter(
+        assignment=assignment,
+        is_private=False
+    ).order_by('order')
+    
+    if not public_test_cases.exists():
+        return JsonResponse({
+            'results': []
+        })
+    
+    results = []
+    
+    for test_case in public_test_cases:
+        try:
+            # Execute student code with test input
+            exec_result = _run_in_docker_with_input(
+                code=code,
+                language=language,
+                input_data=test_case.input_data
+            )
+            
+            actual_output = exec_result.get('stdout', '')
+            expected_output = test_case.expected_output
+            
+            # Simple string comparison (can be extended with normalization)
+            passed = actual_output.strip() == expected_output.strip()
+            
+            results.append({
+                'passed': passed,
+                'expected_output': expected_output,
+                'actual_output': actual_output,
+                'test_name': test_case.name
+            })
+            
+        except Exception as e:
+            logger.error(f"Error executing test case {test_case.id}: {e}")
+            results.append({
+                'passed': False,
+                'expected_output': test_case.expected_output,
+                'actual_output': f"Error: {str(e)}",
+                'test_name': test_case.name
+            })
+    
+    return JsonResponse({'results': results})

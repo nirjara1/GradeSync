@@ -41,4 +41,7 @@ urlpatterns = [
     
     # Remote code execution sandbox endpoint
     path('api/execute/', execute_code_view, name='execute_code'),
+    
+    # Run public tests endpoint
+    path('api/run-public-tests/', views.run_public_tests_api, name='run_public_tests_api'),
 ]

@@ -94,10 +94,10 @@ def _validate_payload(data: dict) -> tuple[bool, str, dict]:
     return True, "", {"code": code, "language": language, "filename": filename}
 
 
-def _run_in_docker(code: str, language: str) -> dict:
+def _run_in_docker_with_input(code: str, language: str, input_data: str = "") -> dict:
     """
     Write code to a temp file, mount it into a Docker container,
-    execute it, and return {'stdout': ..., 'stderr': ..., 'exit_code': ...}.
+    execute it with stdin input, and return {'stdout': ..., 'stderr': ..., 'exit_code': ...}.
     """
     config = LANGUAGE_CONFIG[language]
     container_name = None  # will be set once container starts
@@ -146,6 +146,7 @@ def _run_in_docker(code: str, language: str) -> dict:
                 capture_output=True,
                 timeout=EXECUTION_TIMEOUT_SECONDS,
                 text=True,
+                input=input_data,
             )
             stdout = result.stdout[:MAX_OUTPUT_BYTES]
             stderr = result.stderr[:MAX_OUTPUT_BYTES]
@@ -184,6 +185,13 @@ def _run_in_docker(code: str, language: str) -> dict:
         "exit_code": exit_code,
         "timed_out": False,
     }
+
+
+def _run_in_docker(code: str, language: str) -> dict:
+    """
+    Wrapper for _run_in_docker_with_input with no input (for backward compatibility).
+    """
+    return _run_in_docker_with_input(code, language, input_data="")
 
 
 # ---------------------------------------------------------------------------

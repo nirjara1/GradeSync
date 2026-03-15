@@ -1,4 +1,4 @@
-input_data,expected_output,is_hidden,points
+input_data,expected_output,is_private,points
 "1 2 3","6",false,5
 "5 10 15","30",false,5
 "-1 -2 -3","-6",false,5

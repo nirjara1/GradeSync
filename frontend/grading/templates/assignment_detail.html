@@ -85,6 +85,12 @@
                 <i id="runIcon" class="fa-solid fa-play"></i>
                 <span id="runBtnText">Run Code</span>
             </button>
+            <!-- ▶ Run Public Tests Button -->
+            <button type="button" id="runPublicTestsBtn" onclick="runPublicTests()"
+                style="background: #1976d2; color: white; border: none; border-radius: 4px; padding: 6px 14px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: background 0.2s;">
+                <i id="testIcon" class="fa-solid fa-check-double"></i>
+                <span id="testBtnText">Run Public Tests</span>
+            </button>
         </div>
 
         <div id="monaco-editor-container-submission"
@@ -92,40 +98,63 @@
         </div>
 
         <!-- ════════════════════════════════════════════════
-             TERMINAL OUTPUT PANEL
+             OUTPUT PANEL WITH TABS (Terminal & Test Results)
              ════════════════════════════════════════════════ -->
         <div id="terminalPanel"
             style="display: none; margin-top: 0; margin-bottom: 25px; border: 1px solid #333; border-top: none; border-radius: 0 0 6px 6px; background: #1a1a2e; overflow: hidden;">
 
-            <!-- Terminal title bar -->
-            <div style="display: flex; justify-content: space-between; align-items: center;
-                        background: #16213e; padding: 8px 12px; border-bottom: 1px solid #333;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <!-- Traffic-light dots -->
-                    <span style="width:11px;height:11px;background:#ff5f57;border-radius:50%;display:inline-block;"></span>
-                    <span style="width:11px;height:11px;background:#ffbd2e;border-radius:50%;display:inline-block;"></span>
-                    <span style="width:11px;height:11px;background:#28c840;border-radius:50%;display:inline-block;"></span>
-                    <span style="color:#aaa;font-size:12px;margin-left:8px;font-family:monospace;">
-                        <i class="fa-solid fa-terminal" style="margin-right:5px;"></i>GradeSync Terminal
-                    </span>
+            <!-- Tab navigation -->
+            <div style="display: flex; background: #0f3460; border-bottom: 1px solid #333;">
+                <button type="button" class="output-tab-btn active" onclick="switchOutputTab('terminal')"
+                    style="flex: 1; padding: 8px 12px; background: #16213e; color: #aaa; border: none; cursor: pointer; font-size: 12px; font-weight: 600; border-bottom: 2px solid #1976d2; transition: all 0.2s;"
+                    id="terminalTabBtn">
+                    <i class="fa-solid fa-terminal" style="margin-right: 5px;"></i>GradeSync Terminal
+                </button>
+                <button type="button" class="output-tab-btn" onclick="switchOutputTab('testResults')"
+                    style="flex: 1; padding: 8px 12px; background: #0f3460; color: #888; border: none; border-left: 1px solid #333; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;"
+                    id="testResultsTabBtn">
+                    <i class="fa-solid fa-check-circle" style="margin-right: 5px;"></i>Test Results
+                </button>
+            </div>
+
+            <!-- Terminal content -->
+            <div id="terminalContent" style="display: block;">
+                <!-- Terminal title bar -->
+                <div style="display: flex; justify-content: space-between; align-items: center;
+                            background: #16213e; padding: 8px 12px; border-bottom: 1px solid #333;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <!-- Traffic-light dots -->
+                        <span style="width:11px;height:11px;background:#ff5f57;border-radius:50%;display:inline-block;"></span>
+                        <span style="width:11px;height:11px;background:#ffbd2e;border-radius:50%;display:inline-block;"></span>
+                        <span style="width:11px;height:11px;background:#28c840;border-radius:50%;display:inline-block;"></span>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <span id="terminalExitBadge" style="display:none;font-size:11px;padding:2px 8px;
+                              border-radius:12px;font-weight:600;font-family:monospace;"></span>
+                        <button type="button" onclick="clearTerminal()"
+                            style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;padding:2px 6px;
+                                   border-radius:3px;transition:color 0.2s;"
+                            onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">
+                            <i class="fa-solid fa-xmark"></i> Clear
+                        </button>
+                    </div>
                 </div>
-                <div style="display:flex;gap:10px;align-items:center;">
-                    <span id="terminalExitBadge" style="display:none;font-size:11px;padding:2px 8px;
-                          border-radius:12px;font-weight:600;font-family:monospace;"></span>
-                    <button type="button" onclick="clearTerminal()"
-                        style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;padding:2px 6px;
-                               border-radius:3px;transition:color 0.2s;"
-                        onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">
-                        <i class="fa-solid fa-xmark"></i> Clear
-                    </button>
+
+                <!-- Terminal output body -->
+                <div id="terminalOutput"
+                    style="padding: 14px 16px; min-height: 180px; max-height: 340px; overflow-y: auto;
+                           font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.6;
+                           color: #e0e0e0; white-space: pre-wrap; word-break: break-all; background: #1a1a2e;">
                 </div>
             </div>
 
-            <!-- Terminal output body -->
-            <div id="terminalOutput"
-                style="padding: 14px 16px; min-height: 180px; max-height: 340px; overflow-y: auto;
-                       font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.6;
-                       color: #e0e0e0; white-space: pre-wrap; word-break: break-all; background: #1a1a2e;">
+            <!-- Test Results content -->
+            <div id="testResultsContent" style="display: none;">
+                <div style="padding: 14px 16px; min-height: 180px; max-height: 340px; overflow-y: auto; background: #1a1a2e;">
+                    <div id="testResultsList" style="color: #e0e0e0;">
+                        <!-- Test results will be rendered here -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -603,6 +632,176 @@
         btnText.textContent = 'Submitting...';
         loadingIcon.style.display = 'inline-block';
     });
+
+    // ──────────────────────────────────────────────────────
+    // RUN PUBLIC TESTS
+    // ──────────────────────────────────────────────────────
+    const runPublicTestsBtn = document.getElementById('runPublicTestsBtn');
+    const testIcon = document.getElementById('testIcon');
+    const testBtnText = document.getElementById('testBtnText');
+
+    function switchOutputTab(tab) {
+        const terminalContent = document.getElementById('terminalContent');
+        const testResultsContent = document.getElementById('testResultsContent');
+        const terminalTabBtn = document.getElementById('terminalTabBtn');
+        const testResultsTabBtn = document.getElementById('testResultsTabBtn');
+
+        if (tab === 'terminal') {
+            terminalContent.style.display = 'block';
+            testResultsContent.style.display = 'none';
+            terminalTabBtn.style.background = '#16213e';
+            terminalTabBtn.style.color = '#aaa';
+            terminalTabBtn.style.borderBottom = '2px solid #1976d2';
+            testResultsTabBtn.style.background = '#0f3460';
+            testResultsTabBtn.style.color = '#888';
+            testResultsTabBtn.style.borderBottom = '1px solid #333';
+        } else if (tab === 'testResults') {
+            terminalContent.style.display = 'none';
+            testResultsContent.style.display = 'block';
+            terminalTabBtn.style.background = '#0f3460';
+            terminalTabBtn.style.color = '#888';
+            terminalTabBtn.style.borderBottom = '1px solid #333';
+            testResultsTabBtn.style.background = '#16213e';
+            testResultsTabBtn.style.color = '#aaa';
+            testResultsTabBtn.style.borderBottom = '2px solid #1976d2';
+        }
+    }
+
+    function setTestRunning(isRunning) {
+        runPublicTestsBtn.disabled = isRunning;
+        runPublicTestsBtn.style.opacity = isRunning ? '0.7' : '1';
+        runPublicTestsBtn.style.cursor = isRunning ? 'wait' : 'pointer';
+        testIcon.className = isRunning ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-check-double';
+        testBtnText.textContent = isRunning ? 'Running…' : 'Run Public Tests';
+    }
+
+    function renderTestResults(results) {
+        const testResultsList = document.getElementById('testResultsList');
+        testResultsList.innerHTML = '';
+
+        if (!results || results.length === 0) {
+            testResultsList.innerHTML = '<div style="color: #999; font-size: 13px;">No test results available.</div>';
+            return;
+        }
+
+        results.forEach((result, idx) => {
+            const passed = result.passed;
+            const statusIcon = passed ? '✅' : '❌';
+            const statusColor = passed ? '#4caf50' : '#f44336';
+            const statusText = passed ? 'PASSED' : 'FAILED';
+
+            const resultDiv = document.createElement('div');
+            resultDiv.style.cssText = `
+                margin-bottom: 12px;
+                border-radius: 4px;
+                overflow: hidden;
+                border: 1px solid #333;
+            `;
+
+            const headerDiv = document.createElement('div');
+            headerDiv.style.cssText = `
+                padding: 10px 12px;
+                background: ${passed ? '#1b5e20' : '#b71c1c'};
+                color: ${statusColor};
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 600;
+                font-size: 13px;
+                user-select: none;
+            `;
+            headerDiv.innerHTML = `<span>${statusIcon}</span><span>Test Case ${idx + 1}: ${statusText}</span>`;
+
+            resultDiv.appendChild(headerDiv);
+
+            if (!passed) {
+                const detailsDiv = document.createElement('div');
+                detailsDiv.style.cssText = `
+                    padding: 12px;
+                    background: #0f0f0f;
+                    color: #e0e0e0;
+                    font-size: 12px;
+                    font-family: monospace;
+                `;
+
+                const expectedDiv = document.createElement('div');
+                expectedDiv.style.cssText = 'margin-bottom: 10px;';
+                expectedDiv.innerHTML = `<div style="color: #888; font-weight: 600; margin-bottom: 4px;">Expected Output:</div><div style="background: #1a1a2e; padding: 8px; border-radius: 3px; overflow-x: auto;">${escapeHtml(result.expected_output)}</div>`;
+                detailsDiv.appendChild(expectedDiv);
+
+                const actualDiv = document.createElement('div');
+                actualDiv.innerHTML = `<div style="color: #888; font-weight: 600; margin-bottom: 4px;">Your Output:</div><div style="background: #1a1a2e; padding: 8px; border-radius: 3px; overflow-x: auto;">${escapeHtml(result.actual_output)}</div>`;
+                detailsDiv.appendChild(actualDiv);
+
+                resultDiv.appendChild(detailsDiv);
+            }
+
+            testResultsList.appendChild(resultDiv);
+        });
+    }
+
+    async function runPublicTests() {
+        if (!editorInstance) return;
+
+        const code = editorInstance.getValue();
+        const fileName = files[activeFileIndex] ? files[activeFileIndex].name : 'main.py';
+        const language = files[activeFileIndex] ? files[activeFileIndex].language : 'python';
+        const assignmentId = {{ assignment.id }};
+
+        terminalPanel.style.display = 'block';
+        switchOutputTab('testResults');
+        setTestRunning(true);
+
+        const testResultsList = document.getElementById('testResultsList');
+        testResultsList.innerHTML = '<div style="color: #888; font-size: 13px;">Running tests...</div>';
+
+        function getCookie(name) {
+            const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return v ? v.pop() : '';
+        }
+
+        try {
+            const resp = await fetch('/grading/api/run-public-tests/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    code: code,
+                    language: language,
+                    filename: fileName,
+                    assignment_id: assignmentId,
+                }),
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({ error: 'Unknown server error' }));
+                testResultsList.innerHTML = `<div style="color: #f44336; font-size: 13px;">${escapeHtml(err.error || resp.statusText)}</div>`;
+                setTestRunning(false);
+                return;
+            }
+
+            const data = await resp.json();
+            renderTestResults(data.results);
+        } catch (err) {
+            testResultsList.innerHTML = `<div style="color: #f44336; font-size: 13px;">Network error: ${escapeHtml(err.message)}</div>`;
+        } finally {
+            setTestRunning(false);
+        }
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
 </script>
 
 <hr style="border: none; border-top: 2px solid #333; margin: 30px 0;">

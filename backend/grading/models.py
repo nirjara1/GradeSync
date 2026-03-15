@@ -87,6 +87,7 @@ class TestCase(models.Model):
     expected_output = models.TextField(help_text="Expected output from the program (stdout)")
     points_awarded = models.IntegerField(default=1, help_text="Points awarded for passing this test case")
     is_hidden = models.BooleanField(default=False, help_text="If True, students cannot see input/output during practice")
+    is_private = models.BooleanField(default=False, help_text="If True, test is private (grading only). If False, test is public (students can run)")
     order = models.IntegerField(default=0, help_text="Order in which to display test cases")
     created_at = models.DateTimeField(auto_now_add=True)
 

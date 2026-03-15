@@ -177,7 +177,7 @@
                 <i class="fa-solid fa-download"></i> Download CSV Template
             </a>
             <span style="color: #999; font-size: 13px; margin-left: 10px;">
-                (Required columns: input_data, expected_output, is_hidden, points)
+                (Required columns: input_data, expected_output, is_private, points)
             </span>
         </div>
 
@@ -190,7 +190,7 @@
                         <tr>
                             <th style="padding: 12px; text-align: left; border-bottom: 1px solid #ddd; font-weight: 600; color: #333;">Input</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 1px solid #ddd; font-weight: 600; color: #333;">Expected Output</th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd; font-weight: 600; color: #333; width: 100px;">Hidden/Visible</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd; font-weight: 600; color: #333; width: 150px;">Test Type</th>
                             <th style="padding: 12px; text-align: center; border-bottom: 1px solid #ddd; font-weight: 600; color: #333; width: 80px;">Points</th>
                         </tr>
                     </thead>
@@ -281,7 +281,7 @@ function parseCSV(csvText) {
     }
     
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const requiredColumns = ['input_data', 'expected_output', 'is_hidden', 'points'];
+    const requiredColumns = ['input_data', 'expected_output', 'is_private', 'points'];
     
     for (let col of requiredColumns) {
         if (!headers.includes(col)) {
@@ -302,12 +302,12 @@ function parseCSV(csvText) {
         });
         
         const points = parseInt(obj.points) || 5;
-        const isHidden = obj.is_hidden.toLowerCase() === 'true';
+        const isPrivate = obj.is_private.toLowerCase() === 'true';
         
         testCases.push({
             input_data: obj.input_data,
             expected_output: obj.expected_output,
-            is_hidden: isHidden,
+            is_private: isPrivate,
             points: points
         });
     }
@@ -349,9 +349,9 @@ function displayPreviewTable(testCases) {
             <td style="padding: 12px; border-bottom: 1px solid #eee; font-family: monospace; font-size: 12px; color: #555;" title="${tc.input_data}">${escapeHtml(inputPreview)}</td>
             <td style="padding: 12px; border-bottom: 1px solid #eee; font-family: monospace; font-size: 12px; color: #555;" title="${tc.expected_output}">${escapeHtml(outputPreview)}</td>
             <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
-                <select id="hidden_${idx}" style="padding: 4px 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;" onchange="updateTestCase(${idx})">
-                    <option value="false" ${!tc.is_hidden ? 'selected' : ''}>Visible</option>
-                    <option value="true" ${tc.is_hidden ? 'selected' : ''}>Hidden</option>
+                <select id="private_${idx}" style="padding: 4px 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;" onchange="updateTestCase(${idx})">
+                    <option value="false" ${!tc.is_private ? 'selected' : ''}>Public (Student)</option>
+                    <option value="true" ${tc.is_private ? 'selected' : ''}>Private (Grading)</option>
                 </select>
             </td>
             <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
@@ -366,10 +366,10 @@ function displayPreviewTable(testCases) {
 }
 
 function updateTestCase(idx) {
-    const isHidden = document.getElementById(`hidden_${idx}`).value === 'true';
+    const isPrivate = document.getElementById(`private_${idx}`).value === 'true';
     const points = parseInt(document.getElementById(`points_${idx}`).value) || 5;
     
-    parsedTestCases[idx].is_hidden = isHidden;
+    parsedTestCases[idx].is_private = isPrivate;
     parsedTestCases[idx].points = points;
     
     storeTestCasesAsJson(parsedTestCases);
