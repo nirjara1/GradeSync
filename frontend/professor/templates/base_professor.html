@@ -49,7 +49,7 @@
                 <i class="fa-solid fa-gauge-high"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'professor_courses_list' %}" class="nav-item {% if request.resolver_match.url_name == 'professor_courses_list' %}active{% endif %}">
                 <i class="fa-solid fa-book"></i>
                 <span>Courses</span>
             </a>
@@ -58,15 +58,15 @@
                 <i class="fa-solid fa-book-open"></i>
                 <span>Assignments</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'professor_reports' %}" class="nav-item {% if request.resolver_match.url_name == 'professor_reports' %}active{% endif %}">
                 <i class="fa-solid fa-file-contract"></i>
                 <span>Reports</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'professor_inbox' %}" class="nav-item {% if request.resolver_match.url_name == 'professor_inbox' %}active{% endif %}">
                 <i class="fa-solid fa-inbox"></i>
                 <span>Inbox</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'professor_help' %}" class="nav-item {% if request.resolver_match.url_name == 'professor_help' %}active{% endif %}">
                 <i class="fa-solid fa-question-circle"></i>
                 <span>Help</span>
             </a>

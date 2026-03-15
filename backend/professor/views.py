@@ -57,26 +57,108 @@ def profile(request):
     
     profile_obj, _ = UserProfile.objects.get_or_create(user=user)
     
+    if request.method == 'POST':
+        # Update User model fields
+        full_name = request.POST.get('full_name', '').strip()
+        if full_name:
+            # Simple split for first and last name
+            parts = full_name.split(' ', 1)
+            user.first_name = parts[0]
+            if len(parts) > 1:
+                user.last_name = parts[1]
+            else:
+                user.last_name = ''
+            user.save()
+            
+        # Update UserProfile fields
+        profile_obj.academic_title = request.POST.get('academic_title', '')
+        profile_obj.department = request.POST.get('department', '')
+        profile_obj.office_location = request.POST.get('office_location', '')
+        profile_obj.office_hours = request.POST.get('office_hours', '')
+        profile_obj.bio = request.POST.get('bio', '')
+        
+        # Handle profile picture upload
+        if 'profile_picture' in request.FILES:
+            profile_obj.profile_picture = request.FILES['profile_picture']
+            
+        profile_obj.save()
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('professor_profile')
+    
     context = {
         'profile': profile_obj,
     }
     return render(request, 'professor_profile.html', context)
 
 @login_required
-def ga_dashboard(request):
+def courses_list(request):
     user = get_user_from_request(request)
-    request.session['active_role'] = 'GRADING_ASSISTANT'
+    request.session['active_role'] = 'INSTRUCTOR'
+    courses = Course.objects.filter(professor=user).distinct()
+    return render(request, 'professor_courses.html', {'courses': courses})
+
+@login_required
+def reports(request):
+    user = get_user_from_request(request)
+    request.session['active_role'] = 'INSTRUCTOR'
+    courses = Course.objects.filter(professor=user).distinct()
+    return render(request, 'professor_reports.html', {'courses': courses})
+
+from .models import Course, UserProfile, Message
+
+@login_required
+def inbox(request):
+    user = get_user_from_request(request)
+    request.session['active_role'] = 'INSTRUCTOR'
     
-    # Get courses where user is a Grading Assistant
-    courses = Course.objects.filter(
-        members__user=user, 
-        members__role_in_course='GRADING_ASSISTANT'
-    ).distinct()
+    # Handle sending a message
+    if request.method == 'POST':
+        recipient_id = request.POST.get('recipient_id')
+        body = request.POST.get('body')
+        if recipient_id and body:
+            try:
+                recipient = User.objects.get(id=recipient_id)
+                Message.objects.create(sender=user, recipient=recipient, body=body.strip())
+                messages.success(request, f"Message sent to {recipient.first_name or recipient.username}!")
+            except User.DoesNotExist:
+                messages.error(request, "Recipient not found.")
+        return redirect(f"{request.path}?user_id={recipient_id}" if recipient_id else request.path)
+        
+    # Get all users (for a real app, you'd filter this to just faculty/students in their courses)
+    # Exclude current user and superusers
+    contacts = User.objects.exclude(id=user.id).exclude(is_superuser=True)
     
+    active_user_id = request.GET.get('user_id')
+    active_user = None
+    chat_messages = []
+    
+    if active_user_id:
+        try:
+            active_user = User.objects.get(id=active_user_id)
+            # Fetch messages between current user and active user
+            chat_messages = Message.objects.filter(
+                Q(sender=user, recipient=active_user) | 
+                Q(sender=active_user, recipient=user)
+            ).order_by('timestamp')
+            
+            # Mark received messages from this user as read
+            Message.objects.filter(sender=active_user, recipient=user, is_read=False).update(is_read=True)
+            
+        except User.DoesNotExist:
+            pass
+
     context = {
-        'courses': courses,
+        'contacts': contacts,
+        'active_user': active_user,
+        'chat_messages': chat_messages,
     }
-    return render(request, 'ga_dashboard.html', context)
+    return render(request, 'professor_inbox.html', context)
+
+@login_required
+def help_page(request):
+    user = get_user_from_request(request)
+    request.session['active_role'] = 'INSTRUCTOR'
+    return render(request, 'professor_help.html')
 
 @login_required
 def create_course(request):
@@ -134,8 +216,6 @@ def register_view(request):
             
             if role == 'STUDENT':
                 return redirect('student_dashboard')
-            elif role == 'GRADING_ASSISTANT':
-                return redirect('ga_dashboard')
             else:
                 return redirect('professor_dashboard')
     else:
@@ -148,9 +228,8 @@ class CustomLoginView(LoginView):
     Priority order for post-login redirect:
       1. Superuser / staff  →  Django admin panel  (/admin/)
       2. FACULTY            →  Professor dashboard (/professor/dashboard/)
-      3. GRADING_ASSISTANT  →  GA dashboard        (/ga/dashboard/)
-      4. STUDENT            →  Student dashboard   (/student/dashboard/)
-      5. No profile found   →  Falls back to LOGIN_REDIRECT_URL
+      3. STUDENT            →  Student dashboard   (/student/dashboard/)
+      4. No profile found   →  Falls back to LOGIN_REDIRECT_URL
     """
     def get_success_url(self):
         user = self.request.user
@@ -164,8 +243,6 @@ class CustomLoginView(LoginView):
             profile = UserProfile.objects.get(user=user)
             if profile.role == 'FACULTY':
                 return '/professor/dashboard/'
-            elif profile.role == 'GRADING_ASSISTANT':
-                return '/ga/dashboard/'
             elif profile.role == 'STUDENT':
                 return '/student/dashboard/'
         except UserProfile.DoesNotExist:
