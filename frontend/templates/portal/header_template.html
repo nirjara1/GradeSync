@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradeSync - Student Portal</title>
+    <!-- Use FontAwesome for sidebar icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Reusing the professor CSS for identical layout -->
+    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=3.2">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+    <header class="top-header">
+        <div class="maroon-band">
+            <img src="{% static 'images/ulm_logo.png' %}" alt="ULM Seal" class="ulm-seal"
+                onerror="this.src='https://via.placeholder.com/100x100.png?text=ULM+Seal'">
+            <div class="vertical-separator"></div>
+            <h1 class="gradesync-logo">GradeSync</h1>
+        </div>
+        <div class="gold-line"></div>
+        <div class="header-row">
+            <a href="{% url 'student_dashboard' %}" style="text-decoration: none;">
+                <h1 class="header-left-title">GradeSync</h1>
+            </a>
+            <div class="user-controls">
+                <span class="username">Welcome, <a href="{% url 'user_profile' %}" class="username-bold">{{ display_name|default:request.user.username }}</a></span>
+                <div class="nav-separator"></div>
+                <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-link"
+                        style="background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; font-size: inherit;">LOG
+                        OUT?</button>
+                </form>
+            </div>
+        </div>
+    </header>
+    <div class="gold-line"></div>
+
+    {% block content %}
+    {% endblock %}
+
+</body>
+
+</html>

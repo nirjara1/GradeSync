@@ -25,7 +25,7 @@
                 <h1 class="header-left-title">GradeSync</h1>
             </a>
             <div class="user-controls">
-                <span class="username">Welcome, <span class="username-bold">{{ display_name }}</span></span>
+                <span class="username">Welcome, <a href="{% url 'user_profile' %}" class="username-bold">{{ display_name }}</a></span>
                 <div class="nav-separator"></div>
                 <form method="post" action="{% url 'logout' %}" style="display: inline;">
                     {% csrf_token %}

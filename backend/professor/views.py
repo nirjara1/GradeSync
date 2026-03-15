@@ -16,23 +16,39 @@ def get_user_from_request(request):
 def dashboard(request):
     user = get_user_from_request(request)
     request.session['active_role'] = 'INSTRUCTOR'
-    
-    # Get courses where user is professor
-    courses = Course.objects.filter(professor=user).distinct()
-    
-    # Check if user is primarily a faculty member to show 'Create Class' button
+
+    # Active (non-archived) courses where user is professor
+    courses = Course.objects.filter(professor=user, is_archived=False).distinct()
+    # Archived courses for "Archived Classes" section
+    archived_courses = Course.objects.filter(professor=user, is_archived=True).distinct().order_by('-id')
+
     profile_obj, _ = UserProfile.objects.get_or_create(user=user)
     is_faculty = profile_obj.role == 'FACULTY'
-
-    # The original mock 'poudelb2' is treated as a faculty member by default in our context
     if user.username == 'poudelb2':
         is_faculty = True
-    
+
     context = {
         'courses': courses,
+        'archived_courses': archived_courses,
         'is_faculty': is_faculty,
     }
     return render(request, 'professor_dashboard.html', context)
+
+
+@login_required
+def archive_course(request, course_id):
+    """Move a course to archived (only the professor can archive). POST only."""
+    if request.method != 'POST':
+        return redirect('professor_dashboard')
+    user = get_user_from_request(request)
+    course = Course.objects.filter(professor=user, id=course_id).first()
+    if not course:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("You can only archive your own courses.")
+    course.is_archived = True
+    course.save()
+    messages.success(request, f"'{course.title}' has been moved to Archived Classes.")
+    return redirect('professor_dashboard')
 
 @login_required
 def profile(request):

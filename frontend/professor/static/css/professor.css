@@ -120,6 +120,15 @@ html {
     font-weight: normal;
 }
 
+.username a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.username a:hover {
+    text-decoration: underline;
+}
+
 .username-bold {
     font-weight: bold;
 }

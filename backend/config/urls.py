@@ -1,7 +1,9 @@
 from django.urls import path, include
 from django.views.generic import RedirectView
+from django.contrib.auth.decorators import login_required
 from professor import views as professor_views
 from items.admin import gradesync_admin
+from portal import views as portal_views
 
 urlpatterns = [
     path("admin/login/", RedirectView.as_view(url="/accounts/login/")),
@@ -11,6 +13,7 @@ urlpatterns = [
     path("ga/", include("professor.ga_urls")),
     path("student/", include("portal.urls")),
     path("grading/", include("grading.urls")),
+    path("profile/", login_required(portal_views.student_profile), name="user_profile"),
     path("accounts/register/", professor_views.register_view, name="register"),
     path("accounts/login/", professor_views.CustomLoginView.as_view(), name="login"),
     path("accounts/", include("django.contrib.auth.urls")),
