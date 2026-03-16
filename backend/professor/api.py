@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
-from .models import Course, CourseMember, UserProfile
+from .models import Course, CourseMember, UserProfile, PendingEnrollment
 import json
 import csv
 import io
@@ -84,12 +84,29 @@ def _add_members(request, course_id, expected_role):
             # Look up user by email
             user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
-            results.append({"email": email, "status": "not_found"})
+            # Pre-enroll as whatever role was requested
+            PendingEnrollment.objects.get_or_create(
+                course=course,
+                email=email,
+                role_in_course=expected_role
+            )
+            results.append({"email": email, "status": "pending"})
             continue
             
-        # Verify role (assuming missing UserProfile defaults to STUDENT for backwards compatibility, or creating one)
+        # Verify role: Allow STUDENT profile role to be used as either STUDENT or GRADING_ASSISTANT in course
         profile, _ = UserProfile.objects.get_or_create(user=user)
-        if profile.role != expected_role:
+        # Any user can be added as a student, but only students can be added as grading assistants (or as specifically requested)
+        # However, the user specifically requested that ANY student can be a GA. 
+        # If the expected role is GRADING_ASSISTANT, we allow it if the user is a STUDENT.
+        if profile.role == 'FACULTY' and expected_role != 'FACULTY':
+             # Faculty shouldn't be added as students/graders usually, but let's stick to the rule: 
+             # currently only FACULTY and STUDENT exist.
+             results.append({"email": email, "status": "wrong_role"})
+             continue
+        
+        # If the user is a STUDENT, they can be a STUDENT or a GRADING_ASSISTANT in a course.
+        # So we don't strictly enforce profile.role == expected_role if profile.role is STUDENT.
+        if profile.role != 'STUDENT' and profile.role != expected_role:
             results.append({"email": email, "status": "wrong_role"})
             continue
             
@@ -129,8 +146,51 @@ def course_roster_api(request, course_id):
             students.append(user_info)
         elif member.role_in_course == 'GRADING_ASSISTANT':
             graders.append(user_info)
+
+    # Include pending students and graders
+    pending_members = PendingEnrollment.objects.filter(course=course)
+    for pm in pending_members:
+        member_info = {
+            "id": None,
+            "username": pm.email,
+            "email": pm.email,
+            "first_name": "",
+            "last_name": "(pending)",
+            "added_at": pm.created_at.strftime('%b %d, %Y'),
+            "is_pending": True
+        }
+        if pm.role_in_course == 'STUDENT':
+            students.append(member_info)
+        elif pm.role_in_course == 'GRADING_ASSISTANT':
+            graders.append(member_info)
             
     return JsonResponse({
         "students": students,
         "graders": graders
     })
+
+@require_POST
+def remove_member_api(request, course_id):
+    current_user = get_user_from_request(request)
+    course = get_object_or_404(Course, id=course_id, professor=current_user)
+    
+    data = json.loads(request.body)
+    user_id = data.get('user_id')
+    email = data.get('email')
+    is_pending = data.get('is_pending', False)
+    
+    if is_pending and email:
+        # Remove from pending enrollments
+        deleted_count, _ = PendingEnrollment.objects.filter(course=course, email__iexact=email).delete()
+        if deleted_count > 0:
+            return JsonResponse({"status": "removed", "email": email})
+        return JsonResponse({"error": "Pending enrollment not found"}, status=404)
+    
+    elif user_id:
+        # Remove from CourseMember
+        deleted_count, _ = CourseMember.objects.filter(course=course, user_id=user_id).delete()
+        if deleted_count > 0:
+            return JsonResponse({"status": "removed", "user_id": user_id})
+        return JsonResponse({"error": "Course member not found"}, status=404)
+        
+    return JsonResponse({"error": "Invalid request parameters"}, status=400)

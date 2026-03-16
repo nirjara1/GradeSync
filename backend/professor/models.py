@@ -64,3 +64,15 @@ class CourseMember(models.Model):
 
     def __str__(self):
         return f"{self.user.username} in {self.course.code} as {self.role_in_course}"
+
+class PendingEnrollment(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='pending_enrollments')
+    email = models.EmailField()
+    role_in_course = models.CharField(max_length=20, default='STUDENT')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('course', 'email')
+
+    def __str__(self):
+        return f"Pending: {self.email} in {self.course.code}"
