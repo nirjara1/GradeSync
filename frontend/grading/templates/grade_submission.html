@@ -610,9 +610,28 @@
                 </div>
 
                 <div class="sidebar-content">
-                    <form method="post" action="">
+                    <!-- Evaluation pane tabs -->
+                    <div class="evaluation-pane-tabs" role="tablist" aria-label="Evaluation sections">
+                        <button type="button" class="tab-btn active" data-tab="grading" role="tab" aria-selected="true"
+                            aria-controls="tab-grading">
+                            <i class="fa-solid fa-clipboard-check" style="margin-right:6px;"></i> Grading
+                        </button>
+                        <button type="button" class="tab-btn" data-tab="test-runner" role="tab" aria-selected="false"
+                            aria-controls="tab-test-runner">
+                            <i class="fa-solid fa-vial" style="margin-right:6px;"></i> Test Runner
+                        </button>
+                        <button type="button" class="tab-btn" data-tab="console" role="tab" aria-selected="false"
+                            aria-controls="tab-console">
+                            <i class="fa-solid fa-terminal" style="margin-right:6px;"></i> Console
+                        </button>
+                    </div>
+
+                    <form method="post" action="" id="gradingForm">
                         {% csrf_token %}
 
+                        <!-- Grading Tab -->
+                        <div id="tab-grading" class="evaluation-pane-tab-content active" role="tabpanel"
+                            aria-labelledby="tab-grading-btn">
                         {% if rubric and criteria %}
                         <input type="hidden" name="submit_grade_rubric" value="1">
 
@@ -678,6 +697,8 @@
                         <button type="submit" class="btn-submit-grade">
                             <i class="fa-solid fa-check"></i> Save Evaluation
                         </button>
+
+                        </div> <!-- end tab-grading -->
 
                     </form>
                 </div>
