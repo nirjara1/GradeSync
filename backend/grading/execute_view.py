@@ -79,23 +79,57 @@ def _validate_payload(data: dict) -> tuple[bool, str, dict]:
     code = data.get("code", "")
     language = data.get("language", "").lower().strip()
     filename = data.get("filename", "").strip()
+    files = data.get("files", None)
 
-    if not code:
-        return False, "No code provided.", {}
-    if len(code) > 100_000:
-        return False, "Code exceeds maximum allowed size (100 KB).", {}
     if language not in ALLOWED_LANGUAGES:
         return False, f"Unsupported language '{language}'. Supported: {sorted(ALLOWED_LANGUAGES)}", {}
 
     # Normalize filename
     config = LANGUAGE_CONFIG[language]
-    if not filename:
-        filename = config["filename"]
+    parsed_files = []
+    total_size = 0
 
-    return True, "", {"code": code, "language": language, "filename": filename}
+    if files is not None:
+        if not isinstance(files, list) or len(files) == 0:
+            return False, "Field 'files' must be a non-empty list.", {}
+        for item in files:
+            if not isinstance(item, dict):
+                return False, "Each item in 'files' must be an object.", {}
+            fn = (item.get("filename") or item.get("name") or "").strip()
+            fc = item.get("code", item.get("content", ""))
+            if not fn:
+                return False, "Each file must have a filename.", {}
+            if fc is None:
+                fc = ""
+            if not isinstance(fc, str):
+                return False, "Each file's code/content must be a string.", {}
+            total_size += len(fc)
+            parsed_files.append({"filename": fn, "code": fc})
+
+        if total_size > 250_000:
+            return False, "Total code exceeds maximum allowed size (250 KB).", {}
+
+        if not filename:
+            filename = parsed_files[0]["filename"]
+
+    else:
+        if not code:
+            return False, "No code provided.", {}
+        if len(code) > 100_000:
+            return False, "Code exceeds maximum allowed size (100 KB).", {}
+        if not filename:
+            filename = config["filename"]
+
+    return True, "", {"code": code, "language": language, "filename": filename, "files": parsed_files}
 
 
-def _run_in_docker_with_input(code: str, language: str, filename: str, input_data: str = "") -> dict:
+def _safe_filename(name: str) -> str:
+    name = os.path.basename(name or "").strip()
+    # Keep it simple: forbid directory traversal / empty filenames
+    return name or "main"
+
+
+def _run_in_docker_with_input(code: str, language: str, filename: str, input_data: str = "", files: list | None = None) -> dict:
     """
     Write code to a temp file, mount it into a Docker container,
     execute it with stdin input, and return {'stdout': ..., 'stderr': ..., 'exit_code': ...}.
@@ -109,10 +143,19 @@ def _run_in_docker_with_input(code: str, language: str, filename: str, input_dat
         input_data = input_data.replace('\\n', '\n')
 
     with tempfile.TemporaryDirectory(prefix="exec_", dir=SANDBOX_BASE_DIR) as tmpdir:
-        # Write the source file into the temp directory, honoring the requested filename
-        source_path = os.path.join(tmpdir, filename)
-        with open(source_path, "w", encoding="utf-8") as f:
-            f.write(code)
+        entry_filename = _safe_filename(filename)
+
+        # Write files into the temp directory
+        if files:
+            for item in files:
+                fn = _safe_filename(item.get("filename", ""))
+                fp = os.path.join(tmpdir, fn)
+                with open(fp, "w", encoding="utf-8") as f:
+                    f.write(item.get("code", ""))
+        else:
+            source_path = os.path.join(tmpdir, entry_filename)
+            with open(source_path, "w", encoding="utf-8") as f:
+                f.write(code)
 
         # Step 2: Create a Temporary Input File
         input_file_path = os.path.join(tmpdir, "input_temp.txt")
@@ -124,18 +167,27 @@ def _run_in_docker_with_input(code: str, language: str, filename: str, input_dat
 
         # For Java, compile and run using the actual class name derived from filename
         if language == "java":
-            class_name = os.path.splitext(os.path.basename(filename))[0] or "Main"
-            inner_script = f"cd /code && javac {filename} && java {class_name}"
+            class_name = os.path.splitext(os.path.basename(entry_filename))[0] or "Main"
+            # Compile all .java files to support multi-file programs
+            inner_script = f"cd /code && javac *.java && java {class_name}"
             docker_cmd_suffix = ["/bin/sh", "-c", f"{inner_script} < /code/input_temp.txt"]
         else:
-            if base_cmd[0] in ("sh", "/bin/sh") and base_cmd[1] == "-c":
-                # For C, it's already using sh -c. Append redirection to the inner shell string.
-                inner_script = base_cmd[2]
+            if language == "python":
+                inner_script = f"python /code/{entry_filename}"
+                docker_cmd_suffix = ["/bin/sh", "-c", f"{inner_script} < /code/input_temp.txt"]
+            elif language == "javascript":
+                inner_script = f"node /code/{entry_filename}"
+                docker_cmd_suffix = ["/bin/sh", "-c", f"{inner_script} < /code/input_temp.txt"]
+            elif language == "c":
+                inner_script = f"gcc /code/{entry_filename} -o /code/a.out && /code/a.out"
                 docker_cmd_suffix = ["/bin/sh", "-c", f"{inner_script} < /code/input_temp.txt"]
             else:
-                # For Python/Node, join the command and wrap
-                joined_cmd = " ".join(base_cmd)
-                docker_cmd_suffix = ["/bin/sh", "-c", f"{joined_cmd} < /code/input_temp.txt"]
+                if base_cmd[0] in ("sh", "/bin/sh") and base_cmd[1] == "-c":
+                    inner_script = base_cmd[2]
+                    docker_cmd_suffix = ["/bin/sh", "-c", f"{inner_script} < /code/input_temp.txt"]
+                else:
+                    joined_cmd = " ".join(base_cmd)
+                    docker_cmd_suffix = ["/bin/sh", "-c", f"{joined_cmd} < /code/input_temp.txt"]
 
         # Build the docker run command
         docker_cmd = [
@@ -244,7 +296,13 @@ def execute_code_view(request):
         return JsonResponse({"error": error_msg}, status=422)
 
     # Execute
-    result = _run_in_docker(parsed["code"], parsed["language"], parsed["filename"])
+    result = _run_in_docker_with_input(
+        parsed["code"],
+        parsed["language"],
+        parsed["filename"],
+        input_data="",
+        files=parsed.get("files") or None,
+    )
 
     logger.info(
         "[execute] user=%s lang=%s exit_code=%s timed_out=%s",

@@ -579,9 +579,15 @@
                     'X-CSRFToken':  getCookie('csrftoken'),
                 },
                 body: JSON.stringify({
+                    // Backward compatible fields
                     code:     code,
                     language: language,
                     filename: fileName,
+                    // Multi-file support: send every open file
+                    files: files.map(f => ({
+                        filename: f.name,
+                        code: f.model ? f.model.getValue() : ''
+                    })),
                 }),
             });
 
@@ -876,6 +882,10 @@
                     code: code,
                     language: language,
                     filename: fileName,
+                    files: files.map(f => ({
+                        filename: f.name,
+                        code: f.model ? f.model.getValue() : ''
+                    })),
                     assignment_id: assignmentId,
                 }),
             });

@@ -1782,7 +1782,8 @@ def run_public_tests_api(request):
                 code=code,
                 language=language,
                 filename=filename,
-                input_data=test_case.input_data
+                input_data=test_case.input_data,
+                files=data.get('files') if isinstance(data.get('files'), list) else None,
             )
 
             # Combine stdout and stderr so students can see compile/runtime errors
