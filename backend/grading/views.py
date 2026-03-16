@@ -612,11 +612,13 @@ def grade_submission_view(request, pk):
     
     if submission and submission.file_path:
         file_name = submission.file_path.name.lower()
-        if hasattr(submission.file_path, 'read'):
-            try:
-                submission.file_path.open('rb')
-                file_content = submission.file_path.read()
-                submission.file_path.close()
+        try:
+            # Check file exists before opening (avoids FileNotFoundError if file was deleted)
+            if not submission.file_path.storage.exists(submission.file_path.name):
+                logger.warning("Submission file missing: %s", submission.file_path.name)
+            else:
+                with submission.file_path.open('rb') as f:
+                    file_content = f.read()
                 
                 if file_name.endswith('.zip'):
                     import zipfile
@@ -659,7 +661,7 @@ def grade_submission_view(request, pk):
                                             "language": lang,
                                             "full_path": name
                                         })
-                                    except:
+                                    except Exception:
                                         continue
                 elif file_name.endswith('.py') or file_name.endswith('.java') or file_name.endswith('.txt') or file_name.endswith('.csv'):
                     content = file_content.decode('utf-8', errors='ignore')
@@ -668,16 +670,23 @@ def grade_submission_view(request, pk):
                     import os
                     basename = os.path.basename(submission.file_path.name)
                     submission_files.append({"name": basename, "content": content, "language": lang})
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error reading file for preview: {e}")
+        except (FileNotFoundError, OSError) as e:
+            logger.warning("Submission file missing or unreadable (id=%s): %s", submission.pk, e)
+        except Exception as e:
+            logger.exception("Error reading submission file for preview: %s", e)
                 
     submission_files_json = json.dumps(submission_files)
     
     can_preview_code = False
     if len(submission_files) > 0:
         can_preview_code = True
+
+    # Test results for Evaluation Pane "Test Runner" tab (all tests including private for instructor)
+    test_results = list(
+        TestResult.objects.filter(submission=submission)
+        .select_related('test_case')
+        .order_by('test_case__order')
+    )
         
     context = {
         'submission': submission,
@@ -693,6 +702,7 @@ def grade_submission_view(request, pk):
         'criteria': criteria,
         'criteria_with_scores': criteria_with_scores,
         'criterion_grades': criterion_grades,
+        'test_results': test_results,
     }
     return render(request, 'grade_submission.html', context)
 
