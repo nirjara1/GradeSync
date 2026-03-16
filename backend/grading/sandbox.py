@@ -5,6 +5,7 @@ This module provides isolated execution environments for running student
 code with resource constraints, timeout limits, and no network access.
 """
 
+import base64
 import docker
 import tempfile
 import os
@@ -14,6 +15,14 @@ from typing import Dict, Tuple, Optional
 import time
 
 logger = logging.getLogger(__name__)
+
+# Base dir for temp execution dirs — must be bind-mounted into the web container from the host
+# so that when we mount it into the student container, the host path has our files (see docker-compose).
+SANDBOX_BASE_DIR = os.environ.get("GRADESYNC_SANDBOX_DIR", "/tmp/gradesync_sandbox")
+try:
+    os.makedirs(SANDBOX_BASE_DIR, mode=0o1777, exist_ok=True)
+except OSError:
+    pass  # use default temp if not writable
 
 
 class CodeExecutionError(Exception):
@@ -142,47 +151,47 @@ class SandboxExecutor:
             elif language == 'java':
                 container_code, command = self._prepare_java_execution(code)
             
-            # Create temporary directory for code
-            with tempfile.TemporaryDirectory() as tmpdir:
+            # Encode test input as base64 and pass via env so we don't rely on volume having input.txt
+            stdin_b64 = base64.b64encode((input_data or '').encode('utf-8')).decode('ascii')
+            # Run inside container: decode env to /tmp/input.txt (tmpfs), then run with stdin from that file
+            if language == 'python':
+                run_cmd = 'echo "$STDIN_B64" | base64 -d > /tmp/input.txt && python /code/solution.py < /tmp/input.txt'
+            else:
+                run_cmd = 'echo "$STDIN_B64" | base64 -d > /tmp/input.txt && javac /code/Solution.java && java -cp /code Solution < /tmp/input.txt'
+
+            # Create temporary directory for code (inside host-visible sandbox so mount works)
+            try:
+                use_sandbox_dir = SANDBOX_BASE_DIR if os.path.isdir(SANDBOX_BASE_DIR) else None
+            except OSError:
+                use_sandbox_dir = None
+            with tempfile.TemporaryDirectory(prefix="exec_", dir=use_sandbox_dir) as tmpdir:
                 code_file = os.path.join(tmpdir, 'solution.py' if language == 'python' else 'Solution.java')
-                
-                # Write code to temporary file
-                with open(code_file, 'w') as f:
+                with open(code_file, 'w', encoding='utf-8') as f:
                     f.write(container_code)
-                
-                # Create container with resource limits
+
                 image = self.LANGUAGE_IMAGES[language]
-                
-                # Pull image if not available locally
                 try:
                     self.client.images.get(image)
                 except docker.errors.ImageNotFound:
                     logger.info(f"Pulling Docker image: {image}")
                     self.client.images.pull(image)
-                
-                # Create container with strict constraints
+
                 container = self.client.containers.create(
                     image,
-                    command=command,
-                    stdin_open=True,
-                    stdout=True,
-                    stderr=True,
-                    # Security and resource constraints
+                    command=['sh', '-c', run_cmd],
+                    stdin_open=False,
                     mem_limit=self.MEMORY_LIMIT,
                     memswap_limit=self.MEMORY_LIMIT,
-                    network_disabled=True,  # No network access
-                    read_only=False,  # Allow temp file writes
-                    tmpfs={'/tmp': 'size=32m,mode=1777'},  # Allow small tmpfs writes
-                    # Volume mounts (read-only for code)
+                    network_disabled=True,
+                    read_only=False,
+                    tmpfs={'/tmp': 'size=32m,mode=1777'},
                     volumes={
-                        tmpdir: {
-                            'bind': '/code',
-                            'mode': 'ro',  # Read-only
-                        }
+                        tmpdir: {'bind': '/code', 'mode': 'ro'},
                     },
                     environment={
                         'PYTHONUNBUFFERED': '1',
                         'PYTHONDONTWRITEBYTECODE': '1',
+                        'STDIN_B64': stdin_b64,
                     },
                 )
                 
