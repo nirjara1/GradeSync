@@ -8,7 +8,7 @@ from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriter
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
 from .services import grade_submission
 from .tasks import bulk_grade_assignment
-from professor.models import Course, UserProfile
+from professor.models import Course, UserProfile, CourseMember
 from professor.utils import is_course_instructor, has_course_access, is_enrolled, get_user_course_role
 
 from django.contrib.auth.decorators import login_required
@@ -497,7 +497,12 @@ def assignment_detail_view(request, pk):
 
 @login_required
 def gradebook_view(request, pk):
-    """Gradebook for an assignment: list of submissions with links to grade."""
+    """
+    Gradebook for an assignment.
+
+    For instructors, this view also builds a course-level grid (students x assignments)
+    so the template can render a Canvas-style gradebook table.
+    """
     user = get_user_from_request(request)
     assignment = get_object_or_404(Assignment, pk=pk)
     if not has_course_access(user, assignment.course, request):
@@ -510,6 +515,7 @@ def gradebook_view(request, pk):
     else:
         base_template = 'base_grading_assistant.html'
     submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade').order_by('id')
+
     context = {
         'assignment': assignment,
         'submissions': submissions,
@@ -519,6 +525,66 @@ def gradebook_view(request, pk):
         'gradebook_assignment': assignment,
         'active_tab': 'grades',
     }
+
+    # For instructors, also build the course-level grid view (students x assignments)
+    if course_role == 'INSTRUCTOR':
+        course = assignment.course
+        # Columns: all assignments in this course
+        grid_assignments = Assignment.objects.filter(course=course).order_by('due_date', 'id')
+        # Rows: all enrolled students
+        member_qs = CourseMember.objects.filter(
+            course=course,
+            role_in_course='STUDENT',
+        ).select_related('user').order_by('user__last_name', 'user__first_name', 'user__username')
+
+        student_users = [m.user for m in member_qs]
+        grid_students = Student.objects.filter(user__in=student_users).select_related('user')
+        student_by_user_id = {s.user_id: s for s in grid_students}
+
+        # All submissions/grades for these assignments/students
+        grid_submissions = Submission.objects.filter(
+            assignment__in=grid_assignments,
+            student__in=grid_students,
+        ).select_related('assignment', 'student__user', 'grade')
+
+        cell_lookup = {}
+        for sub in grid_submissions:
+            cell_lookup[(sub.student_id, sub.assignment_id)] = sub
+
+        rows = []
+        for member in member_qs:
+            stu = student_by_user_id.get(member.user_id)
+            if not stu:
+                continue
+
+            cells = []
+            for a in grid_assignments:
+                sub = cell_lookup.get((stu.id, a.id))
+                if not sub:
+                    status = 'missing'
+                    score = None
+                else:
+                    g = getattr(sub, 'grade', None)
+                    if g:
+                        status = 'graded'
+                        score = float(g.score)
+                    else:
+                        status = 'ungraded'
+                        score = None
+                cells.append({
+                    "assignment": a,
+                    "status": status,
+                    "score": score,
+                })
+
+            rows.append({
+                "student": stu,
+                "cells": cells,
+            })
+
+        context['assignments'] = grid_assignments
+        context['rows'] = rows
+
     return render(request, 'gradebook.html', context)
 
 
@@ -619,13 +685,11 @@ def grade_submission_view(request, pk):
     
     if submission and submission.file_path:
         file_name = submission.file_path.name.lower()
-        try:
-            # Check file exists before opening (avoids FileNotFoundError if file was deleted)
-            if not submission.file_path.storage.exists(submission.file_path.name):
-                logger.warning("Submission file missing: %s", submission.file_path.name)
-            else:
-                with submission.file_path.open('rb') as f:
-                    file_content = f.read()
+        if hasattr(submission.file_path, 'read'):
+            try:
+                submission.file_path.open('rb')
+                file_content = submission.file_path.read()
+                submission.file_path.close()
                 
                 if file_name.endswith('.zip'):
                     import zipfile
@@ -668,7 +732,7 @@ def grade_submission_view(request, pk):
                                             "language": lang,
                                             "full_path": name
                                         })
-                                    except Exception:
+                                    except:
                                         continue
                 elif file_name.endswith('.py') or file_name.endswith('.java') or file_name.endswith('.txt') or file_name.endswith('.csv'):
                     content = file_content.decode('utf-8', errors='ignore')
@@ -677,23 +741,16 @@ def grade_submission_view(request, pk):
                     import os
                     basename = os.path.basename(submission.file_path.name)
                     submission_files.append({"name": basename, "content": content, "language": lang})
-        except (FileNotFoundError, OSError) as e:
-            logger.warning("Submission file missing or unreadable (id=%s): %s", submission.pk, e)
-        except Exception as e:
-            logger.exception("Error reading submission file for preview: %s", e)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error reading file for preview: {e}")
                 
     submission_files_json = json.dumps(submission_files)
     
     can_preview_code = False
     if len(submission_files) > 0:
         can_preview_code = True
-
-    # Test results for Evaluation Pane "Test Runner" tab (all tests including private for instructor)
-    test_results = list(
-        TestResult.objects.filter(submission=submission)
-        .select_related('test_case')
-        .order_by('test_case__order')
-    )
         
     context = {
         'submission': submission,
@@ -709,7 +766,6 @@ def grade_submission_view(request, pk):
         'criteria': criteria,
         'criteria_with_scores': criteria_with_scores,
         'criterion_grades': criterion_grades,
-        'test_results': test_results,
     }
     return render(request, 'grade_submission.html', context)
 
@@ -1388,6 +1444,9 @@ def grade_report(request, assignment_id):
             total_tests = len(test_cases)
             pass_rate = round((passed_count / total_tests * 100) if total_tests > 0 else 0, 1)
             
+            # Safe access to grade (from incoming branch)
+            g = getattr(submission, 'grade', None)
+            
             grade_data.append({
                 'id': student.id,
                 'name': student.user.get_full_name() or student.user.username,
@@ -1401,7 +1460,8 @@ def grade_report(request, assignment_id):
                 'total_tests': total_tests,
                 'pass_rate': pass_rate,
                 'test_results': student_results,
-                'has_submission': True
+                'has_submission': True,
+                'grade': g,
             })
         else:
             # No submission
@@ -1445,7 +1505,7 @@ def grade_report(request, assignment_id):
         'submitted': submitted_count,
         'missing': missing_count,
         'avg_score': round(avg_score, 2),
-        'max_score': assignment.points,
+        'max_score': assignment.points or 100,
         'avg_pass_rate': round(avg_pass_rate, 1),
         'base_template': 'base_professor.html' if course_role == 'INSTRUCTOR' else 'base_grading_assistant.html'
     }
