@@ -572,17 +572,17 @@ def gradebook_view(request, pk):
                     else:
                         status = 'ungraded'
                         score = None
+                submission_id = sub.id if sub else None
                 cells.append({
                     "assignment": a,
                     "status": status,
                     "score": score,
-                    "submission_id": sub.id if sub else None,
+                    "submission_id": submission_id,
                 })
 
             rows.append({
                 "student": stu,
                 "cells": cells,
-                "active_submission_id": cell_lookup.get((stu.id, assignment.id)).id if cell_lookup.get((stu.id, assignment.id)) else None,
             })
 
         context['assignments'] = grid_assignments
@@ -1559,84 +1559,90 @@ def grade_report(request, assignment_id):
 
 
 @login_required
-def student_course_grades_view(request, course_id, student_id):
+@login_required
+def student_course_report(request, course_id, student_id):
     """
-    Instructor-facing view: detailed grades for a single student in a course.
-    Shows one row per assignment with status and score, plus basic averages.
+    Detailed report for an instructor to see a specific student's 
+    performance across all assignments in a particular course.
+    Includes assignment details, student scores, and class averages.
     """
+    from django.db.models import Avg
     user = get_user_from_request(request)
     course = get_object_or_404(Course, id=course_id)
-    target_student = get_object_or_404(Student, id=student_id)
-
+    student = get_object_or_404(Student, id=student_id)
+    
+    # Permission check: Only instructor or GA of this course, or the student themselves
     course_role = get_user_course_role(user, course, request)
     is_instructor = course_role in ['INSTRUCTOR', 'GRADING_ASSISTANT']
-    is_self_student = (course_role == 'STUDENT' and target_student.user == user)
-
-    if not (is_instructor or is_self_student):
-        return HttpResponseForbidden("You do not have permission to view this student's grades.")
-
-    # All assignments in this course
+    is_self_student = (course_role == 'STUDENT' and student.user == user)
+    
+    if not (is_instructor or is_self_student or user.is_staff):
+        return HttpResponseForbidden("You do not have permission to view this report.")
+        
     assignments = Assignment.objects.filter(course=course).order_by('due_date', 'id')
-
-    # All submissions for this student in this course
-    student_submissions = Submission.objects.filter(
-        student=target_student,
+    submissions = Submission.objects.filter(
+        student=student, 
         assignment__in=assignments
-    ).select_related('assignment', 'grade')
-    sub_by_assignment = {s.assignment_id: s for s in student_submissions}
-
-    # Class averages per assignment (based on Grade.score)
+    ).select_related('grade', 'assignment')
+    
+    # Map submissions by assignment ID for easy lookup
+    submission_lookup = {sub.assignment_id: sub for sub in submissions}
+    
+    # Class averages per assignment
     class_avgs = (
         Submission.objects.filter(assignment__in=assignments, grade__isnull=False)
         .values('assignment_id')
         .annotate(avg_score=Avg('grade__score'))
     )
-    avg_by_assignment = {row['assignment_id']: row['avg_score'] for row in class_avgs}
-
-    rows = []
-    total_points_earned = 0.0
-    total_points_possible = 0.0
-
+    avg_by_assignment = {row['assignment_id']: float(row['avg_score']) for row in class_avgs}
+    
+    report_data = []
+    total_points_possible = 0
+    total_points_earned = 0
+    
     for a in assignments:
-        sub = sub_by_assignment.get(a.id)
-        status = 'Not submitted'
+        sub = submission_lookup.get(a.id)
+        total_points_possible += float(a.points or 0)
+        
         score = None
-        submitted_at = None
-
+        status = 'missing'
         if sub:
-            submitted_at = sub.submission_time
             g = getattr(sub, 'grade', None)
             if g:
-                status = 'Graded'
+                status = 'graded'
                 score = float(g.score)
                 total_points_earned += score
-                total_points_possible += float(a.points or 0)
             else:
-                status = 'Ungraded'
-
-        rows.append({
+                status = 'ungraded'
+        
+        report_data.append({
             'assignment': a,
             'submission': sub,
-            'submitted_at': submitted_at,
             'status': status,
             'score': score,
-            'max_points': a.points,
             'class_avg': avg_by_assignment.get(a.id),
         })
-
-    student_percent = (total_points_earned / total_points_possible * 100) if total_points_possible > 0 else None
-
+        
+    overall_percentage = (total_points_earned / total_points_possible * 100) if total_points_possible > 0 else 0
+    
+    # Determine base template
+    if is_instructor:
+        base_template = 'base_professor.html' if course_role == 'INSTRUCTOR' else 'base_grading_assistant.html'
+    else:
+        base_template = 'portal/base_portal.html'
+    
     context = {
         'course': course,
-        'target_student': target_student,
-        'rows': rows,
-        'total_points_earned': total_points_earned,
+        'student': student,
+        'report_data': report_data,
         'total_points_possible': total_points_possible,
-        'student_percent': student_percent,
-        'base_template': 'base_professor.html' if is_instructor else 'portal/base_portal.html',
+        'total_points_earned': total_points_earned,
+        'overall_percentage': overall_percentage,
+        'base_template': base_template,
+        'active_tab': 'grades',
     }
-
-    return render(request, 'grading/student_course_grades.html', context)
+    
+    return render(request, 'grading/student_course_report.html', context)
 
 
 @login_required
