@@ -613,14 +613,46 @@ def grade_submission_view(request, pk):
                         for zip_info in zf.infolist():
                             if not zip_info.is_dir() and not zip_info.filename.startswith('__MACOSX'):
                                 name = zip_info.filename
-                                if name.endswith('.py') or name.endswith('.java'):
-                                    content = zf.read(name).decode('utf-8', errors='ignore')
-                                    lang = 'python' if name.endswith('.py') else 'java'
-                                    import os
-                                    submission_files.append({"name": os.path.basename(name), "content": content, "language": lang})
-                elif file_name.endswith('.py') or file_name.endswith('.java'):
+                                # Support common code and data extensions
+                                ext = name.split('.')[-1].lower() if '.' in name else ''
+                                supported_exts = ['py', 'java', 'js', 'ts', 'html', 'css', 'json', 'txt', 'csv', 'md', 'sql', 'cpp', 'c', 'h']
+                                
+                                if ext in supported_exts or not ext:
+                                    try:
+                                        # Skip binary files if they somehow get in
+                                        content_bytes = zf.read(name)
+                                        content = content_bytes.decode('utf-8', errors='ignore')
+                                        
+                                        # Improved language mapping for Monaco
+                                        lang_map = {
+                                            'py': 'python',
+                                            'java': 'java',
+                                            'js': 'javascript',
+                                            'ts': 'typescript',
+                                            'html': 'html',
+                                            'css': 'css',
+                                            'json': 'json',
+                                            'md': 'markdown',
+                                            'sql': 'sql',
+                                            'cpp': 'cpp',
+                                            'c': 'c',
+                                            'h': 'cpp'
+                                        }
+                                        lang = lang_map.get(ext, 'plaintext')
+                                        
+                                        import os
+                                        submission_files.append({
+                                            "name": os.path.basename(name), 
+                                            "content": content, 
+                                            "language": lang,
+                                            "full_path": name
+                                        })
+                                    except:
+                                        continue
+                elif file_name.endswith('.py') or file_name.endswith('.java') or file_name.endswith('.txt') or file_name.endswith('.csv'):
                     content = file_content.decode('utf-8', errors='ignore')
-                    lang = 'python' if file_name.endswith('.py') else 'java'
+                    ext = file_name.split('.')[-1]
+                    lang = 'python' if ext == 'py' else ('java' if ext == 'java' else 'plaintext')
                     import os
                     basename = os.path.basename(submission.file_path.name)
                     submission_files.append({"name": basename, "content": content, "language": lang})
