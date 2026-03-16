@@ -496,23 +496,34 @@
             display: flex;
             flex-direction: column;
         }
-        .console-terminal .console-line { margin-bottom: 6px; word-break: break-all; }
+        .console-terminal .console-line {
+            margin-bottom: 6px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
         .console-terminal .console-prompt { color: #4ec9b0; }
         .console-terminal .console-input-line {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 8px;
-            margin-top: 8px;
+            margin-top: 12px;
         }
-        .console-terminal .console-input-line input {
+        .console-terminal .console-input-line textarea {
             flex: 1;
-            background: transparent;
-            border: none;
-            color: #d4d4d4;
+            background: #111827;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            color: #e5e7eb;
             font: inherit;
             outline: none;
+            padding: 6px 8px;
+            min-height: 40px;
+            max-height: 90px;
+            resize: none;
         }
-        .console-terminal .console-input-line input::placeholder { color: #6b7280; }
+        .console-terminal .console-input-line textarea::placeholder {
+            color: #9ca3af;
+        }
     </style>
 </head>
 
@@ -654,7 +665,7 @@
 
                 <!-- Console Tab -->
                 <div id="tab-console" class="evaluation-pane-tab-content" role="tabpanel">
-                    <button type="button" id="runCodeBtn" class="btn-run-code" title="Run code with interactive input">
+                    <button type="button" id="runCodeBtn" class="btn-run-code" title="Run code with interactive input" data-exec-url="{% url 'execute_submission_api' submission_id=submission.pk %}">
                         <i class="fa-solid fa-terminal"></i> Run Code
                     </button>
                     <div class="console-terminal" id="consoleTerminal">
@@ -662,7 +673,7 @@
                         <div class="console-line" style="color:#6b7280;font-size:12px;margin-top:8px;">Click &quot;Run Code&quot; to start. Input prompts will appear here.</div>
                         <div class="console-input-line" id="consoleInputLine" style="display: none;">
                             <span class="console-prompt">&gt;</span>
-                            <input type="text" id="consoleInput" placeholder="Type input and press Enter..." autocomplete="off">
+                            <textarea id="consoleInput" placeholder="Type all inputs here, one per line." autocomplete="off"></textarea>
                         </div>
                     </div>
                 </div>
@@ -757,34 +768,55 @@
                 });
             }
 
-            // Run Code: show terminal input line (placeholder for future backend)
+            // Run Code: call backend and stream stdout/stderr into console
             var runCodeBtn = document.getElementById('runCodeBtn');
             var consoleInput = document.getElementById('consoleInput');
             var consoleInputLine = document.getElementById('consoleInputLine');
             var consoleTerminal = document.getElementById('consoleTerminal');
             if (runCodeBtn && consoleTerminal) {
-                runCodeBtn.addEventListener('click', function () {
-                    var firstRun = consoleInputLine.style.display !== 'flex';
-                    if (firstRun) {
-                        var line = document.createElement('div');
-                        line.className = 'console-line';
-                        line.textContent = 'Running code... (interactive execution would connect here)';
-                        consoleTerminal.insertBefore(line, consoleInputLine);
-                        consoleInputLine.style.display = 'flex';
-                    }
-                });
-                if (consoleInput) {
-                    consoleInput.addEventListener('keydown', function (e) {
-                        if (e.key === 'Enter') {
-                            var val = consoleInput.value;
-                            var line = document.createElement('div');
-                            line.className = 'console-line';
-                            line.innerHTML = '<span class="console-prompt">&gt;</span> ' + escapeHtml(val);
-                            consoleTerminal.insertBefore(line, consoleInputLine);
-                            consoleInput.value = '';
-                        }
+                var execUrl = runCodeBtn.getAttribute('data-exec-url');
+                var csrfToken = (document.querySelector('[name=csrfmiddlewaretoken]') &&
+                                 document.querySelector('[name=csrfmiddlewaretoken]').value) ||
+                                (document.cookie.match(/csrftoken=([^;]+)/) &&
+                                 document.cookie.match(/csrftoken=([^;]+)/)[1]);
+
+                function appendConsoleLine(text, cls) {
+                    var line = document.createElement('div');
+                    line.className = 'console-line' + (cls ? ' ' + cls : '');
+                    line.textContent = text;
+                    consoleTerminal.insertBefore(line, consoleInputLine);
+                    consoleTerminal.scrollTop = consoleTerminal.scrollHeight;
+                }
+
+                function runWithInput(stdinText) {
+                    if (!execUrl) return;
+                    consoleInputLine.style.display = 'flex';
+                    appendConsoleLine('Running code...', 'console-prompt');
+
+                    fetch(execUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken || '',
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ stdin: stdinText || '' })
+                    })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.stdout) appendConsoleLine(data.stdout, '');
+                        if (data.stderr) appendConsoleLine(data.stderr, 'console-error');
+                        if (!data.stdout && !data.stderr) appendConsoleLine('[no output]', 'console-muted');
+                    })
+                    .catch(function (err) {
+                        appendConsoleLine('Execution error: ' + err, 'console-error');
                     });
                 }
+
+                runCodeBtn.addEventListener('click', function () {
+                    var val = consoleInput ? consoleInput.value : '';
+                    runWithInput(val);
+                });
             }
             function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
         })();
