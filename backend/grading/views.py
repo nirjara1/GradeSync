@@ -576,11 +576,13 @@ def gradebook_view(request, pk):
                     "assignment": a,
                     "status": status,
                     "score": score,
+                    "submission_id": sub.id if sub else None,
                 })
 
             rows.append({
                 "student": stu,
                 "cells": cells,
+                "active_submission_id": cell_lookup.get((stu.id, assignment.id)).id if cell_lookup.get((stu.id, assignment.id)) else None,
             })
 
         context['assignments'] = grid_assignments
