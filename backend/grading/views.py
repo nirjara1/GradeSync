@@ -63,9 +63,12 @@ def professor_course_view(request, course_id):
         return HttpResponseForbidden("Access Denied")
         
     assignments = Assignment.objects.filter(course=course).order_by('due_date')
+    # Use the first assignment as the default gradebook target for the sidebar
+    default_gradebook_assignment = assignments.first()
     return render(request, 'assignments_dashboard.html', {
         'assignments': assignments, 'course': course,
-        'is_instructor': True, 'is_student': False, 'base_template': 'base_professor.html'
+        'is_instructor': True, 'is_student': False, 'base_template': 'base_professor.html',
+        'gradebook_assignment': default_gradebook_assignment, 'active_tab': 'assignments'
     })
 
 @login_required
@@ -511,6 +514,10 @@ def gradebook_view(request, pk):
         'assignment': assignment,
         'submissions': submissions,
         'base_template': base_template,
+        # For instructor sidebar navigation
+        'course': assignment.course,
+        'gradebook_assignment': assignment,
+        'active_tab': 'grades',
     }
     return render(request, 'gradebook.html', context)
 

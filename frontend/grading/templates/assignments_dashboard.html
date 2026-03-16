@@ -1,6 +1,16 @@
 {% extends base_template %}
 
 {% block content %}
+{% comment %}
+If we're inside a specific course as an instructor, show the course sidebar
+with Assignments / Grades navigation. Otherwise, keep the existing layout.
+{% endcomment %}
+{% if course and is_instructor %}
+<div style="display: flex; gap: 24px; align-items: flex-start;">
+    {% include "course_sidebar.html" %}
+    <div style="flex: 1;">
+{% endif %}
+
 <h2 class="page-title">
     {% if course %}
     {{ course.code }}-{{ course.section }} Assignments
@@ -342,6 +352,11 @@
 <a href="{% url 'create_assignment' %}" class="add-assignment-btn"
     style="margin-top: 20px; text-decoration: none; display: inline-block;">Add Assignment</a>
 {% endif %}
+{% endif %}
+
+{% if course and is_instructor %}
+    </div>
+</div>
 {% endif %}
 
 {% endblock %}
