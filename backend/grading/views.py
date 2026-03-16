@@ -278,7 +278,75 @@ def edit_assignment(request, pk):
     if request.method == 'POST':
         form = AssignmentForm(request.POST, request.FILES, instance=assignment)
         if form.is_valid():
-            form.save()
+            assignment = form.save()
+
+            # If updated test cases JSON is provided (from create/edit UI), replace all existing test cases
+            test_cases_json = request.POST.get('test_cases_json', '')
+            if test_cases_json:
+                try:
+                    import json
+                    test_cases_data = json.loads(test_cases_json)
+                    # Remove old test cases for this assignment before recreating
+                    TestCase.objects.filter(assignment=assignment).delete()
+                    for idx, tc_data in enumerate(test_cases_data, 1):
+                        TestCase.objects.create(
+                            assignment=assignment,
+                            name=f"Test Case {idx}",
+                            input_data=tc_data.get('input_data', ''),
+                            expected_output=tc_data.get('expected_output', ''),
+                            is_private=tc_data.get('is_private', False),
+                            points_awarded=tc_data.get('points', 5),
+                            order=idx
+                        )
+                    logger.info(f"Replaced test cases for assignment {assignment.id} with {len(test_cases_data)} new cases")
+                except Exception as e:
+                    logger.error(f"Error updating test cases for assignment {assignment.id}: {e}")
+
+            # If a new public_test_data CSV file was uploaded, re-import PUBLIC (student-visible) tests from it.
+            public_test_file = form.cleaned_data.get('public_test_data')
+            if public_test_file:
+                try:
+                    import csv
+
+                    public_test_file.open('r')
+                    content = public_test_file.read()
+                    public_test_file.close()
+                    if isinstance(content, bytes):
+                        content = content.decode('utf-8')
+
+                    reader = csv.DictReader(content.splitlines())
+
+                    # Remove only non-private tests; keep private grading tests intact
+                    TestCase.objects.filter(assignment=assignment, is_private=False).delete()
+
+                    count = 0
+                    for idx, row in enumerate(reader, 1):
+                        input_data = row.get('input_data', '')
+                        expected_output = row.get('expected_output', '')
+                        # default to public if column missing
+                        is_private_val = str(row.get('is_private', 'false')).strip().lower()
+                        is_private = is_private_val in ('true', '1', 'yes')
+                        points_val = row.get('points', '') or '5'
+                        try:
+                            points = int(points_val)
+                        except ValueError:
+                            points = 5
+
+                        TestCase.objects.create(
+                            assignment=assignment,
+                            name=f"Test Case {idx}",
+                            input_data=input_data,
+                            expected_output=expected_output,
+                            is_private=is_private,
+                            points_awarded=points,
+                            order=idx,
+                        )
+                        count += 1
+
+                    logger.info(f"Re-imported {count} public test cases for assignment {assignment.id} from CSV")
+                except Exception as e:
+                    logger.error(f"Error parsing public_test_data CSV for assignment {assignment.id}: {e}")
+
             messages.success(request, "Assignment updated successfully!")
             course_role = get_user_course_role(user, assignment.course, request)
             route_name = 'professor_course' if course_role == 'INSTRUCTOR' else ('student_course' if course_role == 'STUDENT' else 'ga_course')
@@ -1713,12 +1781,21 @@ def run_public_tests_api(request):
             exec_result = _run_in_docker_with_input(
                 code=code,
                 language=language,
+                filename=filename,
                 input_data=test_case.input_data
             )
-            
-            actual_output = exec_result.get('stdout', '')
+
+            # Combine stdout and stderr so students can see compile/runtime errors
+            stdout = exec_result.get('stdout', '') or ''
+            stderr = exec_result.get('stderr', '') or ''
+            actual_output = stdout
+            if stderr:
+                if actual_output:
+                    actual_output += "\n"
+                actual_output += stderr
+
             expected_output = test_case.expected_output
-            
+
             # Simple string comparison (can be extended with normalization)
             passed = actual_output.strip() == expected_output.strip()
             
