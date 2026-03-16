@@ -7,169 +7,157 @@ Show course sidebar navigation when an instructor is viewing this gradebook.
 For students / GAs we keep the simple single-column layout.
 {% endcomment %}
 {% if course and base_template == 'base_professor.html' %}
-<div style="display: flex; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto;">
+<div style="display: flex; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto; padding: 20px;">
     {% include "course_sidebar.html" %}
     <div style="flex: 1;">
-        {% else %}
-        <div style="max-width: 1200px; margin: 0 auto;">
-            {% endif %}
+{% else %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+{% endif %}
 
-            {# If we have course-level grid data (rows + assignments), show Canvas-style grid #}
-            {% if rows and assignments %}
-            <div style="max-width: 100%; overflow-x: auto; padding-right: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h2 class="page-title" style="margin: 0; color: var(--maroon);">
-                        {{ course.code }}-{{ course.section }} &gt; Grades
-                    </h2>
-                </div>
-                <hr class="divider" style="margin-top: 0; margin-bottom: 16px;">
-
-                <div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; overflow: auto;">
-                    <table style="border-collapse: collapse; width: 100%; min-width: 800px;">
-                        <thead>
-                            <tr>
-                                <th
-                                    style="position: sticky; left: 0; z-index: 2; background: #f9fafb; padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left;">
-                                    Student
-                                </th>
-                                {% for a in assignments %}
-                                <th
-                                    style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align: center; white-space: nowrap; font-size: 13px;">
-                                    {{ a.name }}<br>
-                                    <span style="font-size: 11px; color:#6b7280;">Out of {{ a.points }}</span>
-                                </th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in rows %}
-                            <tr>
-                                <td
-                                    style="position: sticky; left:0; background: #ffffff; z-index: 1; padding: 8px 10px; border-bottom: 1px solid #f3f4f6; font-size: 14px;">
-                                    <a href="{% url 'student_course_report' course_id=course.id student_id=row.student.id %}"
-                                       style="text-decoration: none; color: #1e40af; font-weight: 600;"
-                                       title="View overall course performance for this student">
-                                        {{ row.student.user.get_full_name|default:row.student.user.username }}
-                                    </a>
-                                </td>
-                                {% for cell in row.cells %}
-                                {% if cell.status == 'graded' %}
-                                <td
-                                    style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f3f4f6; color: #047857; font-weight: 600; font-size: 13px;">
-                                    {{ cell.score|floatformat:0 }}
-                                </td>
-                                {% elif cell.status == 'ungraded' %}
-                                <td
-                                    style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f3f4f6; color: #92400e; background: #fef3c7; font-size: 12px;">
-                                    Ungraded
-                                </td>
-                                {% else %}
-                                <td
-                                    style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f3f4f6; color: #9ca3af; background: #f9fafb; font-size: 12px;">
-                                    Not submitted
-                                </td>
-                                {% endif %}
-                                {% endfor %}
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="{{ assignments|length|add:1 }}"
-                                    style="padding: 32px; text-align: center; color: #9ca3af; font-style: italic;">
-                                    No students enrolled yet.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% else %}
-            {# Fallback: original per-assignment gradebook table #}
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h2 class="page-title" style="margin: 0; color: var(--maroon);">Gradebook</h2>
-                <button type="button" class="btn-bulk-execute"
-                    onclick="alert('Bulk test execution successfully queued. The backend will process these datasets shortly.')"
-                    style="background: var(--maroon); color: white; border: none; border-radius: 6px; padding: 10px 18px; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;"
-                    onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.15)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';">
-                    <i class="fa-solid fa-forward-fast"></i> Run All Tests
-                </button>
-            </div>
-            <hr class="divider" style="margin-top: 0;">
-
-            <div style="margin-top: 30px;">
-                <div
-                    style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #eee;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                        <thead style="background-color: var(--maroon); color: white;">
-                            <tr>
-                                <th style="padding: 15px; border-bottom: 2px solid #ddd;">Student</th>
-                                <th style="padding: 15px; border-bottom: 2px solid #ddd;">Submitted At</th>
-                                <th style="padding: 15px; border-bottom: 2px solid #ddd;">File</th>
-                                <th style="padding: 15px; border-bottom: 2px solid #ddd; width: 180px;">Test Status</th>
-                                <th style="padding: 15px; border-bottom: 2px solid #ddd;">Grade</th>
-                                <th style="padding: 15px; border-bottom: 2px solid #ddd; text-align: center;">Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for submission in submissions %}
-                            <tr
-                                style="border-bottom: 1px solid #eee; background-color: {% cycle '#ffffff' '#fafafa' %};">
-                                <td style="padding: 15px; font-weight: 500; font-size: 14px;">
-                                    <a href="{% url 'student_course_report' course_id=course.id student_id=submission.student.id %}"
-                                       style="text-decoration: none; color: #1e40af; font-weight: 600;"
-                                       title="View overall course performance for this student">
-                                        {{ submission.student.user.get_full_name|default:submission.student.user.username }}
-                                    </a>
-                                </td>
-                                <td style="padding: 15px; color: #666; font-size: 13px;">
-                                    {{ submission.submission_time|date:"F j, Y, g:i A" }}
-                                </td>
-                                <td style="padding: 15px;">
-                                    <a href="{% url 'download_submission' submission.pk %}"
-                                        style="color: var(--maroon); text-decoration: none; font-size: 14px; font-weight: 500;">
-                                        <i class="fa-solid fa-file-code"></i> Download
-                                    </a>
-                                </td>
-                                <td style="padding: 15px;">
-                                    <span
-                                        style="font-size: 12px; font-weight: 500; color: #666; font-style: italic;">Not
-                                        Executed</span>
-                                </td>
-                                <td
-                                    style="padding: 15px; font-weight: bold; font-size: 15px; color: {% if submission.grade %}#2e7d32{% else %}#999{% endif %};">
-                                    {% if submission.grade %}
-                                    {{ submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0"
-                                    }}
-                                    {% else %}
-                                    <span style="font-weight: normal; font-style: italic;">Needs Grading</span>
-                                    {% endif %}
-                                </td>
-                                <td style="padding: 15px; text-align: center;">
-                                    <a href="{% url 'grade_submission' submission.pk %}" target="_blank"
-                                        rel="noopener noreferrer" class="btn-publish"
-                                        style="padding: 8px 18px; font-size: 13px; text-decoration: none; display: inline-block; font-weight: 600;">
-                                        {% if submission.grade %}Edit Grade{% else %}Grade{% endif %}
-                                    </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6"
-                                    style="padding: 40px; text-align: center; color: #999; font-style: italic;">
-                                    No submissions yet.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% endif %}
-
-            {% if course and base_template == 'base_professor.html' %}
+    {# If we have course-level grid data (rows + assignments), show Canvas-style grid #}
+    {% if rows and assignments %}
+    <div style="max-width: 100%; overflow-x: auto; padding-right: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 class="page-title" style="margin: 0; color: var(--maroon);">
+                {{ course.code }}-{{ course.section }} &gt; Grades
+            </h2>
         </div>
-        {% endif %}
+        <hr class="divider" style="margin-top: 0; margin-bottom: 24px; border: 0; border-top: 2px solid #f3f4f6;">
+
+        <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: auto;">
+            <table style="border-collapse: collapse; width: 100%; min-width: 800px; text-align: left;">
+                <thead>
+                    <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                        <th style="position: sticky; left: 0; z-index: 2; background: #f9fafb; padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">
+                            Student
+                        </th>
+                        {% for a in assignments %}
+                        <th style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: center; white-space: nowrap; font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">
+                            {{ a.name }}<br>
+                            <span style="font-size: 10px; color:#9ca3af; font-weight: 500;">Out of {{ a.points }}</span>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr style="border-bottom: 1px solid #f3f4f6; transition: background 0.2s;" onmouseover="this.querySelector('.sticky-col').style.background='#f9fafb'; this.style.background='#f9fafb'" onmouseout="this.querySelector('.sticky-col').style.background='#ffffff'; this.style.background='#ffffff'">
+                        <td class="sticky-col" style="position: sticky; left:0; background: #ffffff; z-index: 1; padding: 12px 16px; border-bottom: 1px solid #f3f4f6; transition: background 0.2s;">
+                            <a href="{% url 'student_course_report' course_id=course.id student_id=row.student.id %}"
+                               style="text-decoration: none; color: var(--maroon); font-weight: 700; font-size: 14px;"
+                               title="View overall course performance for this student">
+                                {{ row.student.user.get_full_name|default:row.student.user.username }}
+                            </a><br>
+                            <span style="font-size: 11px; color: #6b7280; font-weight: 400;">{{ row.student.user.email }}</span>
+                        </td>
+                        {% for cell in row.cells %}
+                            <td style="padding: 12px 16px; text-align: center; border-bottom: 1px solid #f3f4f6;">
+                                {% if cell.status == 'graded' %}
+                                    <a href="{% url 'grade_submission' pk=cell.submission_id %}" 
+                                       style="display: inline-block; font-weight: 700; color: #059669; text-decoration: none; font-size: 15px; padding: 4px 8px; border-radius: 6px; transition: background 0.2s;"
+                                       onmouseover="this.style.background='#ecfdf5'" onmouseout="this.style.background='transparent'">
+                                        {{ cell.score|floatformat:1 }}
+                                    </a>
+                                {% elif cell.status == 'ungraded' %}
+                                    <a href="{% url 'grade_submission' pk=cell.submission_id %}"
+                                       style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 700; text-decoration: none; transition: transform 0.1s;"
+                                       onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                        Ungraded
+                                    </a>
+                                {% else %}
+                                    <span style="font-size: 11px; color: #d1d5db; font-style: italic;">Not submitted</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{{ assignments|length|add:1 }}" style="padding: 48px; text-align: center; color: #9ca3af; font-style: italic;">
+                            No students enrolled yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-    {% endblock %}
+    {% else %}
+    {# Fallback: original per-assignment gradebook table #}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 class="page-title" style="margin: 0; color: var(--maroon);">Gradebook &gt; {{ assignment.name }}</h2>
+        <button type="button" class="btn-bulk-execute"
+            onclick="alert('Bulk test execution successfully queued. The backend will process these datasets shortly.')"
+            style="background: var(--maroon); color: white; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 650; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;"
+            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';"
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';">
+            <i class="fa-solid fa-play"></i> Run All Tests
+        </button>
+    </div>
+    <hr class="divider" style="margin-top: 0; margin-bottom: 24px; border: 0; border-top: 2px solid #f3f4f6;">
+
+    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="background: #f9fafb;">
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">Student</th>
+                    <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">Submitted At</th>
+                    <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">File</th>
+                    <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
+                    <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">Grade</th>
+                    <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for submission in submissions %}
+                <tr style="border-bottom: 1px solid #f3f4f6; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+                    <td style="padding: 16px;">
+                        <a href="{% url 'student_course_report' course_id=course.id student_id=submission.student.id %}"
+                           style="text-decoration: none; color: var(--maroon); font-weight: 700; font-size: 14px;"
+                           title="View overall course performance for this student">
+                            {{ submission.student.user.get_full_name|default:submission.student.user.username }}
+                        </a><br>
+                        <span style="font-size: 11px; color: #6b7280;">{{ submission.student.user.email }}</span>
+                    </td>
+                    <td style="padding: 16px; color: #4b5563; font-size: 13px;">
+                        {{ submission.submission_time|date:"M j, Y, g:i A" }}
+                    </td>
+                    <td style="padding: 16px;">
+                        <a href="{% url 'download_submission' submission.pk %}"
+                            style="color: var(--maroon); text-decoration: none; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-download"></i> Download
+                        </a>
+                    </td>
+                    <td style="padding: 16px;">
+                        <span style="font-size: 12px; font-weight: 500; color: #6b7280; font-style: italic;">Ready to grade</span>
+                    </td>
+                    <td style="padding: 16px; font-weight: 800; font-size: 16px; color: {% if submission.grade %}#059669{% else %}#9ca3af{% endif %};">
+                        {% if submission.grade %}
+                            {{ submission.grade.score|floatformat:1 }} / {{ assignment.points|floatformat:0 }}
+                        {% else %}
+                            <span style="font-weight: 400; font-style: italic; font-size: 13px;">Needs Grading</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 16px; text-align: center;">
+                        <a href="{% url 'grade_submission' submission.pk %}" class="btn-publish"
+                            style="padding: 8px 16px; font-size: 12px; text-decoration: none; font-weight: 700; border-radius: 8px;">
+                            {% if submission.grade %}Edit Grade{% else %}Grade Now{% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 48px; text-align: center; color: #9ca3af; font-style: italic;">
+                        No submissions yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if course and base_template == 'base_professor.html' %}
+    </div>
+{% endif %}
+</div>
+{% endblock %}

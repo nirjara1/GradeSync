@@ -37,6 +37,7 @@
                         <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">Due Date</th>
                         <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Status</th>
                         <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Score</th>
+                        <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Class Avg</th>
                         <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Actions</th>
                     </tr>
                 </thead>
@@ -77,6 +78,16 @@
                             {% if item.score != None %}
                                 <div style="font-weight: 700; font-size: 16px; color: {% if item.score >= 70 %}#059669{% else %}#dc2626{% endif %};">
                                     {{ item.score|floatformat:1 }}
+                                </div>
+                                <div style="font-weight: 500; color: #9ca3af; font-size: 11px;">out of {{ item.assignment.points }}</div>
+                            {% else %}
+                                <span style="font-weight: 400; color: #d1d5db; font-size: 18px;">&mdash;</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px; text-align: center;">
+                            {% if item.class_avg != None %}
+                                <div style="font-weight: 600; font-size: 14px; color: #6b7280;">
+                                    {{ item.class_avg|floatformat:1 }}
                                 </div>
                                 <div style="font-weight: 500; color: #9ca3af; font-size: 11px;">out of {{ item.assignment.points }}</div>
                             {% else %}
