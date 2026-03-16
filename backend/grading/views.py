@@ -1492,6 +1492,11 @@ def grade_report(request, assignment_id):
             # Safe access to grade (from incoming branch)
             g = getattr(submission, 'grade', None)
             
+            # Normalize score to percentage out of 100
+            raw_score = submission.total_score
+            raw_max = submission.max_score or assignment.points or 0
+            normalized_score = round(raw_score / raw_max * 100, 1) if raw_max > 0 else 0
+            
             grade_data.append({
                 'id': student.id,
                 'name': student.user.get_full_name() or student.user.username,
@@ -1499,8 +1504,8 @@ def grade_report(request, assignment_id):
                 'submission_id': submission.id,
                 'status': submission.status.upper(),
                 'submitted_at': submission.submission_time,
-                'score': submission.total_score,
-                'max_score': submission.max_score,
+                'score': normalized_score,
+                'max_score': 100,
                 'passed_tests': passed_count,
                 'total_tests': total_tests,
                 'pass_rate': pass_rate,
@@ -1549,8 +1554,8 @@ def grade_report(request, assignment_id):
         'total_students': total_students,
         'submitted': submitted_count,
         'missing': missing_count,
-        'avg_score': round(avg_score, 2),
-        'max_score': assignment.points or 100,
+        'avg_score': round(avg_score, 1),
+        'max_score': 100,
         'avg_pass_rate': round(avg_pass_rate, 1),
         'base_template': 'base_professor.html' if course_role == 'INSTRUCTOR' else 'base_grading_assistant.html'
     }
