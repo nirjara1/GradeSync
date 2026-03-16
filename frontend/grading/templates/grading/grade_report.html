@@ -1,323 +1,424 @@
-{% extends "base_professor.html" %}
+{% extends base_template %}
 {% load static %}
 
 {% block title %}Grade Report - {{ assignment.name }}{% endblock %}
 
+{% block extra_css %}
+<!-- Bootstrap 5 CSS CDN - Required for Grade Report Grid -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    /* Integration with GradeSync Design System */
+    :root {
+        --gs-maroon: #840029;
+        --gs-gold: #fdb913;
+    }
+
+    /* Override Bootstrap primary with GS Maroon */
+    .btn-primary {
+        background-color: var(--gs-maroon) !important;
+        border-color: var(--gs-maroon) !important;
+    }
+    .btn-primary:hover {
+        background-color: #6a0020 !important;
+        border-color: #6a0020 !important;
+    }
+    .btn-outline-secondary {
+        color: #666 !important;
+        border-color: #ccc !important;
+    }
+    .btn-outline-secondary:hover {
+        background-color: #f8f9fa !important;
+        color: #333 !important;
+    }
+
+    .bg-gs-maroon { background-color: var(--gs-maroon) !important; }
+    .bg-gs-gold { background-color: var(--gs-gold) !important; }
+
+    /* Fix for nesting inside .main-content */
+    .report-container {
+        margin: -40px; /* Undo main-content padding to use full width if needed, or keep it */
+        margin: 0;
+    }
+
+    .report-header h1 {
+        font-size: 28px;
+        color: var(--gs-maroon);
+        font-weight: bold;
+    }
+
+    /* Grid Styling */
+    .grid-card {
+        border: 1px solid #eee !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+    }
+
+    .grid-container {
+        max-height: 650px;
+        overflow: auto;
+        border-radius: 8px;
+    }
+
+    .sticky-col {
+        position: sticky;
+        z-index: 2;
+    }
+    
+    .first-col {
+        left: 0;
+        min-width: 220px;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        background-color: #fff !important;
+    }
+    
+    .last-col {
+        right: 80px;
+        min-width: 80px;
+        box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+        background-color: #f8f9fa !important;
+    }
+
+    .last-col-2 {
+        right: 0;
+        min-width: 80px;
+        background-color: #f8f9fa !important;
+    }
+
+    .dataset-header {
+        min-width: 110px;
+        max-width: 160px;
+        border-bottom: 2px solid #dee2e6 !important;
+        vertical-align: bottom;
+    }
+
+    .status-badge {
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 8px 4px;
+        display: block;
+        border-radius: 4px;
+        text-transform: uppercase;
+    }
+
+    .cursor-pointer { cursor: pointer; }
+    
+    pre {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        font-size: 13px;
+        max-height: 250px;
+        border: 1px solid #eee;
+    }
+
+    .summary-card {
+        border: none;
+        border-radius: 10px;
+        padding: 20px;
+        color: white;
+    }
+
+    /* Custom Scrollbar for the grid */
+    .table-responsive::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #aaa;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-12">
-            <h1>{{ assignment.name }} - Grade Report</h1>
-            <p class="text-muted">Course: {{ assignment.course.name }}</p>
+<div class="report-container">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4 report-header">
+        <div>
+            <h1 class="mb-1">{{ assignment.name }} - Grade Report</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'professor_course' assignment.course.id %}" class="text-decoration-none text-muted">{{ assignment.course.code }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Reports</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary d-flex align-items-center" onclick="exportToCSV()">
+                <i class="fas fa-file-csv me-2"></i> Export CSV
+            </button>
+            <button class="btn btn-primary d-flex align-items-center" id="bulk-grade-btn" onclick="startBulkGrading()">
+                <i class="fas fa-play-circle me-2"></i> Run Bulk Grading
+            </button>
         </div>
     </div>
-    
-    <!-- Statistics Cards -->
-    <div class="row mt-4">
+
+    <!-- Summary Stats -->
+    <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Total Students</h5>
-                    <p class="card-text display-4">{{ total_students }}</p>
-                </div>
+            <div class="summary-card bg-gs-maroon shadow-sm">
+                <div class="small opacity-75 text-uppercase fw-bold mb-1">Total Students</div>
+                <div class="h2 mb-0 fw-bold">{{ total_students }}</div>
+                <i class="fas fa-user-graduate position-absolute end-0 bottom-0 m-3 opacity-25 fa-2x"></i>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Submitted</h5>
-                    <p class="card-text display-4">{{ submitted }}</p>
-                </div>
+            <div class="summary-card bg-success shadow-sm">
+                <div class="small opacity-75 text-uppercase fw-bold mb-1">Submissions</div>
+                <div class="h2 mb-0 fw-bold">{{ submitted }}</div>
+                <div class="small mt-1 opacity-75">{{ missing }} missing</div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Missing</h5>
-                    <p class="card-text display-4 text-danger">{{ missing }}</p>
-                </div>
+            <div class="summary-card bg-gs-gold text-dark shadow-sm">
+                <div class="small opacity-50 text-uppercase fw-bold mb-1">Avg. Score</div>
+                <div class="h2 mb-0 fw-bold">{{ avg_score }} <span class="fs-6 fw-normal">/ {{ max_score }}</span></div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Average Score</h5>
-                    <p class="card-text display-4">{{ avg_score }}/{{ max_score }}</p>
-                    <small class="text-muted">Pass Rate: {{ avg_pass_rate }}%</small>
+            <div class="summary-card bg-info shadow-sm">
+                <div class="small opacity-75 text-uppercase fw-bold mb-1">Total Datasets</div>
+                <div class="h2 mb-0 fw-bold">{{ test_cases|length }}</div>
+                <div class="small mt-1 opacity-75">{{ avg_pass_rate }}% pass rate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div id="bulk-grade-status" style="display:none;" class="mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span id="bulk-grade-message" class="fw-bold text-primary small">Starting bulk grading...</span>
+                    <span id="bulk-percent" class="small text-muted">0%</span>
+                </div>
+                <div class="progress" style="height: 6px;">
+                    <div id="bulk-grade-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Bulk Grading Controls -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Bulk Grading</h5>
-                </div>
-                <div class="card-body">
-                    <button class="btn btn-primary" id="bulk-grade-btn" onclick="startBulkGrading()">
-                        <i class="fas fa-tasks"></i> Start Bulk Grading
-                    </button>
-                    <div id="bulk-grade-status" style="display:none;" class="mt-3">
-                        <div class="progress">
-                            <div id="bulk-grade-progress" class="progress-bar progress-bar-striped progress-bar-animated" 
-                                 role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+
+    <!-- Performance Grid -->
+    <div class="card grid-card overflow-hidden">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 fw-bold">Bulk Performance Grid</h5>
+        </div>
+        <div class="grid-container">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light sticky-top" style="z-index: 10;">
+                    <tr>
+                        <th class="sticky-col first-col border-end px-4">Student</th>
+                        {% for tc in test_cases %}
+                        <th class="text-center dataset-header px-2" title="{{ tc.description }}">
+                            <div class="extra-small text-muted text-uppercase mb-1" style="font-size: 10px;">Test #{{ tc.order }}</div>
+                            <div class="small text-truncate d-inline-block" style="max-width: 120px;">{{ tc.name }}</div>
+                        </th>
+                        {% endfor %}
+                        <th class="text-center border-start sticky-col last-col">Passed</th>
+                        <th class="text-center sticky-col last-col-2">Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in grade_data %}
+                    <tr>
+                        <td class="sticky-col first-col border-end px-4">
+                            <div class="fw-bold text-dark">{{ row.name }}</div>
+                            <div class="small text-muted" style="font-size: 12px;">{{ row.email }}</div>
+                        </td>
+                        {% for result in row.test_results %}
+                        <td class="text-center px-2">
+                            {% if result.status == 'PASS' %}
+                                <span class="status-badge bg-success text-white" data-bs-toggle="tooltip" title="Passed in {{ result.time }}s">PASS</span>
+                            {% elif result.status == 'FAIL' %}
+                                <span class="status-badge bg-danger text-white cursor-pointer" 
+                                      data-bs-toggle="modal" data-bs-target="#resultModal" 
+                                      onclick="showResultDetails('{{ row.name }}', '{{ result.status }}', `{{ result.actual|escapejs }}`, `{{ result.expected|escapejs }}`, `{{ result.error|escapejs }}`)">FAIL</span>
+                            {% elif result.status == 'ERROR' %}
+                                <span class="status-badge bg-dark text-white cursor-pointer" 
+                                      data-bs-toggle="modal" data-bs-target="#resultModal" 
+                                      onclick="showResultDetails('{{ row.name }}', '{{ result.status }}', `{{ result.actual|escapejs }}`, `{{ result.expected|escapejs }}`, `{{ result.error|escapejs }}`)">ERROR</span>
+                            {% elif result.status == 'TIMEOUT' %}
+                                <span class="status-badge bg-warning text-dark fw-bold" data-bs-toggle="tooltip" title="Timed out">TIME</span>
+                            {% elif result.status == 'NOT SUBMITTED' %}
+                                <span class="status-badge bg-light text-muted border">MIS</span>
+                            {% else %}
+                                <span class="status-badge bg-secondary text-white opacity-50">PEND</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        <td class="text-center fw-bold border-start last-col sticky-col">
+                            {{ row.passed_tests }} / {{ row.total_tests }}
+                        </td>
+                        <td class="text-center last-col-2 sticky-col">
+                            <div class="fw-bold {% if row.pass_rate >= 80 %}text-success{% elif row.pass_rate >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ row.score|floatformat:1 }}
                             </div>
-                        </div>
-                        <small id="bulk-grade-message" class="text-muted"></small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Tabs for Submitted vs Missing -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <ul class="nav nav-tabs" id="gradeTab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="submitted-tab" data-bs-toggle="tab" data-bs-target="#submitted" 
-                            type="button" role="tab">
-                        Submitted ({{ submitted }})
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="missing-tab" data-bs-toggle="tab" data-bs-target="#missing" 
-                            type="button" role="tab">
-                        Missing Submissions ({{ missing }})
-                    </button>
-                </li>
-            </ul>
-            
-            <div class="tab-content" id="gradeTabContent">
-                <!-- Submitted Submissions Tab -->
-                <div class="tab-pane fade show active" id="submitted" role="tabpanel">
-                    <div class="table-responsive mt-3">
-                        <table class="table table-hover table-striped">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Score</th>
-                                    <th>Pass Rate</th>
-                                    <th>Submitted</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for student in grade_data %}
-                                <tr>
-                                    <td>{{ student.name }}</td>
-                                    <td>{{ student.email }}</td>
-                                    <td>
-                                        <span class="badge 
-                                            {% if student.status == 'graded' %}bg-success
-                                            {% elif student.status == 'grading' %}bg-warning
-                                            {% elif student.status == 'submitted' %}bg-info
-                                            {% elif student.status == 'failed' %}bg-danger
-                                            {% else %}bg-secondary{% endif %}">
-                                            {{ student.status|upper }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {{ student.score }}/{{ student.max_score }}
-                                        {% if student.max_score > 0 %}
-                                        <small class="text-muted">({{ student.score|floatformat:0|add:"0"|add:"0"|add:"0" }}%)</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="progress" style="width: 80px;">
-                                            <div class="progress-bar {% if student.pass_rate >= 80 %}bg-success{% elif student.pass_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
-                                                 role="progressbar" style="width: {{ student.pass_rate }}%">
-                                            </div>
-                                        </div>
-                                        <small>{{ student.passed_tests }}/{{ student.total_tests }}</small>
-                                    </td>
-                                    <td>
-                                        {% if student.submitted_at %}
-                                        {{ student.submitted_at|date:"M d, Y H:i" }}
-                                        {% else %}
-                                        <em>-</em>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{% url 'submission_test_results' student.submission_id %}" class="btn btn-sm btn-info">
-                                            View
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted">No submissions yet</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Missing Submissions Tab -->
-                <div class="tab-pane fade" id="missing" role="tabpanel">
-                    <div class="table-responsive mt-3">
-                        {% if missing_submissions %}
-                        <table class="table table-hover table-striped">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for student in missing_submissions %}
-                                <tr>
-                                    <td>{{ student.name }}</td>
-                                    <td>{{ student.email }}</td>
-                                    <td>
-                                        <span class="badge bg-danger">MISSING</span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        {% else %}
-                        <div class="alert alert-success mt-3">
-                            <i class="fas fa-check-circle"></i> All students have submitted!
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Export Button -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <a href="#" class="btn btn-secondary" onclick="exportToCSV()">
-                <i class="fas fa-download"></i> Export to CSV
-            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{{ test_cases|length|add:3 }}" class="text-center py-5 text-muted">
+                            <div class="mb-2"><i class="fas fa-users-slash fa-3x opacity-25"></i></div>
+                            No students found for this course.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
+<!-- Modal for test results -->
+<div class="modal fade" id="resultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title fw-bold" id="modalLabel">Detailed Test Result</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <div class="mb-4">
+                    <span class="text-muted small text-uppercase fw-bold">Student:</span>
+                    <span id="modal-student" class="ms-2 fw-bold text-dark"></span>
+                </div>
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Expected Output</label>
+                        <pre id="modal-expected"></pre>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Actual Output</label>
+                        <pre id="modal-actual"></pre>
+                    </div>
+                </div>
+                
+                <div id="error-section" class="mt-4 d-none">
+                    <label class="form-label fw-bold small text-danger text-uppercase">Error Details</label>
+                    <pre id="modal-error" class="bg-danger bg-opacity-10 text-danger border-danger border-opacity-25"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS and dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+
 <script>
-const assignmentId = {{ assignment.id }};
-let currentTaskId = null;
-let pollInterval = null;
+    const assignmentId = {{ assignment.id }};
+    let currentTaskId = null;
+    let pollInterval = null;
 
-function startBulkGrading() {
-    const btn = document.getElementById('bulk-grade-btn');
-    btn.disabled = true;
-    
-    fetch(`/grading/api/assignments/${assignmentId}/bulk-grade/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            currentTaskId = data.task_id;
-            document.getElementById('bulk-grade-status').style.display = 'block';
-            pollBulkGradingStatus();
-            pollInterval = setInterval(pollBulkGradingStatus, 2000);
-        } else {
-            alert('Error: ' + data.message);
-            btn.disabled = false;
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to start bulk grading');
-        btn.disabled = false;
+    // Initialize Tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
     });
-}
 
-function pollBulkGradingStatus() {
-    if (!currentTaskId) return;
-    
-    fetch(`/grading/api/bulk-grade/${currentTaskId}/status/`)
-    .then(response => response.json())
-    .then(data => {
-        const progressBar = document.getElementById('bulk-grade-progress');
-        const message = document.getElementById('bulk-grade-message');
-        const btn = document.getElementById('bulk-grade-btn');
+    function showResultDetails(student, status, actual, expected, error) {
+        document.getElementById('modal-student').textContent = student;
+        document.getElementById('modal-expected').textContent = expected || "(Empty)";
+        document.getElementById('modal-actual').textContent = actual || "(Empty)";
         
-        if (data.status === 'PROGRESS') {
-            const progress = data.progress || {};
-            const current = progress.current || 0;
-            const total = progress.total || 1;
-            const percent = Math.round((current / total) * 100);
-            
-            progressBar.style.width = percent + '%';
-            progressBar.setAttribute('aria-valuenow', percent);
-            message.textContent = `Grading ${current} of ${total} students...`;
-        } 
-        else if (data.status === 'SUCCESS') {
-            progressBar.style.width = '100%';
-            progressBar.setAttribute('aria-valuenow', '100');
-            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
-            progressBar.classList.add('bg-success');
-            
-            const result = data.result || {};
-            message.innerHTML = `<strong class="text-success">✓ Bulk grading complete!</strong>
-                <br>Graded: ${result.graded}, Failed: ${result.failed}, Missing: ${result.missing_submissions}`;
-            
-            if (pollInterval) clearInterval(pollInterval);
-            btn.disabled = false;
-            
-            // Reload the page after a delay
-            setTimeout(() => location.reload(), 2000);
+        const errorSec = document.getElementById('error-section');
+        if (error && error.trim()) {
+            errorSec.classList.remove('d-none');
+            document.getElementById('modal-error').textContent = error;
+        } else {
+            errorSec.classList.add('d-none');
         }
-        else if (data.status === 'FAILURE') {
-            message.innerHTML = `<strong class="text-danger">✗ Bulk grading failed!</strong><br>${data.error || 'Unknown error'}`;
-            progressBar.classList.add('bg-danger');
-            if (pollInterval) clearInterval(pollInterval);
-            btn.disabled = false;
-        }
-    })
-    .catch(error => {
-        console.error('Error polling status:', error);
-    });
-}
+    }
 
-function exportToCSV() {
-    let csv = 'Name,Email,Status,Score,Pass Rate\n';
-    
-    {% for student in grade_data %}
-    csv += '"{{ student.name }}","{{ student.email }}","{{ student.status }}",{{ student.score }}/{{ student.max_score }},{{ student.pass_rate }}%\n';
-    {% endfor %}
-    
-    const link = document.createElement('a');
-    link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-    link.download = `{{ assignment.name|slugify }}_grades.csv`;
-    link.click();
-}
+    function startBulkGrading() {
+        const btn = document.getElementById('bulk-grade-btn');
+        btn.disabled = true;
+        
+        fetch(`/grading/api/assignments/${assignmentId}/bulk-grade/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                currentTaskId = data.task_id;
+                document.getElementById('bulk-grade-status').style.display = 'block';
+                pollBulkGradingStatus();
+                pollInterval = setInterval(pollBulkGradingStatus, 2000);
+            } else {
+                alert('Error: ' + data.message);
+                btn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            btn.disabled = false;
+        });
+    }
+
+    function pollBulkGradingStatus() {
+        if (!currentTaskId) return;
+        
+        fetch(`/grading/api/bulk-grade/${currentTaskId}/status/`)
+        .then(response => response.json())
+        .then(data => {
+            const progressBar = document.getElementById('bulk-grade-progress');
+            const message = document.getElementById('bulk-grade-message');
+            const percentText = document.getElementById('bulk-percent');
+            
+            if (data.status === 'PROGRESS') {
+                const cur = data.progress.current || 0;
+                const tot = data.progress.total || 1;
+                const pct = Math.round((cur / tot) * 100);
+                
+                progressBar.style.width = pct + '%';
+                percentText.textContent = pct + '%';
+                message.textContent = `Grading student ${cur} of ${tot}...`;
+            } 
+            else if (data.status === 'SUCCESS') {
+                progressBar.style.width = '100%';
+                percentText.textContent = '100%';
+                message.textContent = 'Grading complete! Reloading...';
+                message.className = 'fw-bold text-success small';
+                
+                clearInterval(pollInterval);
+                setTimeout(() => location.reload(), 1500);
+            }
+            else if (data.status === 'FAILURE') {
+                message.textContent = 'Grading failed: ' + (data.error || 'Unknown error');
+                message.className = 'fw-bold text-danger small';
+                progressBar.classList.add('bg-danger');
+                clearInterval(pollInterval);
+                document.getElementById('bulk-grade-btn').disabled = false;
+            }
+        });
+    }
+
+    function exportToCSV() {
+        let csv = 'Student,Email,Score,Passed Tests,Total Tests\n';
+        {% for row in grade_data %}
+        csv += `"{{ row.name }}","{{ row.email }}",{{ row.score }},{{ row.passed_tests }},{{ row.total_tests }}\n`;
+        {% endfor %}
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.setAttribute("href", URL.createObjectURL(blob));
+        link.setAttribute("download", `Grades_{{ assignment.name|slugify }}.csv`);
+        link.click();
+    }
 </script>
-
-<style>
-.card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    border: none;
-}
-
-.progress {
-    height: 20px;
-    background-color: #e9ecef;
-}
-
-.table {
-    font-size: 0.9rem;
-}
-
-.badge {
-    padding: 0.35em 0.65em;
-}
-</style>
 {% endblock %}
