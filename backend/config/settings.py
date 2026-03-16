@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'professor',
     'grading',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -96,19 +97,31 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# Set USE_SQLITE=1 in .env to use SQLite locally (no PostgreSQL required).
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME":     os.getenv("POSTGRES_DB",       "gradesync"),
-        "USER":     os.getenv("POSTGRES_USER",     "gradesync"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "gradesync"),
-        # Try POSTGRES_HOST first, then DB_HOST (as used in .env), default to
-        # 'db' which is the Docker Compose service name for Postgres.
-        "HOST":     os.getenv("POSTGRES_HOST") or os.getenv("DB_HOST", "db"),
-        "PORT":     os.getenv("POSTGRES_PORT") or os.getenv("DB_PORT", "5432"),
+if os.getenv("USE_SQLITE", "").strip() == "1":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
+    # For local development with SQLite, run tasks synchronously (no separate worker needed)
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+    CELERY_RESULT_BACKEND = 'django-db'
+    CELERY_CACHE_BACKEND = 'django-cache'
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB", "gradesync"),
+            "USER": os.getenv("POSTGRES_USER", "gradesync"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "gradesync"),
+            "HOST": os.getenv("POSTGRES_HOST") or os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("POSTGRES_PORT") or os.getenv("DB_PORT", "5432"),
+        }
+    }
 
 
 
@@ -157,6 +170,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = 'professor_dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

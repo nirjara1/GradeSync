@@ -9,7 +9,7 @@
     <!-- Use FontAwesome for sidebar icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Reusing the professor CSS for identical layout -->
-    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=3.2">
+    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.0">
     {% block extra_css %}{% endblock %}
 </head>
 
@@ -28,7 +28,7 @@
                 <h1 class="header-left-title">GradeSync</h1>
             </a>
             <div class="user-controls">
-                <span class="username">Welcome, <span class="username-bold">{{ display_name }}</span></span>
+                <span class="username">Welcome, <a href="{% url 'student_profile' %}" class="username-bold">{{ display_name }}</a></span>
                 <div class="nav-separator"></div>
                 <form method="post" action="{% url 'logout' %}" style="display: inline;">
                     {% csrf_token %}
@@ -42,7 +42,7 @@
 
     <div class="dashboard-layout">
         <aside class="sidebar">
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_profile' %}" class="nav-item {% if request.resolver_match.url_name == 'student_profile' %}active{% endif %}">
                 <i class="fa-solid fa-user-circle"></i>
                 <span>Profile</span>
             </a>
@@ -51,19 +51,27 @@
                 <i class="fa-solid fa-gauge-high"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_courses_list' %}" class="nav-item {% if request.resolver_match.url_name == 'student_courses_list' %}active{% endif %}">
                 <i class="fa-solid fa-book"></i>
                 <span>Courses</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_assignments' %}" class="nav-item {% if request.resolver_match.url_name == 'student_assignments' %}active{% endif %}">
                 <i class="fa-solid fa-book-open"></i>
                 <span>Assignments</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_calendar' %}" class="nav-item {% if request.resolver_match.url_name == 'student_calendar' %}active{% endif %}">
+                <i class="fa-regular fa-calendar-days"></i>
+                <span>Calendar</span>
+            </a>
+            <a href="{% url 'execution_sandbox' %}" class="nav-item {% if request.resolver_match.url_name == 'execution_sandbox' %}active{% endif %}">
+                <i class="fa-solid fa-code"></i>
+                <span>Code Sandbox</span>
+            </a>
+            <a href="{% url 'student_inbox' %}" class="nav-item {% if request.resolver_match.url_name == 'student_inbox' %}active{% endif %}">
                 <i class="fa-solid fa-inbox"></i>
                 <span>Inbox</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{% url 'student_help' %}" class="nav-item {% if request.resolver_match.url_name == 'student_help' %}active{% endif %}">
                 <i class="fa-solid fa-question-circle"></i>
                 <span>Help</span>
             </a>

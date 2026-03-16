@@ -1,0 +1,112 @@
+{% extends 'base_professor.html' %}
+{% load static %}
+
+{% block content %}
+<div class="inbox-container" style="height: calc(100vh - 250px); min-height: 500px; display: flex; flex-direction: column;">
+    <div class="inbox-header" style="margin-bottom: 20px;">
+        <h2 class="page-title">Inbox</h2>
+        <p class="profile-subtitle">Communicate with students and faculty.</p>
+    </div>
+    
+    <hr class="divider">
+
+    {% if messages %}
+    <div class="messages" style="margin-bottom: 20px;">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" style="padding: 15px; border-radius: 4px; background: #e2f0e5; color: #155724;">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="inbox-layout" style="display: flex; gap: 20px; flex: 1; min-height: 0;">
+        
+        <!-- Sidebar Contacts -->
+        <div class="inbox-sidebar" style="width: 300px; background: white; border-radius: 8px; border: 1px solid #eaeaea; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <div style="padding: 15px; border-bottom: 1px solid #eee; background: #fcfcfc;">
+                <input type="text" placeholder="Search contacts..." id="contact-search" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div style="flex: 1; overflow-y: auto;">
+                {% for contact in contacts %}
+                <a href="?user_id={{ contact.id }}" class="contact-item {% if active_user and active_user.id == contact.id %}active{% endif %}" style="display: block; text-decoration: none; color: inherit; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; {% if active_user and active_user.id == contact.id %}background: rgba(132, 0, 41, 0.05); border-left: 4px solid var(--maroon);{% endif %}">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <strong style="{% if active_user and active_user.id == contact.id %}color: var(--maroon);{% endif %}">{{ contact.first_name|default:contact.username }} {{ contact.last_name }}</strong>
+                        <span style="font-size: 11px; color: #888;">{{ contact.profile.get_role_display }}</span>
+                    </div>
+                </a>
+                {% empty %}
+                <div style="padding: 15px; text-align: center; color: #888; font-size: 14px;">No contacts found.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Main Message Area -->
+        <div class="inbox-main" style="flex: 1; background: white; border-radius: 8px; border: 1px solid #eaeaea; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            {% if active_user %}
+            <div style="padding: 20px; border-bottom: 1px solid #eee; background: #fcfcfc; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; color: var(--text-main); font-size: 18px;">{{ active_user.first_name|default:active_user.username }} {{ active_user.last_name }}</h3>
+                    <span style="font-size: 12px; color: #888;">{{ active_user.email }}</span>
+                </div>
+            </div>
+            
+            <div style="flex: 1; padding: 20px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; gap: 15px;">
+                {% for msg in chat_messages %}
+                    {% if msg.sender == request.user %}
+                        <!-- Sent by me -->
+                        <div style="align-self: flex-end; background: var(--maroon); color: white; padding: 15px; border-radius: 8px 8px 0 8px; max-width: 70%; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <span style="display: block; font-size: 11px; color: rgba(255,255,255,0.8); margin-bottom: 5px;">{{ msg.timestamp|date:"M d, g:i A" }}</span>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.5;">{{ msg.body|linebreaksbr }}</p>
+                        </div>
+                    {% else %}
+                        <!-- Received -->
+                        <div style="align-self: flex-start; background: white; padding: 15px; border-radius: 8px 8px 8px 0; max-width: 70%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #eee;">
+                            <span style="display: block; font-size: 11px; color: #888; margin-bottom: 5px;">{{ msg.sender.first_name|default:msg.sender.username }} • {{ msg.timestamp|date:"M d, g:i A" }}</span>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #333;">{{ msg.body|linebreaksbr }}</p>
+                        </div>
+                    {% endif %}
+                {% empty %}
+                    <div style="text-align: center; color: #888; margin-top: 50px; font-size: 14px;">No messages yet. Start the conversation!</div>
+                {% endfor %}
+            </div>
+
+            <div style="padding: 15px; border-top: 1px solid #eee; background: white;">
+                <form method="post" action="{% url 'professor_inbox' %}" style="display: flex; gap: 10px;">
+                    {% csrf_token %}
+                    <input type="hidden" name="recipient_id" value="{{ active_user.id }}">
+                    <textarea name="body" required placeholder="Type your message..." style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 4px; resize: none; height: 45px; font-family: inherit; font-size: 14px;"></textarea>
+                    <button type="submit" style="background: var(--maroon); color: white; border: none; padding: 0 20px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.2s;">
+                        Send <i class="fa-solid fa-paper-plane" style="margin-left: 5px;"></i>
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <!-- No active user selected state -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fcfcfc;">
+                <i class="fa-regular fa-comments" style="font-size: 60px; color: #ddd; margin-bottom: 20px;"></i>
+                <h3 style="color: #888; font-weight: normal;">Select a contact to start messaging</h3>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<style>
+.contact-item:hover:not(.active) {
+    background: #f5f5f5 !important;
+}
+</style>
+
+<script>
+    // Simple client-side search filtering
+    document.getElementById('contact-search')?.addEventListener('input', function(e) {
+        const query = e.target.value.toLowerCase();
+        document.querySelectorAll('.contact-item').forEach(item => {
+            const name = item.innerText.toLowerCase();
+            item.style.display = name.includes(query) ? 'block' : 'none';
+        });
+    });
+</script>
+{% endblock %}

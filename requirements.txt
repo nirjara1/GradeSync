@@ -5,3 +5,9 @@ whitenoise
 
 psycopg2-binary>=2.9
 python-dotenv
+Pillow
+openpyxl>=3.0
+docker>=7.0.0
+celery>=5.3.0
+redis>=5.0.0
+django-celery-results>=2.5.1

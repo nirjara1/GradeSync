@@ -1,291 +1,936 @@
-{% extends base_template %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-    <div>
-        <h2 class="page-title" style="margin: 0; color: var(--maroon);">Grade Submission</h2>
-        <p style="margin: 5px 0 0 0; color: var(--text-muted);">
-            Student: <strong>{{ submission.student.user.get_full_name|default:submission.student.user.username
-                }}</strong> |
-            Assignment: <a href="{% url 'assignment_detail' submission.assignment.pk %}"
-                style="color: var(--maroon);">{{ submission.assignment.name }}</a>
-        </p>
-    </div>
-</div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Submission - {{ submission.assignment.name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<div style="display: flex; gap: 30px;">
-    <!-- Left Column: Submission Details -->
-    <div style="flex: 2; min-width: 0; background: white; padding: 30px; border-radius: 8px; border: 1px solid #eee;">
-        <h3 style="margin-top: 0; border-bottom: 2px solid var(--maroon); padding-bottom: 10px;">Submission Details</h3>
+    <!-- Load Monaco Editor -->
+    <script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
 
-        <p><strong>Submitted On:</strong> {{ submission.submission_time|date:"F j, Y, g:i a" }}</p>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        <div style="margin-top: 20px;">
-            <p><strong>Submitted File:</strong></p>
-            <div
-                style="background: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-radius: 6px; display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <i class="fa-solid fa-file-code"
-                        style="font-size: 24px; color: var(--text-muted); margin-right: 10px;"></i>
-                    <span style="font-family: monospace; font-size: 14px;">{{ submission.file_path.name }}</span>
-                </div>
-                <a href="{% url 'download_submission' submission.pk %}" class="btn-publish"
-                    style="text-decoration: none; padding: 8px 15px;">
-                    Download File
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f4f6f8;
+        }
+
+        .grade-submission-scaffold {
+            --maroon: #840029;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Header */
+        .grade-submission-header {
+            background-color: var(--maroon);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            gap: 16px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .grade-submission-header a {
+            color: #fff;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .grade-submission-header a:hover {
+            opacity: 0.8;
+        }
+
+        .grade-submission-header .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .grade-submission-header .header-center {
+            flex: 1;
+            min-width: 0;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+
+        .grade-submission-header .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .grade-submission-header .nav-arrow {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+        }
+
+        .grade-submission-header .nav-arrow:hover:not(.disabled) {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .grade-submission-header .nav-arrow.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Body Layout */
+        .grade-submission-body {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        /* Code Editor Left Panel */
+        .grade-submission-editor-area {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+            /* Match VS Code Dark Theme */
+            border-right: 1px solid #ddd;
+        }
+
+        .file-tabs {
+            display: flex;
+            background-color: #2d2d2d;
+            border-bottom: 1px solid #1e1e1e;
+            overflow-x: auto;
+            padding: 0 8px;
+            gap: 4px;
+            height: 40px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 5;
+            align-items: flex-end;
+        }
+
+        .file-tab {
+            padding: 8px 16px;
+            height: 32px;
+            background-color: #3e3e42;
+            color: #ccc;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 4px 4px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            white-space: nowrap;
+            border-right: 1px solid #2d2d2d;
+        }
+
+        .file-tab:hover {
+            background-color: #4e4e52;
+            color: #fff;
+        }
+
+        .file-tab.active {
+            background-color: #1e1e1e;
+            color: #fff;
+            border-top: 2px solid #fff;
+            font-weight: 600;
+        }
+
+        .file-tab i {
+            font-size: 14px;
+        }
+
+        .editor-container {
+            flex: 1;
+            width: 100%;
+        }
+
+        .no-code-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #888;
+            font-size: 15px;
+            text-align: center;
+            background: #fff;
+        }
+
+        /* Grading Sidebar Right Panel — tabbed Evaluation Pane */
+        .grade-submission-sidebar-area {
+            width: 400px;
+            flex-shrink: 0;
+            background: #fafafa;
+            border-left: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .rubric-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .rubric-card-header {
+            background: #f9fafb;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .rubric-row {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            border-bottom: 1px solid #f3f4f6;
+            gap: 10px;
+        }
+
+        .rubric-row:last-child {
+            border-bottom: none;
+        }
+
+        .rubric-row-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .rubric-row label {
+            font-size: 14px;
+            color: #4b5563;
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .rubric-row input[type="number"] {
+            width: 70px;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+
+        .rubric-row input[type="number"]:focus {
+            border-color: var(--maroon);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(132, 0, 41, 0.1);
+        }
+
+        .rubric-total-box {
+            padding: 16px;
+            background: #fdf8f8;
+            border-top: 1px solid #fecaca;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            color: var(--maroon);
+            font-size: 16px;
+        }
+
+        .feedback-section {
+            margin-bottom: 20px;
+        }
+
+        .feedback-section label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .feedback-section textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            min-height: 120px;
+            resize: vertical;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .feedback-section textarea:focus {
+            border-color: var(--maroon);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(132, 0, 41, 0.1);
+        }
+
+        .btn-submit-grade {
+            background: var(--maroon);
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(132, 0, 41, 0.2);
+        }
+
+        .btn-submit-grade:hover {
+            background: #6b0021;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(132, 0, 41, 0.15);
+        }
+
+        /* Empty State */
+        .empty-rubric {
+            text-align: center;
+            padding: 40px 20px;
+            background: #f9fafb;
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .empty-rubric i {
+            font-size: 32px;
+            color: #9ca3af;
+            margin-bottom: 12px;
+        }
+
+        .empty-rubric p {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+
+        /* Evaluation Pane Tabs */
+        .evaluation-pane-tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+            padding: 0 16px;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .evaluation-pane-tabs .tab-btn {
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .evaluation-pane-tabs .tab-btn:hover { color: #374151; }
+        .evaluation-pane-tabs .tab-btn.active {
+            color: var(--maroon);
+            border-bottom-color: var(--maroon);
+        }
+        .evaluation-pane-tab-content {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fff;
+        }
+        .evaluation-pane-tab-content.active {
+            display: flex;
+        }
+
+        /* Test Runner tab */
+        .btn-run-all-tests {
+            background: var(--maroon);
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+        .btn-run-all-tests:hover { background: #6b0021; transform: translateY(-1px); }
+        .btn-run-all-tests:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .test-results-list { list-style: none; margin: 0; padding: 0; }
+        .test-results-list .test-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .test-results-list .test-item-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #374151;
+            user-select: none;
+            transition: background 0.15s;
+        }
+        .test-results-list .test-item-header:hover { background: #f9fafb; }
+        .test-results-list .test-item.expandable .test-item-header { cursor: pointer; }
+        .test-results-list .test-item .status-icon { margin-right: 10px; font-size: 16px; }
+        .test-results-list .test-item .test-name { flex: 1; }
+        .test-results-list .test-item-body {
+            display: none;
+            padding: 12px;
+            border-top: 1px solid #e5e7eb;
+            background: #f9fafb;
+            font-size: 12px;
+        }
+        .test-results-list .test-item.expanded .test-item-body { display: block; }
+        .test-results-list .output-row { margin-bottom: 12px; }
+        .test-results-list .output-row:last-child { margin-bottom: 0; }
+        .test-results-list .output-label { color: #6b7280; font-weight: 600; margin-bottom: 4px; }
+        .test-results-list .output-pre {
+            background: #1e1e1e;
+            color: #e5e7e5;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: ui-monospace, monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin: 0;
+        }
+        .test-results-empty-msg {
+            color: #6b7280;
+            font-size: 13px;
+            padding: 20px;
+            text-align: center;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px dashed #e5e7eb;
+        }
+
+        /* Console tab */
+        .btn-run-code {
+            background: var(--maroon);
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+        .btn-run-code:hover { background: #6b0021; transform: translateY(-1px); }
+        .console-terminal {
+            flex: 1;
+            min-height: 200px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+            font-size: 13px;
+            color: #d4d4d4;
+            padding: 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .console-terminal .console-line {
+            margin-bottom: 6px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .console-terminal .console-prompt { color: #4ec9b0; }
+        .console-terminal .console-input-line {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .console-terminal .console-input-line textarea {
+            flex: 1;
+            background: #111827;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            color: #e5e7eb;
+            font: inherit;
+            outline: none;
+            padding: 6px 8px;
+            min-height: 40px;
+            max-height: 90px;
+            resize: none;
+        }
+        .console-terminal .console-input-line textarea::placeholder {
+            color: #9ca3af;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="grade-submission-scaffold">
+
+        <!-- Top Nav Bar -->
+        <header class="grade-submission-header">
+            <div class="header-left">
+                <a href="{% url 'gradebook' pk=submission.assignment.pk %}" title="Back to Gradebook">
+                    <i class="fa-solid fa-arrow-left" style="margin-right: 6px;"></i> Gradebook
                 </a>
             </div>
-        </div>
+            <div class="header-center">
+                {{ submission.assignment.course.code }} - {{ submission.assignment.name }}
+            </div>
+            <div class="header-right">
+                <span style="font-weight: 500;"><i class="fa-solid fa-user-graduate" style="margin-right: 5px;"></i> {{ submission.student }}</span>
+                <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.3); margin: 0 8px;"></div>
+                {% if previous_submission %}
+                <a href="{% url 'grade_submission' previous_submission.pk %}" class="nav-arrow"
+                    title="Previous Student"><i class="fa-solid fa-chevron-left"></i></a>
+                {% else %}
+                <span class="nav-arrow disabled" title="No previous submission"><i
+                        class="fa-solid fa-chevron-left"></i></span>
+                {% endif %}
 
-        {% if submission_files_json and submission_files_json != '[]' %}
-        <div style="margin-top: 30px;">
-            <h4 style="margin-top: 0; margin-bottom: 12px; font-size: 16px; color: #555;">Code Preview</h4>
+                {% if next_submission %}
+                <a href="{% url 'grade_submission' next_submission.pk %}" class="nav-arrow" title="Next Student"><i
+                        class="fa-solid fa-chevron-right"></i></a>
+                {% else %}
+                <span class="nav-arrow disabled" title="No next submission"><i
+                        class="fa-solid fa-chevron-right"></i></span>
+                {% endif %}
+            </div>
+        </header>
 
-            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-                <div id="previewFileTabs"
-                    style="display: flex; flex: 1; overflow-x: auto; gap: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
-                    <!-- Tabs will be injected here -->
+        <div class="grade-submission-body">
+
+            <!-- Left Column: Code Editor -->
+            <div class="grade-submission-editor-area">
+                {% if can_preview_code %}
+                <div class="file-tabs" id="evaluationTabs"></div>
+                <div id="evaluationEditorContainer" class="editor-container"></div>
+                {% else %}
+                <div class="no-code-message">
+                    <i class="fa-solid fa-file-circle-xmark"
+                        style="font-size: 48px; color: #ddd; margin-bottom: 16px;"></i>
+                    <h3 style="color: #555; margin-bottom: 8px;">No Readable Source Code</h3>
+                    <p>The student has not submitted any files, or the submitted files cannot be opened in the editor.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right Column: Evaluation Pane (Tabbed) -->
+            <div class="grade-submission-sidebar-area">
+                <div class="evaluation-pane-tabs" role="tablist">
+                    <button type="button" class="tab-btn active" data-tab="grading" aria-selected="true">Grading</button>
+                    <button type="button" class="tab-btn" data-tab="test-runner" aria-selected="false">Test Runner</button>
+                    <button type="button" class="tab-btn" data-tab="console" aria-selected="false">Console</button>
+                </div>
+
+                <!-- Grading Tab -->
+                <div id="tab-grading" class="evaluation-pane-tab-content active" role="tabpanel">
+                    <form id="evaluationForm" method="post" action="">
+                        {% csrf_token %}
+                        {% if rubric and criteria %}
+                        <input type="hidden" name="submit_grade_rubric" value="1">
+                        <div class="rubric-card">
+                            <div class="rubric-card-header">
+                                <span>Grading Criteria</span>
+                                <span>{{ assignment.points }} pts total</span>
+                            </div>
+                            {% for row in criteria_with_scores %}
+                            <div class="rubric-row">
+                                <div class="rubric-row-top">
+                                    <label for="score_criterion_{{ row.criterion.id }}">
+                                        {{ row.criterion.name }}
+                                        <span style="color: #9ca3af; font-size: 12px; margin-left: 4px; font-weight: normal;">
+                                            {% if rubric.is_weighted %}({{ row.criterion.weight|floatformat:0 }}%){% else %}({{ row.criterion.points }} pts){% endif %}
+                                        </span>
+                                    </label>
+                                    <input type="number" id="score_criterion_{{ row.criterion.id }}"
+                                        name="score_criterion_{{ row.criterion.id }}" step="0.5" min="0"
+                                        value="{{ row.points_earned|default:'0' }}">
+                                </div>
+                            </div>
+                            {% endfor %}
+                            <div class="rubric-total-box">
+                                <span>Overall Score:</span>
+                                <div><span id="rubric-sum">0</span> / {{ assignment.points }}</div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="empty-rubric">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                            <p>No rubric attached to this assignment.</p>
+                        </div>
+                        {% endif %}
+                        <div class="feedback-section" style="margin-top: 20px;">
+                            <label for="feedback"><i class="fa-regular fa-comment-dots" style="margin-right: 6px; color: #6b7280;"></i> Instructor Feedback</label>
+                            <textarea id="feedback" name="feedback" placeholder="Provide constructive feedback for the student here...">{{ grade.feedback|default:'' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn-submit-grade">
+                            <i class="fa-solid fa-check"></i> Save Evaluation
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Test Runner Tab -->
+                <div id="tab-test-runner" class="evaluation-pane-tab-content" role="tabpanel">
+                    <button type="button" id="runAllTestsBtn" class="btn-run-all-tests" title="Run submission against all test cases (public and private)" data-grade-url="{% url 'grade_submission_api' submission_id=submission.pk %}">
+                        <i class="fa-solid fa-play"></i> Run All Tests
+                    </button>
+                    <span id="runAllTestsStatus" class="test-runner-status" style="font-size: 13px; color: #6b7280; margin-left: 8px;"></span>
+                    <div id="testResultsEmpty" class="test-results-empty-msg" {% if test_results %}style="display:none"{% endif %}>No test results yet. Click &quot;Run All Tests&quot; to execute this submission against all test cases.</div>
+                    <ul class="test-results-list" id="testResultsList" {% if not test_results %}style="display:none"{% endif %}>
+                        {% for result in test_results %}
+                        <li class="test-item expandable" data-result-id="{{ result.id }}">
+                            <div class="test-item-header">
+                                <span class="status-icon">{% if result.passed %}✅{% else %}❌{% endif %}</span>
+                                <span class="test-name">{{ result.test_case.name }}{% if result.test_case.is_private %} <span style="color:#9ca3af;font-size:11px;">(Private)</span>{% endif %}</span>
+                            </div>
+                            <div class="test-item-body">
+                                <div class="output-row">
+                                    <div class="output-label">Expected Output</div>
+                                    <pre class="output-pre">{{ result.test_case.expected_output }}</pre>
+                                </div>
+                                <div class="output-row">
+                                    <div class="output-label">Actual Output</div>
+                                    <pre class="output-pre">{{ result.actual_output }}{% if result.error_message %}{{ result.error_message }}{% endif %}</pre>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Console Tab -->
+                <div id="tab-console" class="evaluation-pane-tab-content" role="tabpanel">
+                    <button type="button" id="runCodeBtn" class="btn-run-code" title="Run code with interactive input" data-exec-url="{% url 'execute_submission_api' submission_id=submission.pk %}">
+                        <i class="fa-solid fa-terminal"></i> Run Code
+                    </button>
+                    <div class="console-terminal" id="consoleTerminal">
+                        <div class="console-line console-prompt">&gt;&gt;&gt; Python console — enter input for student code when prompted.</div>
+                        <div class="console-line" style="color:#6b7280;font-size:12px;margin-top:8px;">Click &quot;Run Code&quot; to start. Input prompts will appear here.</div>
+                        <div class="console-input-line" id="consoleInputLine" style="display: none;">
+                            <span class="console-prompt">&gt;</span>
+                            <textarea id="consoleInput" placeholder="Type all inputs here, one per line." autocomplete="off"></textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div id="monaco-editor-container-preview"
-                style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            </div>
+        </div>
+    </div>
 
-            <!-- Load Monaco Editor via CDN -->
-            <script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-            <script
-                src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
-            <script
-                src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
+    <!-- Scripts: Tabs, Test Runner accordion, Run Code, Rubric, Monaco -->
+    <script>
+        (function () {
+            // Tab switching
+            var tabBtns = document.querySelectorAll('.evaluation-pane-tabs .tab-btn');
+            var tabPanels = document.querySelectorAll('.evaluation-pane-tab-content');
+            tabBtns.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var tabId = btn.getAttribute('data-tab');
+                    tabBtns.forEach(function (b) {
+                        b.classList.remove('active');
+                        b.setAttribute('aria-selected', 'false');
+                    });
+                    tabPanels.forEach(function (p) {
+                        p.classList.remove('active');
+                    });
+                    btn.classList.add('active');
+                    btn.setAttribute('aria-selected', 'true');
+                    var panel = document.getElementById('tab-' + tabId);
+                    if (panel) panel.classList.add('active');
+                });
+            });
 
-            <script>
-                document.addEventListener("DOMContentLoaded", function () {
-                    if (typeof monaco !== 'undefined') {
-                        let submissionFiles = [];
-                        try {
-                            const rawJson = `{{ submission_files_json|escapejs }}`;
-                            if (rawJson) {
-                                submissionFiles = JSON.parse(rawJson);
+            // Test Runner: accordion for failed items
+            document.getElementById('testResultsList').addEventListener('click', function (e) {
+                var header = e.target.closest('.test-item.expandable .test-item-header');
+                if (header) {
+                    var item = header.closest('.test-item');
+                    if (item) item.classList.toggle('expanded');
+                }
+            });
+
+            // Run All Tests: call backend to run submission against assignment test cases (from CSV)
+            var runAllTestsBtn = document.getElementById('runAllTestsBtn');
+            var runAllTestsStatus = document.getElementById('runAllTestsStatus');
+            var testResultsEmpty = document.getElementById('testResultsEmpty');
+            var testResultsList = document.getElementById('testResultsList');
+            if (runAllTestsBtn) {
+                runAllTestsBtn.addEventListener('click', function () {
+                    var url = runAllTestsBtn.getAttribute('data-grade-url');
+                    if (!url) return;
+                    var csrfToken = (document.querySelector('[name=csrfmiddlewaretoken]') && document.querySelector('[name=csrfmiddlewaretoken]').value) || (document.cookie.match(/csrftoken=([^;]+)/) && document.cookie.match(/csrftoken=([^;]+)/)[1]);
+                    runAllTestsBtn.disabled = true;
+                    if (runAllTestsStatus) { runAllTestsStatus.textContent = 'Running tests...'; runAllTestsStatus.style.color = '#6b7280'; }
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken || '',
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    }).then(function (r) { return r.json(); }).then(function (data) {
+                        runAllTestsBtn.disabled = false;
+                        if (runAllTestsStatus) runAllTestsStatus.textContent = '';
+                        if (data.status === 'ok' && Array.isArray(data.test_results)) {
+                            if (data.test_results.length === 0) {
+                                if (runAllTestsStatus) runAllTestsStatus.textContent = 'No test cases for this assignment.';
+                                return;
                             }
-                        } catch (e) {
-                            console.error("Error parsing submission_files_json", e);
+                            if (testResultsEmpty) testResultsEmpty.style.display = 'none';
+                            testResultsList.style.display = 'block';
+                            var html = '';
+                            data.test_results.forEach(function (t) {
+                                var priv = t.is_private ? ' <span style="color:#9ca3af;font-size:11px;">(Private)</span>' : '';
+                                var icon = t.passed ? '✅' : '❌';
+                                var actual = (t.actual_output || '') + (t.error_message ? t.error_message : '');
+                                html += '<li class="test-item expandable"><div class="test-item-header"><span class="status-icon">' + icon + '</span><span class="test-name">' + escapeHtml(t.name) + priv + '</span></div>' +
+                                        '<div class="test-item-body"><div class="output-row"><div class="output-label">Expected Output</div><pre class="output-pre">' + escapeHtml(t.expected_output || '') + '</pre></div>' +
+                                        '<div class="output-row"><div class="output-label">Actual Output</div><pre class="output-pre">' + escapeHtml(actual) + '</pre></div></div></li>';
+                            });
+                            testResultsList.innerHTML = html;
+                            if (runAllTestsStatus) runAllTestsStatus.textContent = data.total_score + '/' + data.max_score + ' passed';
+                        } else {
+                            var errMsg = (data && data.error) ? data.error : 'Failed to run tests.';
+                            if (runAllTestsStatus) runAllTestsStatus.textContent = errMsg;
+                            if (runAllTestsStatus) runAllTestsStatus.style.color = '#dc2626';
                         }
+                    }).catch(function (err) {
+                        runAllTestsBtn.disabled = false;
+                        if (runAllTestsStatus) { runAllTestsStatus.textContent = 'Request failed.'; runAllTestsStatus.style.color = '#dc2626'; }
+                        console.error('Run All Tests error:', err);
+                    });
+                });
+            }
 
-                        if (submissionFiles.length === 0) return;
+            // Run Code: call backend and stream stdout/stderr into console
+            var runCodeBtn = document.getElementById('runCodeBtn');
+            var consoleInput = document.getElementById('consoleInput');
+            var consoleInputLine = document.getElementById('consoleInputLine');
+            var consoleTerminal = document.getElementById('consoleTerminal');
+            if (runCodeBtn && consoleTerminal) {
+                var execUrl = runCodeBtn.getAttribute('data-exec-url');
+                var csrfToken = (document.querySelector('[name=csrfmiddlewaretoken]') &&
+                                 document.querySelector('[name=csrfmiddlewaretoken]').value) ||
+                                (document.cookie.match(/csrftoken=([^;]+)/) &&
+                                 document.cookie.match(/csrftoken=([^;]+)/)[1]);
 
-                        let previewEditorInstance = monaco.editor.create(document.getElementById('monaco-editor-container-preview'), {
-                            theme: 'vs-light',
-                            readOnly: true,
-                            lineNumbers: 'on',
-                            wordWrap: 'on',
-                            minimap: { enabled: false },
+                function appendConsoleLine(text, cls) {
+                    var line = document.createElement('div');
+                    line.className = 'console-line' + (cls ? ' ' + cls : '');
+                    line.textContent = text;
+                    consoleTerminal.insertBefore(line, consoleInputLine);
+                    consoleTerminal.scrollTop = consoleTerminal.scrollHeight;
+                }
+
+                function runWithInput(stdinText) {
+                    if (!execUrl) return;
+                    consoleInputLine.style.display = 'flex';
+                    appendConsoleLine('Running code...', 'console-prompt');
+
+                    fetch(execUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken || '',
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ stdin: stdinText || '' })
+                    })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.stdout) appendConsoleLine(data.stdout, '');
+                        if (data.stderr) appendConsoleLine(data.stderr, 'console-error');
+                        if (!data.stdout && !data.stderr) appendConsoleLine('[no output]', 'console-muted');
+                    })
+                    .catch(function (err) {
+                        appendConsoleLine('Execution error: ' + err, 'console-error');
+                    });
+                }
+
+                runCodeBtn.addEventListener('click', function () {
+                    var val = consoleInput ? consoleInput.value : '';
+                    runWithInput(val);
+                });
+            }
+            function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        })();
+
+        // Rubric Auto-Calculation
+        {% if rubric and criteria %}
+        (function () {
+            var inputs = document.querySelectorAll('.rubric-row input[type="number"]');
+            var sumEl = document.getElementById('rubric-sum');
+
+            function updateTotal() {
+                var sum = 0;
+                inputs.forEach(function (inp) {
+                    var v = parseFloat(inp.value) || 0;
+                    sum += v;
+                });
+                sumEl.textContent = sum.toFixed(1).replace(/\.0$/, ''); // Format to 1 decimal, remove .0
+            }
+
+            inputs.forEach(function (inp) {
+                inp.addEventListener('input', updateTotal);
+                inp.addEventListener('change', updateTotal);
+            });
+            updateTotal();
+        })();
+        {% endif %}
+
+        // Monaco Editor Initialization
+        {% if can_preview_code %}
+        document.addEventListener("DOMContentLoaded", function () {
+            if (typeof monaco !== 'undefined') {
+                const rawFilesJSON = '{{ submission_files_json|escapejs }}';
+                let files = [];
+                try {
+                    files = JSON.parse(rawFilesJSON);
+                } catch (e) {
+                    console.error("Failed to parse submission files JSON", e);
+                }
+
+                if (files.length > 0) {
+                    const editorContainer = document.getElementById('evaluationEditorContainer');
+                    const tabsContainer = document.getElementById('evaluationTabs');
+                    
+                    console.log("Evaluation Files:", files);
+
+                    // Add a small delay to ensure Monaco is fully ready and container is sized
+                    setTimeout(() => {
+                        // Initialize Files with Models
+                        files.forEach(file => {
+                            try {
+                                file.model = monaco.editor.createModel(file.content, file.language);
+                            } catch (err) {
+                                console.error("Error creating model for ", file.name, err);
+                                // Fallback for model creation
+                                file.model = monaco.editor.createModel(file.content, 'plaintext');
+                            }
+                        });
+
+                        // Initialize Editor with first file
+                        const evaluationEditor = monaco.editor.create(editorContainer, {
+                            model: files[0].model,
+                            theme: 'vs-dark',
                             automaticLayout: true,
-                            scrollBeyondLastLine: false,
+                            readOnly: true,
                             fontSize: 14,
-                            padding: { top: 16, bottom: 16 }
+                            minimap: { enabled: true },
+                            padding: { top: 16 }
                         });
 
-                        const models = [];
-                        submissionFiles.forEach((file, index) => {
-                            const model = monaco.editor.createModel(file.content, file.language);
-                            models.push({ name: file.name, model: model });
-                        });
-
-                        let activeIndex = -1;
-
-                        function switchPreviewTab(index) {
-                            if (index < 0 || index >= models.length) return;
-                            activeIndex = index;
-                            previewEditorInstance.setModel(models[index].model);
-                            renderPreviewTabs();
+                        // File Icon Mapping
+                        function getIcon(filename) {
+                            const ext = filename.split('.').pop().toLowerCase();
+                            if (ext === 'py') return '<i class="fa-brands fa-python" style="color: #4B8BBE;"></i>';
+                            if (ext === 'java') return '<i class="fa-brands fa-java" style="color: #f89820;"></i>';
+                            if (ext === 'js') return '<i class="fa-brands fa-js" style="color: #f7df1e;"></i>';
+                            if (ext === 'html') return '<i class="fa-brands fa-html5" style="color: #e34c26;"></i>';
+                            if (ext === 'css') return '<i class="fa-brands fa-css3-alt" style="color: #264de4;"></i>';
+                            if (ext === 'json') return '<i class="fa-solid fa-code" style="color: #cbcb41;"></i>';
+                            if (ext === 'md') return '<i class="fa-solid fa-file-lines" style="color: #083fa1;"></i>';
+                            return '<i class="fa-regular fa-file-code" style="color: #888;"></i>';
                         }
 
-                        function renderPreviewTabs() {
-                            const tabsContainer = document.getElementById('previewFileTabs');
-                            if (!tabsContainer) return;
+                        let activeIndex = 0;
 
+                        // Render Tabs
+                        function renderTabs() {
                             tabsContainer.innerHTML = '';
-                            models.forEach((file, index) => {
-                                const isActive = index === activeIndex;
-                                const tabBtn = document.createElement('button');
-                                tabBtn.type = 'button';
-                                tabBtn.textContent = file.name;
-                                tabBtn.style.padding = '8px 15px';
-                                tabBtn.style.border = '1px solid #ddd';
-                                tabBtn.style.background = isActive ? 'white' : '#f5f5f5';
-                                tabBtn.style.borderBottom = isActive ? '2px solid white' : '1px solid #ddd';
-                                tabBtn.style.marginBottom = isActive ? '-6px' : '0';
-                                tabBtn.style.borderRadius = '6px 6px 0 0';
-                                tabBtn.style.cursor = 'pointer';
-                                tabBtn.style.fontSize = '13px';
-                                tabBtn.style.color = isActive ? 'var(--maroon)' : '#666';
-                                tabBtn.style.fontWeight = isActive ? 'bold' : 'normal';
-                                tabBtn.style.position = 'relative';
-                                tabBtn.style.zIndex = isActive ? '2' : '1';
-                                tabBtn.onclick = () => switchPreviewTab(index);
-                                tabsContainer.appendChild(tabBtn);
+                            files.forEach((file, index) => {
+                                const btn = document.createElement('button');
+                                btn.type = 'button';
+                                btn.className = `file-tab ${index === activeIndex ? 'active' : ''}`;
+                                btn.innerHTML = `${getIcon(file.name)} ${file.name}`;
+                                btn.style.display = 'flex';
+                                btn.style.alignItems = 'center';
+                                btn.style.gap = '8px';
+
+                                btn.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    activeIndex = index;
+                                    evaluationEditor.setModel(file.model);
+                                    renderTabs();
+                                });
+                                tabsContainer.appendChild(btn);
                             });
                         }
 
-                        switchPreviewTab(0);
-                    }
-                });
-            </script>
-        </div>
-        {% else %}
-        <div
-            style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; text-align: center;">
-            <i class="fa-solid fa-file-invoice"
-                style="font-size: 24px; color: #999; margin-bottom: 10px; display: block;"></i>
-            <p style="color: #666; font-size: 14px; margin: 0;">In-browser preview is only available for submissions
-                containing .py or .java files.</p>
-        </div>
+                        renderTabs();
+                    }, 100);
+                }
+            }
+        });
         {% endif %}
+    </script>
 
-    </div>
+</body>
 
-    <!-- Right Column: Grading Panel -->
-    <div
-        style="flex: 1; background: #fdfdfd; padding: 30px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-        <h3 style="margin-top: 0; border-bottom: 2px solid var(--maroon); padding-bottom: 10px;">Evaluation</h3>
-
-        {% if messages %}
-        <ul class="messages" style="padding: 0; margin-bottom: 15px;">
-            {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}" {% endif %}
-                style="color: green; font-weight: bold; list-style: none; margin-bottom: 10px;">
-                {{ message }}
-                </li>
-                {% endfor %}
-        </ul>
-        {% endif %}
-
-        <form method="POST">
-            {% csrf_token %}
-
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label for="score" style="display: block; font-weight: bold; margin-bottom: 8px;">
-                    Score (out of {{ submission.assignment.points }}) *
-                </label>
-                <div style="display: flex; align-items: center;">
-                    <input type="number" id="score" name="score" step="0.5" required
-                        value="{{ grade.score|default:'' }}"
-                        style="width: 100px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; text-align: center;">
-                    <span style="margin-left: 10px; color: var(--text-muted); font-size: 18px;">/ {{
-                        submission.assignment.points }}</span>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 25px;">
-                <label for="feedback" style="display: block; font-weight: bold; margin-bottom: 8px;">
-                    Feedback (Optional)
-                </label>
-                <textarea id="feedback" name="feedback" rows="6"
-                    style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 14px; box-sizing: border-box;">{{ grade.feedback|default:'' }}</textarea>
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <a href="{% url 'assignment_detail' submission.assignment.pk %}"
-                    style="padding: 10px 15px; border: 1px solid #ccc; border-radius: 4px; color: #333; text-decoration: none; background: #f5f5f5;">Cancel</a>
-                <button type="submit" class="btn-publish" style="flex: 1;">Save Grade</button>
-            </div>
-        </form>
-
-        <!-- AI & Integrity Analysis Panel (Only visible to Instructors/GAs) -->
-        {% if is_instructor or request.session.active_role == 'GRADING_ASSISTANT' %}
-        <div style="margin-top: 30px; background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ddd; border-left: 4px solid var(--maroon); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--maroon); font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                <i class="fa-solid fa-shield-halved" style="margin-right: 8px;"></i> AI & Integrity Analysis
-            </h3>
-            
-            {% if submission.ai_likelihood_score is not None or submission.plagiarism_score is not None %}
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                
-                <!-- Section A - AI Detection -->
-                <div style="background: #fdfdfd; padding: 15px; border: 1px solid #eee; border-radius: 6px;">
-                    <h4 style="margin-top: 0; font-size: 15px; color: #444; margin-bottom: 15px;">AI Detection</h4>
-                    
-                    {% if submission.ai_likelihood_score is not None %}
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <span style="color: #666; font-size: 14px;">Likelihood:</span>
-                        <span style="font-weight: bold; font-size: 15px; color: {% if submission.ai_likelihood_score <= 30.0 %}#2e7d32{% elif submission.ai_likelihood_score <= 70.0 %}#f57f17{% else %}#d32f2f{% endif %};">
-                            {{ submission.ai_likelihood_score }}%
-                            
-                            {% if submission.ai_likelihood_score <= 30.0 %}
-                            <span style="background:#e8f5e9; color:#2e7d32; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">Low</span>
-                            {% elif submission.ai_likelihood_score <= 70.0 %}
-                            <span style="background:#fff3e0; color:#f57f17; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">Medium</span>
-                            {% else %}
-                            <span style="background:#ffebee; color:#d32f2f; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">High</span>
-                            {% endif %}
-                        </span>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
-                        <span style="color: #666; font-size: 14px;">Estimated Confidence:</span>
-                        <span style="font-weight: bold; font-size: 14px;">{{ submission.ai_confidence_score }}%</span>
-                    </div>
-                    
-                    <p style="font-size: 13px; color: #555; margin: 0; font-style: italic;">
-                        <i class="fa-solid fa-circle-info" style="color: #888; margin-right: 5px;"></i>
-                        {{ submission.ai_explanation|default:"Pattern analysis suggests likely AI-assisted generation." }}
-                    </p>
-                    {% else %}
-                    <p style="font-size: 13px; color: #777; margin: 0; font-style: italic; text-align: center;">
-                        AI analysis unavailable
-                    </p>
-                    {% endif %}
-                </div>
-
-                <!-- Section B - Plagiarism Detection -->
-                <div style="background: #fdfdfd; padding: 15px; border: 1px solid #eee; border-radius: 6px;">
-                    <h4 style="margin-top: 0; font-size: 15px; color: #444; margin-bottom: 15px;">Plagiarism Similarity</h4>
-                    
-                    {% if submission.plagiarism_score is not None %}
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <span style="color: #666; font-size: 14px;">Similarity:</span>
-                        <span style="font-weight: bold; font-size: 15px; color: {% if submission.plagiarism_score <= 20.0 %}#2e7d32{% elif submission.plagiarism_score <= 50.0 %}#f57f17{% else %}#d32f2f{% endif %};">
-                            {{ submission.plagiarism_score }}%
-                            
-                            {% if submission.plagiarism_score <= 20.0 %}
-                            <span style="background:#e8f5e9; color:#2e7d32; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">Low</span>
-                            {% elif submission.plagiarism_score <= 50.0 %}
-                            <span style="background:#fff3e0; color:#f57f17; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">Medium</span>
-                            {% else %}
-                            <span style="background:#ffebee; color:#d32f2f; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:5px;">High</span>
-                            {% endif %}
-                        </span>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
-                        <span style="color: #666; font-size: 14px;">Estimated Confidence:</span>
-                        <span style="font-weight: bold; font-size: 14px;">{{ submission.plagiarism_confidence_score }}%</span>
-                    </div>
-                    
-                    <p style="font-size: 13px; color: #555; margin: 0; word-break: break-all;">
-                        <strong>Closest Match:</strong> <span style="font-family: monospace;">{{ submission.plagiarism_match_info|default:"None" }}</span>
-                    </p>
-                    {% else %}
-                    <p style="font-size: 13px; color: #777; margin: 0; font-style: italic; text-align: center;">
-                        Plagiarism analysis unavailable
-                    </p>
-                    {% endif %}
-                </div>
-                
-            </div>
-            
-            <div style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-size: 12px; color: #666;">
-                <strong>Note:</strong> AI detection and similarity metrics are advisory tools only. They do not automatically imply misconduct and should be reviewed in context.
-                <br>* Confidence scores are currently estimated heuristically based on extremity and available comparison corpus due to model limitations.
-            </div>
-            {% else %}
-            <div style="padding: 15px; text-align: center; color: #777; font-style: italic; background: #fdfdfd; border: 1px dashed #ccc; border-radius: 6px;">
-                {{ submission.ai_explanation|default:"AI and Plagiarism analysis is currently not available for this submission." }}
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-    </div>
-</div>
-{% endblock %}
+</html>

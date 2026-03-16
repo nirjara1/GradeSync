@@ -8,7 +8,7 @@
     <title>GradeSync - Grading Assistant Dashboard</title>
     <!-- Use FontAwesome for sidebar icons to match screenshot -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=3.1">
+    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.0">
 </head>
 
 <body>
@@ -27,7 +27,7 @@
                 <h1 class="header-left-title">GradeSync</h1>
             </a>
             <div class="user-controls">
-                <span class="username">Welcome, <span class="username-bold">{{ display_name }}</span></span>
+                <span class="username">Welcome, <a href="{% url 'user_profile' %}" class="username-bold">{{ display_name }}</a></span>
                 <div class="nav-separator"></div>
                 <form method="post" action="{% url 'logout' %}" style="display: inline;">
                     {% csrf_token %}

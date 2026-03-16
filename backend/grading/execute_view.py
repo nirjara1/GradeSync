@@ -94,13 +94,18 @@ def _validate_payload(data: dict) -> tuple[bool, str, dict]:
     return True, "", {"code": code, "language": language, "filename": filename}
 
 
-def _run_in_docker(code: str, language: str) -> dict:
+def _run_in_docker_with_input(code: str, language: str, input_data: str = "") -> dict:
     """
     Write code to a temp file, mount it into a Docker container,
-    execute it, and return {'stdout': ..., 'stderr': ..., 'exit_code': ...}.
+    execute it with stdin input, and return {'stdout': ..., 'stderr': ..., 'exit_code': ...}.
     """
     config = LANGUAGE_CONFIG[language]
     container_name = None  # will be set once container starts
+
+    # Step 1: Clean the Input Data
+    # Ensure any literal string representations of newlines are converted to actual newlines
+    if input_data:
+        input_data = input_data.replace('\\n', '\n')
 
     with tempfile.TemporaryDirectory(prefix="exec_", dir=SANDBOX_BASE_DIR) as tmpdir:
         # Write the source file into the temp directory
@@ -108,21 +113,23 @@ def _run_in_docker(code: str, language: str) -> dict:
         with open(source_path, "w", encoding="utf-8") as f:
             f.write(code)
 
+        # Step 2: Create a Temporary Input File
+        input_file_path = os.path.join(tmpdir, "input_temp.txt")
+        with open(input_file_path, "w", encoding="utf-8") as f:
+            f.write(input_data)
+
+        # Step 3: Refactor the Docker Run Command
+        base_cmd = config["cmd"]
+        if base_cmd[0] in ("sh", "/bin/sh") and base_cmd[1] == "-c":
+            # For Java/C, it's already using sh -c. Append redirection to the inner shell string.
+            inner_script = base_cmd[2]
+            docker_cmd_suffix = ["/bin/sh", "-c", f"{inner_script} < /code/input_temp.txt"]
+        else:
+            # For Python/Node, join the command and wrap
+            joined_cmd = " ".join(base_cmd)
+            docker_cmd_suffix = ["/bin/sh", "-c", f"{joined_cmd} < /code/input_temp.txt"]
+
         # Build the docker run command
-        # Security flags explained:
-        #   --rm              : auto-remove after exit
-        #   --network none    : no outbound internet access
-        #   --memory          : hard memory cap
-        #   --cpus            : fractional CPU cap
-        #   --pids-limit      : prevent fork bombs
-        #   --tmpfs /tmp      : RAM-backed /tmp, no disk writes persist
-        #   -v <tmpdir>:/code : inject student source file (writable so
-        #                       javac/gcc can write .class/.out into /code)
-        #
-        # NOTE: --read-only is intentionally omitted here because compiled
-        # languages (Java, C) need to write output artefacts back into /code.
-        # The tmpdir on the host is a secure, isolated temp directory that is
-        # deleted by Python's TemporaryDirectory context manager after execution.
         docker_cmd = [
             "docker", "run",
             "--rm",
@@ -133,7 +140,7 @@ def _run_in_docker(code: str, language: str) -> dict:
             "--tmpfs", "/tmp:size=32m",
             "-v", f"{tmpdir}:/code",   # writable so compilers can emit .class/.out
             config["image"],
-        ] + config["cmd"]
+        ] + docker_cmd_suffix
 
         logger.info(
             "[execute] lang=%s image=%s timeout=%ss",
@@ -150,6 +157,14 @@ def _run_in_docker(code: str, language: str) -> dict:
             stdout = result.stdout[:MAX_OUTPUT_BYTES]
             stderr = result.stderr[:MAX_OUTPUT_BYTES]
             exit_code = result.returncode
+
+            # Step 4: Capture and Clean Output
+            # If stderr contains any data (like EOFError or ValueError), append it
+            if stderr:
+                # Provide spacing if there is already stdout
+                if stdout:
+                    stdout += "\n"
+                stdout += stderr
 
         except subprocess.TimeoutExpired:
             logger.warning("[execute] Execution timed out after %ss", EXECUTION_TIMEOUT_SECONDS)
@@ -178,12 +193,20 @@ def _run_in_docker(code: str, language: str) -> dict:
                 "timed_out": False,
             }
 
+    # TemporaryDirectory automatically cleans up the tmpdir and input_temp.txt here
     return {
         "stdout": stdout,
         "stderr": stderr,
         "exit_code": exit_code,
         "timed_out": False,
     }
+
+
+def _run_in_docker(code: str, language: str) -> dict:
+    """
+    Wrapper for _run_in_docker_with_input with no input (for backward compatibility).
+    """
+    return _run_in_docker_with_input(code, language, input_data="")
 
 
 # ---------------------------------------------------------------------------

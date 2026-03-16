@@ -1,0 +1,19 @@
+{% extends 'portal/base_portal.html' %}
+{% load static %}
+
+{% block content %}
+<div class="assignments-container">
+    <div class="assignments-header" style="margin-bottom: 20px;">
+        <h2 class="page-title">My Assignments</h2>
+        <p class="profile-subtitle">View and submit assignments for your courses.</p>
+    </div>
+    
+    <hr class="divider">
+
+    <div class="empty-state" style="text-align: center; padding: 50px; background: #f9f9f9; border-radius: 8px; margin-top: 30px;">
+        <i class="fa-solid fa-list-check" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
+        <h3>No Assignments Due</h3>
+        <p style="color: #666;">You do not currently have any pending assignments across your enrolled courses.</p>
+    </div>
+</div>
+{% endblock %}
