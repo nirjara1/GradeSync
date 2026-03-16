@@ -43,7 +43,13 @@ For students / GAs we keep the simple single-column layout.
                         {% for row in rows %}
                         <tr>
                             <td style="position: sticky; left:0; background: #ffffff; z-index: 1; padding: 8px 10px; border-bottom: 1px solid #f3f4f6; font-size: 14px;">
-                                {{ row.student.user.get_full_name|default:row.student.user.username }}
+                                <a href="{% url 'student_course_grades' course.id row.student.id %}"
+                                   style="color: var(--maroon); text-decoration: none; font-weight: 600;">
+                                    {{ row.student.user.get_full_name|default:row.student.user.username }}
+                                </a><br>
+                                <span style="font-size: 12px; color: #6b7280;">
+                                    {{ row.student.user.email }}
+                                </span>
                             </td>
                             {% for cell in row.cells %}
                                 {% if cell.status == 'graded' %}
