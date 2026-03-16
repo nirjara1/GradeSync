@@ -36,18 +36,20 @@ class SandboxExecutor:
     
     Features:
     - Language support: Python 3.10+, Java 17+
-    - Resource limits: 128MB memory, 5-second timeout
+    - Resource limits: 128MB memory, 10-second timeout
     - Security: No network access, read-only code volume
     - Input/Output: Support for stdin input and stdout/stderr capture
     """
     
-    TIMEOUT_SECONDS = 5
+    TIMEOUT_SECONDS = 10
     MEMORY_LIMIT = '128m'
     
     # Docker image mappings for different languages
+    # Use stable, widely-available tags
     LANGUAGE_IMAGES = {
         'python': 'python:3.10-alpine',
-        'java': 'openjdk:17-alpine',
+        # Eclipse Temurin is the current official OpenJDK distribution on Docker Hub
+        'java': 'eclipse-temurin:17-jdk',
     }
     
     def __init__(self):
@@ -176,6 +178,9 @@ class SandboxExecutor:
                     logger.info(f"Pulling Docker image: {image}")
                     self.client.images.pull(image)
 
+                # Java needs a writable /code volume so javac can emit .class files.
+                volume_mode = 'ro' if language == 'python' else 'rw'
+
                 container = self.client.containers.create(
                     image,
                     command=['sh', '-c', run_cmd],
@@ -186,7 +191,7 @@ class SandboxExecutor:
                     read_only=False,
                     tmpfs={'/tmp': 'size=32m,mode=1777'},
                     volumes={
-                        tmpdir: {'bind': '/code', 'mode': 'ro'},
+                        tmpdir: {'bind': '/code', 'mode': volume_mode},
                     },
                     environment={
                         'PYTHONUNBUFFERED': '1',

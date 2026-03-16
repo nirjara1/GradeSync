@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Configuration – tweak these values via environment variables if needed.
 # ---------------------------------------------------------------------------
-EXECUTION_TIMEOUT_SECONDS = int(os.environ.get("EXECUTION_TIMEOUT_SECONDS", 5))
+EXECUTION_TIMEOUT_SECONDS = int(os.environ.get("EXECUTION_TIMEOUT_SECONDS", 10))
 MAX_OUTPUT_BYTES = 64 * 1024  # 64 KB – prevent runaway stdout flooding the DB
 
 # Shared sandbox directory — must be bind-mounted into the web container with
@@ -49,7 +49,8 @@ LANGUAGE_CONFIG = {
         "cmd": ["python", "/code/main.py"],
     },
     "java": {
-        "image": "openjdk:17-alpine",
+        # Use a stable Temurin JDK 17 image (official OpenJDK distro)
+        "image": "eclipse-temurin:17-jdk",
         "filename": "Main.java",
         # compile first, then run; errors go to stderr naturally
         "cmd": ["sh", "-c", "cd /code && javac Main.java && java Main"],
@@ -94,7 +95,7 @@ def _validate_payload(data: dict) -> tuple[bool, str, dict]:
     return True, "", {"code": code, "language": language, "filename": filename}
 
 
-def _run_in_docker_with_input(code: str, language: str, input_data: str = "") -> dict:
+def _run_in_docker_with_input(code: str, language: str, filename: str, input_data: str = "") -> dict:
     """
     Write code to a temp file, mount it into a Docker container,
     execute it with stdin input, and return {'stdout': ..., 'stderr': ..., 'exit_code': ...}.
@@ -108,8 +109,8 @@ def _run_in_docker_with_input(code: str, language: str, input_data: str = "") ->
         input_data = input_data.replace('\\n', '\n')
 
     with tempfile.TemporaryDirectory(prefix="exec_", dir=SANDBOX_BASE_DIR) as tmpdir:
-        # Write the source file into the temp directory
-        source_path = os.path.join(tmpdir, config["filename"])
+        # Write the source file into the temp directory, honoring the requested filename
+        source_path = os.path.join(tmpdir, filename)
         with open(source_path, "w", encoding="utf-8") as f:
             f.write(code)
 
@@ -120,14 +121,21 @@ def _run_in_docker_with_input(code: str, language: str, input_data: str = "") ->
 
         # Step 3: Refactor the Docker Run Command
         base_cmd = config["cmd"]
-        if base_cmd[0] in ("sh", "/bin/sh") and base_cmd[1] == "-c":
-            # For Java/C, it's already using sh -c. Append redirection to the inner shell string.
-            inner_script = base_cmd[2]
+
+        # For Java, compile and run using the actual class name derived from filename
+        if language == "java":
+            class_name = os.path.splitext(os.path.basename(filename))[0] or "Main"
+            inner_script = f"cd /code && javac {filename} && java {class_name}"
             docker_cmd_suffix = ["/bin/sh", "-c", f"{inner_script} < /code/input_temp.txt"]
         else:
-            # For Python/Node, join the command and wrap
-            joined_cmd = " ".join(base_cmd)
-            docker_cmd_suffix = ["/bin/sh", "-c", f"{joined_cmd} < /code/input_temp.txt"]
+            if base_cmd[0] in ("sh", "/bin/sh") and base_cmd[1] == "-c":
+                # For C, it's already using sh -c. Append redirection to the inner shell string.
+                inner_script = base_cmd[2]
+                docker_cmd_suffix = ["/bin/sh", "-c", f"{inner_script} < /code/input_temp.txt"]
+            else:
+                # For Python/Node, join the command and wrap
+                joined_cmd = " ".join(base_cmd)
+                docker_cmd_suffix = ["/bin/sh", "-c", f"{joined_cmd} < /code/input_temp.txt"]
 
         # Build the docker run command
         docker_cmd = [
@@ -202,11 +210,11 @@ def _run_in_docker_with_input(code: str, language: str, input_data: str = "") ->
     }
 
 
-def _run_in_docker(code: str, language: str) -> dict:
+def _run_in_docker(code: str, language: str, filename: str) -> dict:
     """
     Wrapper for _run_in_docker_with_input with no input (for backward compatibility).
     """
-    return _run_in_docker_with_input(code, language, input_data="")
+    return _run_in_docker_with_input(code, language, filename, input_data="")
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +244,7 @@ def execute_code_view(request):
         return JsonResponse({"error": error_msg}, status=422)
 
     # Execute
-    result = _run_in_docker(parsed["code"], parsed["language"])
+    result = _run_in_docker(parsed["code"], parsed["language"], parsed["filename"])
 
     logger.info(
         "[execute] user=%s lang=%s exit_code=%s timed_out=%s",
