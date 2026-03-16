@@ -1,0 +1,133 @@
+{% extends base_template %}
+{% load static %}
+
+{% block content %}
+<div style="display: flex; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto; padding: 20px;">
+    {% include "course_sidebar.html" %}
+    <div style="flex: 1;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+                <h2 class="page-title" style="margin: 0; color: var(--maroon);">
+                    Student Performance Report
+                </h2>
+                <p style="margin: 4px 0 0; color: #6b7280; font-size: 14px;">
+                    <strong>{{ student.user.get_full_name|default:student.user.username }}</strong> &bull; {{ student.user.email }}
+                </p>
+                <div style="margin-top: 8px; font-size: 13px; color: var(--maroon); font-weight: 600;">
+                    {{ course.code }}: {{ course.title }}
+                </div>
+            </div>
+            <div style="text-align: right; background: #fdf2f2; padding: 12px 20px; border-radius: 12px; border: 1px solid #fee2e2;">
+                <div style="font-size: 28px; font-weight: 800; color: var(--maroon); line-height: 1;">
+                    {{ overall_percentage|floatformat:1 }}%
+                </div>
+                <div style="font-size: 10px; color: #991b1b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">
+                    Overall Course Grade
+                </div>
+            </div>
+        </div>
+        
+        <hr class="divider" style="margin-top: 0; margin-bottom: 24px; border: 0; border-top: 2px solid #f3f4f6;">
+
+        <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden;">
+            <table style="border-collapse: collapse; width: 100%; text-align: left;">
+                <thead>
+                    <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                        <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">Assignment</th>
+                        <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">Due Date</th>
+                        <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Status</th>
+                        <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Score</th>
+                        <th style="padding: 16px; font-weight: 700; font-size: 12px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report_data %}
+                    <tr style="border-bottom: 1px solid #f3f4f6; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+                        <td style="padding: 16px;">
+                            <div style="font-weight: 600; color: #111827; font-size: 14px;">{{ item.assignment.name }}</div>
+                            <div style="font-size: 11px; color: #9ca3af; margin-top: 2px;">{{ item.assignment.id }}</div>
+                        </td>
+                        <td style="padding: 16px; font-size: 13px; color: #4b5563;">
+                            {% if item.assignment.due_date %}
+                                {{ item.assignment.due_date|date:"M j, Y" }}
+                            {% else %}
+                                <span style="color: #9ca3af;">No due date</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px; text-align: center;">
+                            {% if item.status == 'graded' %}
+                                <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #d1fae5; color: #065f46; font-size: 11px; font-weight: 700;">
+                                    <i class="fa-solid fa-check-circle" style="margin-right: 4px;"></i> Graded
+                                </span>
+                            {% elif item.status == 'ungraded' %}
+                                <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 700;">
+                                    <i class="fa-solid fa-clock" style="margin-right: 4px;"></i> Ungraded
+                                </span>
+                            {% elif item.status == 'submitted' %}
+                                <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 700;">
+                                    <i class="fa-solid fa-paper-plane" style="margin-right: 4px;"></i> Submitted
+                                </span>
+                            {% else %}
+                                <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #fee2e2; color: #991b1b; font-size: 11px; font-weight: 700;">
+                                    <i class="fa-solid fa-circle-xmark" style="margin-right: 4px;"></i> Missing
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px; text-align: center;">
+                            {% if item.score != None %}
+                                <div style="font-weight: 700; font-size: 16px; color: {% if item.score >= 70 %}#059669{% else %}#dc2626{% endif %};">
+                                    {{ item.score|floatformat:1 }}
+                                </div>
+                                <div style="font-weight: 500; color: #9ca3af; font-size: 11px;">out of {{ item.assignment.points }}</div>
+                            {% else %}
+                                <span style="font-weight: 400; color: #d1d5db; font-size: 18px;">&mdash;</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px; text-align: center;">
+                            {% if item.submission %}
+                                <a href="{% url 'grade_submission' item.submission.pk %}" class="btn-publish" style="padding: 8px 16px; font-size: 11px; text-decoration: none; border-radius: 8px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                    Grade Details
+                                </a>
+                            {% else %}
+                                <span style="font-size: 12px; color: #d1d5db; font-style: italic;">No submission</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af; font-style: italic;">
+                            No assignments found for this course.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if report_data %}
+                <tfoot style="background: #f9fafb; border-top: 1px solid #e5e7eb;">
+                    <tr>
+                        <td colspan="3" style="padding: 20px 16px; font-weight: 800; text-align: right; color: #374151; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">Course Summary:</td>
+                        <td style="padding: 20px 16px; text-align: center;">
+                            <div style="font-weight: 800; font-size: 18px; color: var(--maroon);">
+                                {{ total_points_earned|floatformat:1 }}
+                            </div>
+                            <div style="font-weight: 500; color: #9ca3af; font-size: 11px;">Points Earned</div>
+                        </td>
+                        <td style="padding: 20px 16px; text-align: center;">
+                            <div style="font-weight: 800; font-size: 18px; color: #4b5563;">
+                                {{ total_points_possible }}
+                            </div>
+                            <div style="font-weight: 500; color: #9ca3af; font-size: 11px;">Points Possible</div>
+                        </td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+        
+        <div style="margin-top: 24px; text-align: left;">
+            <a href="{% url 'gradebook' pk=course.assignments.first.pk %}" style="color: #6b7280; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-arrow-left"></i> Back to Gradebook
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

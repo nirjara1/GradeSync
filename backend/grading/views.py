@@ -576,13 +576,11 @@ def gradebook_view(request, pk):
                     "assignment": a,
                     "status": status,
                     "score": score,
-                    "submission_id": sub.id if sub else None,
                 })
 
             rows.append({
                 "student": stu,
                 "cells": cells,
-                "active_submission_id": cell_lookup.get((stu.id, assignment.id)).id if cell_lookup.get((stu.id, assignment.id)) else None,
             })
 
         context['assignments'] = grid_assignments
@@ -1652,3 +1650,74 @@ def run_public_tests_api(request):
             })
     
     return JsonResponse({'results': results})
+
+
+@login_required
+def student_course_report(request, course_id, student_id):
+    """
+    Detailed report for an instructor to see a specific student's 
+    performance across all assignments in a particular course.
+    """
+    user = get_user_from_request(request)
+    course = get_object_or_404(Course, id=course_id)
+    student = get_object_or_404(Student, id=student_id)
+    
+    # Permission check: Only instructor or GA of this course
+    course_role = get_user_course_role(user, course, request)
+    if course_role not in ['INSTRUCTOR', 'GRADING_ASSISTANT'] and not user.is_staff:
+        return HttpResponseForbidden("You do not have permission to view this report.")
+        
+    assignments = Assignment.objects.filter(course=course).order_by('due_date', 'id')
+    submissions = Submission.objects.filter(
+        student=student, 
+        assignment__in=assignments
+    ).select_related('grade', 'assignment')
+    
+    # Map submissions by assignment ID for easy lookup
+    submission_lookup = {sub.assignment_id: sub for sub in submissions}
+    
+    report_data = []
+    total_points_possible = 0
+    total_points_earned = 0
+    
+    for a in assignments:
+        sub = submission_lookup.get(a.id)
+        total_points_possible += a.points
+        
+        score = None
+        if sub:
+            status = sub.status
+            g = getattr(sub, 'grade', None)
+            if g:
+                score = g.score
+                total_points_earned += float(score)
+        else:
+            status = 'missing'
+            
+        report_data.append({
+            'assignment': a,
+            'submission': sub,
+            'status': status,
+            'score': score,
+        })
+        
+    overall_percentage = (total_points_earned / total_points_possible * 100) if total_points_possible > 0 else 0
+    
+    # Determine base template
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+    
+    context = {
+        'course': course,
+        'student': student,
+        'report_data': report_data,
+        'total_points_possible': total_points_possible,
+        'total_points_earned': total_points_earned,
+        'overall_percentage': overall_percentage,
+        'base_template': base_template,
+        'active_tab': 'grades',
+    }
+    
+    return render(request, 'grading/student_course_report.html', context)
