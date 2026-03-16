@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db.models import Q
-from .models import Course, UserProfile
+from .models import Course, UserProfile, PendingEnrollment, CourseMember
 from django.contrib.auth.models import User
 from .forms import CourseForm, UserRegistrationForm
 from django.contrib.auth import login
@@ -240,6 +240,16 @@ def register_view(request):
             # Log the user in
             login(request, user)
             
+            # Auto-link pending enrollments
+            pending_enrollments = PendingEnrollment.objects.filter(email__iexact=email)
+            for pe in pending_enrollments:
+                CourseMember.objects.get_or_create(
+                    course=pe.course,
+                    user=user,
+                    role_in_course=pe.role_in_course
+                )
+                pe.delete()
+
             messages.success(request, f"Welcome to GradeSync! Your {role.lower().replace('_', ' ')} account has been created.")
             
             if role == 'STUDENT':
