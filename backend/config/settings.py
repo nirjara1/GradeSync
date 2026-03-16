@@ -96,19 +96,26 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# Set USE_SQLITE=1 in .env to use SQLite locally (no PostgreSQL required).
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME":     os.getenv("POSTGRES_DB",       "gradesync"),
-        "USER":     os.getenv("POSTGRES_USER",     "gradesync"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "gradesync"),
-        # Try POSTGRES_HOST first, then DB_HOST (as used in .env), default to
-        # 'db' which is the Docker Compose service name for Postgres.
-        "HOST":     os.getenv("POSTGRES_HOST") or os.getenv("DB_HOST", "db"),
-        "PORT":     os.getenv("POSTGRES_PORT") or os.getenv("DB_PORT", "5432"),
+if os.getenv("USE_SQLITE", "").strip() == "1":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB", "gradesync"),
+            "USER": os.getenv("POSTGRES_USER", "gradesync"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "gradesync"),
+            "HOST": os.getenv("POSTGRES_HOST") or os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("POSTGRES_PORT") or os.getenv("DB_PORT", "5432"),
+        }
+    }
 
 
 
