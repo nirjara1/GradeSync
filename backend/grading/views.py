@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Max, Q, Count
+from django.db.models import Max, Q, Count, Avg
 from django.http import HttpResponseForbidden, FileResponse, Http404, JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -1556,6 +1556,87 @@ def grade_report(request, assignment_id):
     }
     
     return render(request, 'grading/grade_report.html', context)
+
+
+@login_required
+def student_course_grades_view(request, course_id, student_id):
+    """
+    Instructor-facing view: detailed grades for a single student in a course.
+    Shows one row per assignment with status and score, plus basic averages.
+    """
+    user = get_user_from_request(request)
+    course = get_object_or_404(Course, id=course_id)
+    target_student = get_object_or_404(Student, id=student_id)
+
+    course_role = get_user_course_role(user, course, request)
+    is_instructor = course_role in ['INSTRUCTOR', 'GRADING_ASSISTANT']
+    is_self_student = (course_role == 'STUDENT' and target_student.user == user)
+
+    if not (is_instructor or is_self_student):
+        return HttpResponseForbidden("You do not have permission to view this student's grades.")
+
+    # All assignments in this course
+    assignments = Assignment.objects.filter(course=course).order_by('due_date', 'id')
+
+    # All submissions for this student in this course
+    student_submissions = Submission.objects.filter(
+        student=target_student,
+        assignment__in=assignments
+    ).select_related('assignment', 'grade')
+    sub_by_assignment = {s.assignment_id: s for s in student_submissions}
+
+    # Class averages per assignment (based on Grade.score)
+    class_avgs = (
+        Submission.objects.filter(assignment__in=assignments, grade__isnull=False)
+        .values('assignment_id')
+        .annotate(avg_score=Avg('grade__score'))
+    )
+    avg_by_assignment = {row['assignment_id']: row['avg_score'] for row in class_avgs}
+
+    rows = []
+    total_points_earned = 0.0
+    total_points_possible = 0.0
+
+    for a in assignments:
+        sub = sub_by_assignment.get(a.id)
+        status = 'Not submitted'
+        score = None
+        submitted_at = None
+
+        if sub:
+            submitted_at = sub.submission_time
+            g = getattr(sub, 'grade', None)
+            if g:
+                status = 'Graded'
+                score = float(g.score)
+                total_points_earned += score
+                total_points_possible += float(a.points or 0)
+            else:
+                status = 'Ungraded'
+
+        rows.append({
+            'assignment': a,
+            'submission': sub,
+            'submitted_at': submitted_at,
+            'status': status,
+            'score': score,
+            'max_points': a.points,
+            'class_avg': avg_by_assignment.get(a.id),
+        })
+
+    student_percent = (total_points_earned / total_points_possible * 100) if total_points_possible > 0 else None
+
+    context = {
+        'course': course,
+        'target_student': target_student,
+        'rows': rows,
+        'total_points_earned': total_points_earned,
+        'total_points_possible': total_points_possible,
+        'student_percent': student_percent,
+        'base_template': 'base_professor.html' if is_instructor else 'portal/base_portal.html',
+    }
+
+    return render(request, 'grading/student_course_grades.html', context)
 
 
 @login_required

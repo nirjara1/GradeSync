@@ -1,0 +1,98 @@
+{% extends base_template %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto;">
+    <h2 class="page-title" style="margin-bottom: 4px;">
+        {{ course.code }}-{{ course.section }} &gt; {{ target_student.user.get_full_name|default:target_student.user.username }}
+    </h2>
+    <p style="margin: 0 0 16px 0; color: #4b5563; font-size: 14px;">
+        {{ target_student.user.email }}
+    </p>
+    <hr class="divider" style="margin-top: 0; margin-bottom: 16px;">
+
+    <div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead style="background: #f9fafb; color: #374151;">
+                <tr>
+                    <th style="padding: 10px 12px; text-align: left;">Name</th>
+                    <th style="padding: 10px 12px; text-align: left;">Due</th>
+                    <th style="padding: 10px 12px; text-align: left;">Submitted</th>
+                    <th style="padding: 10px 12px; text-align: left;">Status</th>
+                    <th style="padding: 10px 12px; text-align: right;">Score</th>
+                    <th style="padding: 10px 12px; text-align: right;">Class Avg</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr style="border-top: 1px solid #f3f4f6; background: {% cycle '#ffffff' '#fbfbfb' %};">
+                    <td style="padding: 8px 12px;">
+                        {{ row.assignment.name }}
+                    </td>
+                    <td style="padding: 8px 12px; color: #6b7280;">
+                        {% if row.assignment.due_date %}
+                            {{ row.assignment.due_date|date:"M j, Y \\b\\y g:ia" }}
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px 12px; color: #6b7280;">
+                        {% if row.submitted_at %}
+                            {{ row.submitted_at|date:"M j, Y \\b\\y g:ia" }}
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px 12px;">
+                        {% if row.status == 'Graded' %}
+                            <span style="color:#047857; font-weight:600;">Graded</span>
+                        {% elif row.status == 'Ungraded' %}
+                            <span style="color:#92400e; background:#fef3c7; padding:2px 6px; border-radius:999px; font-size:12px;">Ungraded</span>
+                        {% else %}
+                            <span style="color:#b91c1c; background:#fee2e2; padding:2px 6px; border-radius:999px; font-size:12px;">Missing</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px 12px; text-align: right;">
+                        {% if row.score is not None %}
+                            {{ row.score|floatformat:1 }} / {{ row.max_points|default:0 }}
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px 12px; text-align: right; color:#6b7280;">
+                        {% if row.class_avg is not None %}
+                            {{ row.class_avg|floatformat:1 }} / {{ row.max_points|default:0 }}
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 24px; text-align: center; color:#9ca3af; font-style:italic;">
+                        No assignments found for this course.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if total_points_possible %}
+            <tfoot>
+                <tr style="border-top: 2px solid #e5e7eb; background:#f9fafb;">
+                    <td colspan="4" style="padding: 10px 12px; text-align: right; font-weight:600;">Total</td>
+                    <td style="padding: 10px 12px; text-align: right; font-weight:600;">
+                        {{ total_points_earned|floatformat:1 }} / {{ total_points_possible|floatformat:1 }}
+                    </td>
+                    <td style="padding: 10px 12px; text-align: right; color:#111827;">
+                        {% if student_percent is not None %}
+                            {{ student_percent|floatformat:1 }}%
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endblock %}
+
