@@ -6,7 +6,8 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
-from .services import grade_submission
+from .services import grade_submission, extract_code_from_file
+from .sandbox import execute_code
 from .tasks import bulk_grade_assignment
 from professor.models import Course, UserProfile, CourseMember
 from professor.utils import is_course_instructor, has_course_access, is_enrolled, get_user_course_role
@@ -1171,6 +1172,48 @@ def grade_submission_api(request, submission_id):
             'status': 'error',
             'error': str(e)
         }, status=500)
+
+
+@login_required
+@require_POST
+def execute_submission_api(request, submission_id):
+    """
+    API endpoint to execute a submission once and return raw stdout/stderr.
+    Used by the instructor Console tab on the grading page.
+    """
+    submission = get_object_or_404(Submission, id=submission_id)
+    assignment = submission.assignment
+    user = get_user_from_request(request)
+
+    # Only course instructors (or GAs with instructor-level access) can run code from this console
+    if not is_course_instructor(user, assignment.course, request):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        payload = {}
+
+    stdin = payload.get('stdin', '') or ''
+
+    # Extract code for this submission
+    code_str, _ = extract_code_from_file(submission.file_path)
+    if not code_str.strip():
+        return JsonResponse({'error': 'No valid source code found'}, status=400)
+
+    language = assignment.allowed_language.lower()
+    try:
+        result = execute_code(language, code_str, stdin, submission_id)
+    except Exception as e:
+        logger.exception(f"Error executing submission {submission_id} from console")
+        return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({
+        'stdout': result.get('stdout', ''),
+        'stderr': result.get('stderr', ''),
+        'exit_code': result.get('exit_code', 0),
+        'timed_out': not result.get('success', True),
+    })
 
 
 @login_required

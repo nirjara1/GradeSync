@@ -32,6 +32,7 @@ urlpatterns = [
     
     # Grading API endpoints
     path('api/submissions/<int:submission_id>/grade/', views.grade_submission_api, name='grade_submission_api'),
+    path('api/submissions/<int:submission_id>/execute/', views.execute_submission_api, name='execute_submission_api'),
     path('submissions/<int:submission_id>/test-results/', views.submission_test_results, name='submission_test_results'),
     
     # Bulk grading and reporting
