@@ -254,8 +254,9 @@ def grade_submission(submission_id: int) -> dict:
         for test_case in test_cases:
             max_score += test_case.points_awarded
             
-            # Execute code with test input
-            result = execute_code(language, code_str, test_case.input_data, submission_id)
+            # Execute code with test input (normalize literal \n from CSV to real newlines)
+            input_data = (test_case.input_data or '').replace('\\n', '\n')
+            result = execute_code(language, code_str, input_data, submission_id)
             
             # Compare output
             actual_output = result.get('stdout', '').strip()
@@ -265,15 +266,17 @@ def grade_submission(submission_id: int) -> dict:
             if passed:
                 total_score += test_case.points_awarded
             
-            # Create TestResult record
-            test_result = TestResult.objects.create(
+            # Create or update TestResult (unique on submission + test_case; re-run overwrites)
+            TestResult.objects.update_or_create(
                 submission=submission,
                 test_case=test_case,
-                passed=passed,
-                actual_output=actual_output,
-                error_message=result.get('stderr', ''),
-                execution_time=result.get('execution_time', 0.0),
-                points_earned=test_case.points_awarded if passed else 0,
+                defaults={
+                    'passed': passed,
+                    'actual_output': actual_output,
+                    'error_message': result.get('stderr', ''),
+                    'execution_time': result.get('execution_time', 0.0),
+                    'points_earned': test_case.points_awarded if passed else 0,
+                },
             )
             
             test_results.append({
@@ -282,6 +285,10 @@ def grade_submission(submission_id: int) -> dict:
                 'passed': passed,
                 'points_earned': test_case.points_awarded if passed else 0,
                 'execution_time': result.get('execution_time', 0.0),
+                'expected_output': test_case.expected_output,
+                'actual_output': actual_output,
+                'error_message': result.get('stderr', ''),
+                'is_private': getattr(test_case, 'is_private', False),
             })
             
             logger.info(f"Test case {test_case.id} for submission {submission_id}: {'PASS' if passed else 'FAIL'}")

@@ -8,7 +8,7 @@ from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriter
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
 from .services import grade_submission
 from .tasks import bulk_grade_assignment
-from professor.models import Course, UserProfile
+from professor.models import Course, UserProfile, CourseMember
 from professor.utils import is_course_instructor, has_course_access, is_enrolled, get_user_course_role
 
 from django.contrib.auth.decorators import login_required
@@ -63,9 +63,12 @@ def professor_course_view(request, course_id):
         return HttpResponseForbidden("Access Denied")
         
     assignments = Assignment.objects.filter(course=course).order_by('due_date')
+    # Use the first assignment as the default gradebook target for the sidebar
+    default_gradebook_assignment = assignments.first()
     return render(request, 'assignments_dashboard.html', {
         'assignments': assignments, 'course': course,
-        'is_instructor': True, 'is_student': False, 'base_template': 'base_professor.html'
+        'is_instructor': True, 'is_student': False, 'base_template': 'base_professor.html',
+        'gradebook_assignment': default_gradebook_assignment, 'active_tab': 'assignments'
     })
 
 @login_required
@@ -494,7 +497,12 @@ def assignment_detail_view(request, pk):
 
 @login_required
 def gradebook_view(request, pk):
-    """Gradebook for an assignment: list of submissions with links to grade."""
+    """
+    Gradebook for an assignment.
+
+    For instructors, this view also builds a course-level grid (students x assignments)
+    so the template can render a Canvas-style gradebook table.
+    """
     user = get_user_from_request(request)
     assignment = get_object_or_404(Assignment, pk=pk)
     if not has_course_access(user, assignment.course, request):
@@ -507,11 +515,76 @@ def gradebook_view(request, pk):
     else:
         base_template = 'base_grading_assistant.html'
     submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade').order_by('id')
+
     context = {
         'assignment': assignment,
         'submissions': submissions,
         'base_template': base_template,
+        # For instructor sidebar navigation
+        'course': assignment.course,
+        'gradebook_assignment': assignment,
+        'active_tab': 'grades',
     }
+
+    # For instructors, also build the course-level grid view (students x assignments)
+    if course_role == 'INSTRUCTOR':
+        course = assignment.course
+        # Columns: all assignments in this course
+        grid_assignments = Assignment.objects.filter(course=course).order_by('due_date', 'id')
+        # Rows: all enrolled students
+        member_qs = CourseMember.objects.filter(
+            course=course,
+            role_in_course='STUDENT',
+        ).select_related('user').order_by('user__last_name', 'user__first_name', 'user__username')
+
+        student_users = [m.user for m in member_qs]
+        grid_students = Student.objects.filter(user__in=student_users).select_related('user')
+        student_by_user_id = {s.user_id: s for s in grid_students}
+
+        # All submissions/grades for these assignments/students
+        grid_submissions = Submission.objects.filter(
+            assignment__in=grid_assignments,
+            student__in=grid_students,
+        ).select_related('assignment', 'student__user', 'grade')
+
+        cell_lookup = {}
+        for sub in grid_submissions:
+            cell_lookup[(sub.student_id, sub.assignment_id)] = sub
+
+        rows = []
+        for member in member_qs:
+            stu = student_by_user_id.get(member.user_id)
+            if not stu:
+                continue
+
+            cells = []
+            for a in grid_assignments:
+                sub = cell_lookup.get((stu.id, a.id))
+                if not sub:
+                    status = 'missing'
+                    score = None
+                else:
+                    g = getattr(sub, 'grade', None)
+                    if g:
+                        status = 'graded'
+                        score = float(g.score)
+                    else:
+                        status = 'ungraded'
+                        score = None
+                cells.append({
+                    "assignment": a,
+                    "status": status,
+                    "score": score,
+                })
+
+            rows.append({
+                "student": stu,
+                "cells": cells,
+            })
+
+        context['assignments'] = grid_assignments
+        context['rows'] = rows
+
     return render(request, 'gradebook.html', context)
 
 
@@ -625,14 +698,46 @@ def grade_submission_view(request, pk):
                         for zip_info in zf.infolist():
                             if not zip_info.is_dir() and not zip_info.filename.startswith('__MACOSX'):
                                 name = zip_info.filename
-                                if name.endswith('.py') or name.endswith('.java'):
-                                    content = zf.read(name).decode('utf-8', errors='ignore')
-                                    lang = 'python' if name.endswith('.py') else 'java'
-                                    import os
-                                    submission_files.append({"name": os.path.basename(name), "content": content, "language": lang})
-                elif file_name.endswith('.py') or file_name.endswith('.java'):
+                                # Support common code and data extensions
+                                ext = name.split('.')[-1].lower() if '.' in name else ''
+                                supported_exts = ['py', 'java', 'js', 'ts', 'html', 'css', 'json', 'txt', 'csv', 'md', 'sql', 'cpp', 'c', 'h']
+                                
+                                if ext in supported_exts or not ext:
+                                    try:
+                                        # Skip binary files if they somehow get in
+                                        content_bytes = zf.read(name)
+                                        content = content_bytes.decode('utf-8', errors='ignore')
+                                        
+                                        # Improved language mapping for Monaco
+                                        lang_map = {
+                                            'py': 'python',
+                                            'java': 'java',
+                                            'js': 'javascript',
+                                            'ts': 'typescript',
+                                            'html': 'html',
+                                            'css': 'css',
+                                            'json': 'json',
+                                            'md': 'markdown',
+                                            'sql': 'sql',
+                                            'cpp': 'cpp',
+                                            'c': 'c',
+                                            'h': 'cpp'
+                                        }
+                                        lang = lang_map.get(ext, 'plaintext')
+                                        
+                                        import os
+                                        submission_files.append({
+                                            "name": os.path.basename(name), 
+                                            "content": content, 
+                                            "language": lang,
+                                            "full_path": name
+                                        })
+                                    except:
+                                        continue
+                elif file_name.endswith('.py') or file_name.endswith('.java') or file_name.endswith('.txt') or file_name.endswith('.csv'):
                     content = file_content.decode('utf-8', errors='ignore')
-                    lang = 'python' if file_name.endswith('.py') else 'java'
+                    ext = file_name.split('.')[-1]
+                    lang = 'python' if ext == 'py' else ('java' if ext == 'java' else 'plaintext')
                     import os
                     basename = os.path.basename(submission.file_path.name)
                     submission_files.append({"name": basename, "content": content, "language": lang})
@@ -1269,8 +1374,13 @@ def grade_report(request, assignment_id):
     if not is_course_instructor(user, assignment.course):
         return HttpResponseForbidden("You do not have permission to view this report.")
     
-    # Get all students in the course
-    students = Student.objects.filter(course=assignment.course).select_related('user')
+    # Get all students in the course via CourseMember
+    member_qs = CourseMember.objects.filter(
+        course=assignment.course,
+        role_in_course='STUDENT',
+    ).select_related('user')
+    student_users = [m.user for m in member_qs]
+    students = Student.objects.filter(user__in=student_users).select_related('user')
     
     # Get all submissions for this assignment
     submissions = Submission.objects.filter(
@@ -1299,6 +1409,9 @@ def grade_report(request, assignment_id):
             test_results = submission.testresult_set.all()
             passed = test_results.filter(passed=True).count()
             total = test_results.count()
+
+            # Safe access to grade (OneToOneField may not exist yet)
+            g = getattr(submission, 'grade', None)
             
             grade_data.append({
                 'id': student.id,
@@ -1312,7 +1425,7 @@ def grade_report(request, assignment_id):
                 'passed_tests': passed,
                 'total_tests': total,
                 'pass_rate': round((passed / total * 100) if total > 0 else 0, 1),
-                'grade': submission.grade_set.first() if submission.grade_set.exists() else None,
+                'grade': g,
             })
     
     # Sort by name
@@ -1323,8 +1436,8 @@ def grade_report(request, assignment_id):
     total_students = len(grade_data) + len(missing_submissions)
     submitted = len(grade_data)
     
-    avg_score = sum(g['score'] for g in grade_data) / submitted if submitted > 0 else 0
-    avg_pass_rate = sum(g['pass_rate'] for g in grade_data) / submitted if submitted > 0 else 0
+    avg_score = sum(gd['score'] for gd in grade_data) / submitted if submitted > 0 else 0
+    avg_pass_rate = sum(gd['pass_rate'] for gd in grade_data) / submitted if submitted > 0 else 0
     
     context = {
         'assignment': assignment,
@@ -1334,7 +1447,7 @@ def grade_report(request, assignment_id):
         'submitted': submitted,
         'missing': len(missing_submissions),
         'avg_score': round(avg_score, 2),
-        'max_score': assignment.max_points or 100,
+        'max_score': assignment.points or 100,
         'avg_pass_rate': round(avg_pass_rate, 1),
         'base_template': 'base_professor.html'
     }
