@@ -45,4 +45,7 @@ urlpatterns = [
     
     # Run public tests endpoint
     path('api/run-public-tests/', views.run_public_tests_api, name='run_public_tests_api'),
+    
+    # Individual student course report
+    path('courses/<int:course_id>/students/<int:student_id>/report/', views.student_course_report, name='student_course_report'),
 ]
