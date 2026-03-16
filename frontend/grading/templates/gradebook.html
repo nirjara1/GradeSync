@@ -50,15 +50,26 @@ For students / GAs we keep the simple single-column layout.
                                 <span style="font-size: 12px; color: #6b7280;">
                                     {{ row.student.user.email }}
                                 </span>
+                                {% if row.active_submission_id %}
+                                <a href="{% url 'grade_submission' pk=row.active_submission_id %}" style="text-decoration: none; color: inherit; font-weight: 500;" onmouseover="this.style.color='var(--maroon)'" onmouseout="this.style.color='inherit'">
+                                    {{ row.student.user.get_full_name|default:row.student.user.username }}
+                                </a>
+                                {% else %}
+                                {{ row.student.user.get_full_name|default:row.student.user.username }}
+                                {% endif %}
                             </td>
                             {% for cell in row.cells %}
                                 {% if cell.status == 'graded' %}
-                                <td style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f3f4f6; color: #047857; font-weight: 600; font-size: 13px;">
-                                    {{ cell.score|floatformat:0 }}
+                                <td style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f3f4f6; font-size: 13px;">
+                                    <a href="{% url 'grade_submission' pk=cell.submission_id %}" style="color: #047857; font-weight: 600; text-decoration: none;">
+                                        {{ cell.score|floatformat:1|default:cell.score|floatformat:0 }}
+                                    </a>
                                 </td>
                                 {% elif cell.status == 'ungraded' %}
-                                <td style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f3f4f6; color: #92400e; background: #fef3c7; font-size: 12px;">
-                                    Ungraded
+                                <td style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f3f4f6; font-size: 12px; background: #fef3c7;">
+                                    <a href="{% url 'grade_submission' pk=cell.submission_id %}" style="color: #92400e; text-decoration: none; display: block; font-weight: 500;">
+                                        Ungraded
+                                    </a>
                                 </td>
                                 {% else %}
                                 <td style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #f3f4f6; color: #9ca3af; background: #f9fafb; font-size: 12px;">

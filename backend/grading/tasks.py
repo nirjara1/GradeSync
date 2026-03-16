@@ -28,8 +28,10 @@ def bulk_grade_assignment(self, assignment_id):
     
     try:
         # Get all students in the course
-        course = assignment.course
-        students = Student.objects.filter(course=course)
+        students = Student.objects.filter(
+            user__course_memberships__course=assignment.course,
+            user__course_memberships__role_in_course='STUDENT'
+        ).select_related('user')
         
         total_students = students.count()
         graded_count = 0
@@ -86,7 +88,7 @@ def bulk_grade_assignment(self, assignment_id):
             notify_bulk_grading_complete(
                 assignment,
                 results,
-                instructor=assignment.course.instructor
+                instructor=assignment.course.professor
             )
         except Exception as e:
             logger.error(f"Error sending notification: {str(e)}")

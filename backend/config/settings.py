@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'professor',
     'grading',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -105,6 +106,11 @@ if os.getenv("USE_SQLITE", "").strip() == "1":
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+    # For local development with SQLite, run tasks synchronously (no separate worker needed)
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+    CELERY_RESULT_BACKEND = 'django-db'
+    CELERY_CACHE_BACKEND = 'django-cache'
 else:
     DATABASES = {
         "default": {
@@ -164,6 +170,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = 'professor_dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
