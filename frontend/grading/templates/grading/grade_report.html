@@ -1,7 +1,7 @@
 {% extends base_template %}
 {% load static %}
 
-{% block title %}Grade Report - {{ assignment.name }}{% endblock %}
+{% block title %}Test Grade Report - {{ assignment.name }}{% endblock %}
 
 {% block extra_css %}
 <!-- Bootstrap 5 CSS CDN - Required for Grade Report Grid -->
@@ -141,7 +141,7 @@
     <!-- Header Section -->
     <div class="d-flex justify-content-between align-items-center mb-4 report-header">
         <div>
-            <h1 class="mb-1">{{ assignment.name }} - Grade Report</h1>
+            <h1 class="mb-1">{{ assignment.name }} - Test Grade Report</h1>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{% url 'professor_course' assignment.course.id %}" class="text-decoration-none text-muted">{{ assignment.course.code }}</a></li>
