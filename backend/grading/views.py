@@ -1685,15 +1685,16 @@ def student_course_report(request, course_id, student_id):
         total_points_possible += a.points
         
         score = None
+        status = 'missing'
         if sub:
-            status = sub.status
             g = getattr(sub, 'grade', None)
             if g:
+                status = 'graded'
                 score = g.score
                 total_points_earned += float(score)
-        else:
-            status = 'missing'
-            
+            else:
+                status = 'ungraded'
+        
         report_data.append({
             'assignment': a,
             'submission': sub,
