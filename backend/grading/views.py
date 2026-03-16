@@ -572,10 +572,12 @@ def gradebook_view(request, pk):
                     else:
                         status = 'ungraded'
                         score = None
+                submission_id = sub.id if sub else None
                 cells.append({
                     "assignment": a,
                     "status": status,
                     "score": score,
+                    "submission_id": submission_id,
                 })
 
             rows.append({
