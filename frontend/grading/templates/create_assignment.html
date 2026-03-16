@@ -21,7 +21,8 @@
     .form-group.full-width input[type="number"],
     .form-group.full-width textarea,
     .row-group input[type="number"],
-    .row-group input[type="date"] {
+    .row-group input[type="date"],
+    .row-group input[type="datetime-local"] {
         width: 100%;
         padding: 10px 12px;
         border: 1px solid #ccc;
@@ -29,6 +30,31 @@
         font-size: 14px;
         box-sizing: border-box;
         font-family: inherit;
+    }
+
+    /* Date / time picker styling */
+    .row-group input[type="date"],
+    .row-group input[type="datetime-local"] {
+        background-color: #f9fafb;
+        border-radius: 6px;
+        border-color: #d1d5db;
+        color: #111827;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+
+    .row-group input[type="date"]:focus,
+    .row-group input[type="datetime-local"]:focus {
+        outline: none;
+        border-color: var(--maroon);
+        box-shadow: 0 0 0 2px rgba(132, 0, 41, 0.18);
+        background-color: #ffffff;
+    }
+
+    /* Subtle maroon accent on the calendar icon (where supported) */
+    .row-group input[type="date"]::-webkit-calendar-picker-indicator,
+    .row-group input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        filter: hue-rotate(320deg) saturate(140%);
     }
 
     .upload-box {
@@ -80,6 +106,69 @@
         font-size: 14px;
         cursor: pointer;
     }
+
+    /* Flatpickr theming to match GradeSync maroon */
+    .flatpickr-calendar {
+        font-family: inherit;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+        border: 1px solid #e5e7eb;
+    }
+
+    .flatpickr-months {
+        background-color: var(--maroon);
+        color: #ffffff;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .flatpickr-months .flatpickr-prev-month,
+    .flatpickr-months .flatpickr-next-month {
+        fill: #fef2f2;
+    }
+
+    .flatpickr-current-month input.cur-year,
+    .flatpickr-current-month .flatpickr-monthDropdown-months {
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+    .flatpickr-weekdays {
+        background-color: #991b3d;
+        color: #fef2f2;
+    }
+
+    .flatpickr-weekday {
+        color: #ffe4e6;
+        font-weight: 600;
+        font-size: 11px;
+    }
+
+    .flatpickr-day.today {
+        border-color: var(--maroon);
+        color: var(--maroon);
+        font-weight: 600;
+    }
+
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+        background-color: var(--maroon);
+        border-color: var(--maroon);
+        color: #ffffff;
+    }
+
+    .flatpickr-day.selected:hover {
+        background-color: #6b0021;
+        border-color: #6b0021;
+    }
+
+    .flatpickr-time {
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .flatpickr-time .numInputWrapper:hover {
+        background-color: #f9fafb;
+    }
 </style>
 
 <div class="create-assignment-container">
@@ -117,7 +206,7 @@
 
         <!-- Date, No Due Date & Points -->
         <div class="form-group row-group" style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px;">
-            <div style="width: 180px;">
+            <div style="width: 220px;">
                 {{ form.due_date }}
                 <div style="color: red; font-size: 12px; margin-top: 4px;">{{ form.due_date.errors }}</div>
             </div>
@@ -215,6 +304,10 @@
         </div>
     </form>
 </div>
+
+<!-- Flatpickr (pretty date/time picker) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
 let parsedTestCases = [];
@@ -423,6 +516,19 @@ function escapeHtml(text) {
 document.querySelector('form').addEventListener('submit', function(e) {
     // CSV is optional for now - allow submission even without test cases
     // They can be added via the upload_test_cases view later
+});
+
+// Initialize Flatpickr on the due_date field
+document.addEventListener('DOMContentLoaded', function () {
+    var dueInput = document.querySelector('input[name="due_date"]');
+    if (!dueInput || typeof flatpickr === 'undefined') return;
+
+    flatpickr(dueInput, {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        altInput: true,
+        altFormat: "M j, Y h:i K",
+    });
 });
 </script>
 
