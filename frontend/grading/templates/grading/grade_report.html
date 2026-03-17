@@ -153,39 +153,38 @@
             <button class="btn btn-outline-secondary d-flex align-items-center" onclick="exportToCSV()">
                 <i class="fas fa-file-csv me-2"></i> Export CSV
             </button>
-            <button class="btn btn-primary d-flex align-items-center" id="bulk-grade-btn" onclick="startBulkGrading()">
-                <i class="fas fa-play-circle me-2"></i> Run Bulk Grading
+            <button class="btn btn-primary d-flex align-items-center" id="bulk-grade-btn" onclick="startBulkTesting()">
+                <i class="fas fa-flask-vial me-2"></i> Run Bulk Testing
             </button>
         </div>
     </div>
 
-    <!-- Summary Stats -->
+    <!-- Summary Stats (simplified) -->
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="summary-card bg-gs-maroon shadow-sm">
+            <div class="summary-card bg-gs-maroon shadow-sm position-relative">
                 <div class="small opacity-75 text-uppercase fw-bold mb-1">Total Students</div>
                 <div class="h2 mb-0 fw-bold">{{ total_students }}</div>
                 <i class="fas fa-user-graduate position-absolute end-0 bottom-0 m-3 opacity-25 fa-2x"></i>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="summary-card bg-success shadow-sm">
+            <div class="summary-card bg-success shadow-sm position-relative">
                 <div class="small opacity-75 text-uppercase fw-bold mb-1">Submissions</div>
                 <div class="h2 mb-0 fw-bold">{{ submitted }}</div>
                 <div class="small mt-1 opacity-75">{{ missing }} missing</div>
+                <i class="fas fa-file-code position-absolute end-0 bottom-0 m-3 opacity-25 fa-2x"></i>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="summary-card bg-gs-gold text-dark shadow-sm">
-                <div class="small opacity-50 text-uppercase fw-bold mb-1">Avg. Score</div>
-                <div class="h2 mb-0 fw-bold">{{ avg_score }} <span class="fs-6 fw-normal">/ {{ max_score }}</span></div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="summary-card bg-info shadow-sm">
-                <div class="small opacity-75 text-uppercase fw-bold mb-1">Total Datasets</div>
-                <div class="h2 mb-0 fw-bold">{{ test_cases|length }}</div>
-                <div class="small mt-1 opacity-75">{{ avg_pass_rate }}% pass rate</div>
+        <div class="col-md-6 d-flex align-items-center">
+            <div class="w-100 p-3 rounded-3 border bg-white shadow-sm" style="border-color:#eee;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold" style="color:#111827;">Bulk testing results</div>
+                        <div class="small text-muted">Grid starts empty. Click <strong>Run Bulk Testing</strong> to populate Pass/Fail results. Click any populated cell to view Expected vs Actual.</div>
+                    </div>
+                    <span class="badge rounded-pill text-bg-light border" style="border-color:#e5e7eb;color:#374151;">{{ test_cases|length }} tests</span>
+                </div>
             </div>
         </div>
     </div>
@@ -221,8 +220,6 @@
                             <div class="small text-truncate d-inline-block" style="max-width: 120px;">{{ tc.name }}</div>
                         </th>
                         {% endfor %}
-                        <th class="text-center border-start sticky-col last-col">Passed</th>
-                        <th class="text-center sticky-col last-col-2">Score</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -234,37 +231,23 @@
                         </td>
                         {% for result in row.test_results %}
                         <td class="text-center px-2">
-                            {% if result.status == 'PASS' %}
-                                <span class="status-badge bg-success text-white" data-bs-toggle="tooltip" title="Passed in {{ result.time }}s">PASS</span>
-                            {% elif result.status == 'FAIL' %}
-                                <span class="status-badge bg-danger text-white cursor-pointer" 
-                                      data-bs-toggle="modal" data-bs-target="#resultModal" 
-                                      onclick="showResultDetails('{{ row.name }}', '{{ result.status }}', `{{ result.actual|escapejs }}`, `{{ result.expected|escapejs }}`, `{{ result.error|escapejs }}`)">FAIL</span>
-                            {% elif result.status == 'ERROR' %}
-                                <span class="status-badge bg-dark text-white cursor-pointer" 
-                                      data-bs-toggle="modal" data-bs-target="#resultModal" 
-                                      onclick="showResultDetails('{{ row.name }}', '{{ result.status }}', `{{ result.actual|escapejs }}`, `{{ result.expected|escapejs }}`, `{{ result.error|escapejs }}`)">ERROR</span>
-                            {% elif result.status == 'TIMEOUT' %}
-                                <span class="status-badge bg-warning text-dark fw-bold" data-bs-toggle="tooltip" title="Timed out">TIME</span>
-                            {% elif result.status == 'NOT SUBMITTED' %}
-                                <span class="status-badge bg-light text-muted border">MIS</span>
-                            {% else %}
-                                <span class="status-badge bg-secondary text-white opacity-50">PEND</span>
-                            {% endif %}
+                            <button
+                                type="button"
+                                class="status-badge bg-light text-muted border cursor-pointer"
+                                style="width:100%;"
+                                data-student-name="{{ row.name }}"
+                                data-submission-id="{{ row.submission_id|default:'' }}"
+                                data-test-case-id="{{ result.test_case_id }}"
+                                data-status="{{ result.status }}"
+                                onclick="onGridCellClick(this)"
+                                aria-label="Test result cell"
+                            >&nbsp;</button>
                         </td>
                         {% endfor %}
-                        <td class="text-center fw-bold border-start last-col sticky-col">
-                            {{ row.passed_tests }} / {{ row.total_tests }}
-                        </td>
-                        <td class="text-center last-col-2 sticky-col">
-                            <div class="fw-bold {% if row.pass_rate >= 80 %}text-success{% elif row.pass_rate >= 50 %}text-warning{% else %}text-danger{% endif %}">
-                                {{ row.score|floatformat:1 }}
-                            </div>
-                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="{{ test_cases|length|add:3 }}" class="text-center py-5 text-muted">
+                        <td colspan="{{ test_cases|length|add:1 }}" class="text-center py-5 text-muted">
                             <div class="mb-2"><i class="fas fa-users-slash fa-3x opacity-25"></i></div>
                             No students found for this course.
                         </td>
@@ -281,13 +264,16 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header border-bottom-0">
-                <h5 class="modal-title fw-bold" id="modalLabel">Detailed Test Result</h5>
+                <div>
+                    <h5 class="modal-title fw-bold mb-0" id="modalLabel">Test case details</h5>
+                    <div class="small text-muted" id="modalSubtitle"></div>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body px-4 pb-4">
-                <div class="mb-4">
-                    <span class="text-muted small text-uppercase fw-bold">Student:</span>
-                    <span id="modal-student" class="ms-2 fw-bold text-dark"></span>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge" id="modalStatusBadge"></span>
+                    <span class="small text-muted" id="modalExecTime"></span>
                 </div>
                 
                 <div class="row g-4">
@@ -302,7 +288,7 @@
                 </div>
                 
                 <div id="error-section" class="mt-4 d-none">
-                    <label class="form-label fw-bold small text-danger text-uppercase">Error Details</label>
+                    <label class="form-label fw-bold small text-danger text-uppercase">Error / Stderr</label>
                     <pre id="modal-error" class="bg-danger bg-opacity-10 text-danger border-danger border-opacity-25"></pre>
                 </div>
             </div>
@@ -327,21 +313,82 @@
         });
     });
 
-    function showResultDetails(student, status, actual, expected, error) {
-        document.getElementById('modal-student').textContent = student;
-        document.getElementById('modal-expected').textContent = expected || "(Empty)";
-        document.getElementById('modal-actual').textContent = actual || "(Empty)";
-        
-        const errorSec = document.getElementById('error-section');
-        if (error && error.trim()) {
-            errorSec.classList.remove('d-none');
-            document.getElementById('modal-error').textContent = error;
+    function getCookie(name) {
+        const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return v ? v.pop() : '';
+    }
+
+    function setCellVisual(btn, status) {
+        const s = (status || '').toUpperCase();
+        btn.dataset.status = s;
+        btn.className = 'status-badge cursor-pointer';
+        if (s === 'PASS') {
+            btn.textContent = 'PASS';
+            btn.classList.add('bg-success', 'text-white');
+        } else if (s === 'FAIL') {
+            btn.textContent = 'FAIL';
+            btn.classList.add('bg-danger', 'text-white');
         } else {
-            errorSec.classList.add('d-none');
+            btn.innerHTML = '&nbsp;';
+            btn.classList.add('bg-light', 'text-muted', 'border');
         }
     }
 
-    function startBulkGrading() {
+    async function onGridCellClick(btn) {
+        const status = (btn.dataset.status || '').toUpperCase();
+        const submissionId = btn.dataset.submissionId;
+        const testCaseId = btn.dataset.testCaseId;
+        const studentName = btn.dataset.studentName || 'Student';
+
+        if (!(status === 'PASS' || status === 'FAIL')) return;
+        if (!submissionId || !testCaseId) return;
+
+        document.getElementById('modalSubtitle').textContent = studentName;
+        const badge = document.getElementById('modalStatusBadge');
+        badge.textContent = 'Loading…';
+        badge.className = 'badge bg-secondary';
+        document.getElementById('modalExecTime').textContent = '';
+        document.getElementById('modal-expected').textContent = '';
+        document.getElementById('modal-actual').textContent = '';
+        document.getElementById('error-section').classList.add('d-none');
+
+        const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+        modal.show();
+
+        try {
+            const resp = await fetch(`/grading/api/submissions/${submissionId}/test-cases/${testCaseId}/result/`);
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || resp.statusText);
+
+            const tc = data.test_case || {};
+            document.getElementById('modalSubtitle').textContent = `${studentName} • Test #${tc.order || ''} ${tc.name ? '— ' + tc.name : ''}`.trim();
+
+            const passed = !!data.passed;
+            badge.textContent = passed ? 'PASS' : 'FAIL';
+            badge.className = 'badge ' + (passed ? 'bg-success' : 'bg-danger');
+            document.getElementById('modalExecTime').textContent = data.execution_time ? `Execution: ${Number(data.execution_time).toFixed(2)}s` : '';
+
+            document.getElementById('modal-expected').textContent = data.expected_output || '(Empty)';
+            document.getElementById('modal-actual').textContent = data.actual_output || '(Empty)';
+
+            const err = data.error_message || '';
+            if (err.trim()) {
+                document.getElementById('error-section').classList.remove('d-none');
+                document.getElementById('modal-error').textContent = err;
+            } else {
+                document.getElementById('error-section').classList.add('d-none');
+            }
+        } catch (e) {
+            badge.textContent = 'Error';
+            badge.className = 'badge bg-dark';
+            document.getElementById('modal-actual').textContent = String(e.message || e);
+        }
+    }
+
+    // Initialize all grid cells as empty on load
+    document.querySelectorAll('button.status-badge').forEach(btn => setCellVisual(btn, btn.dataset.status));
+
+    function startBulkTesting() {
         const btn = document.getElementById('bulk-grade-btn');
         btn.disabled = true;
         
@@ -349,7 +396,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': getCookie('csrftoken')
             }
         })
         .then(response => response.json())
@@ -392,11 +439,14 @@
             else if (data.status === 'SUCCESS') {
                 progressBar.style.width = '100%';
                 percentText.textContent = '100%';
-                message.textContent = 'Grading complete! Reloading...';
+                message.textContent = 'Testing complete! Updating grid...';
                 message.className = 'fw-bold text-success small';
                 
                 clearInterval(pollInterval);
-                setTimeout(() => location.reload(), 1500);
+                refreshGridData().then(() => {
+                    document.getElementById('bulk-grade-btn').disabled = false;
+                    document.getElementById('bulk-grade-btn').innerHTML = '<i class="fas fa-flask-vial me-2"></i> Run Bulk Testing';
+                });
             }
             else if (data.status === 'FAILURE') {
                 message.textContent = 'Grading failed: ' + (data.error || 'Unknown error');
@@ -408,10 +458,32 @@
         });
     }
 
+    async function refreshGridData() {
+        const resp = await fetch(`/grading/api/assignments/${assignmentId}/grade-report-data/`);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || resp.statusText);
+
+        const studentRows = data.students || [];
+        const tableBodyRows = document.querySelectorAll('table tbody tr');
+        for (let i = 0; i < Math.min(tableBodyRows.length, studentRows.length); i++) {
+            const tr = tableBodyRows[i];
+            const student = studentRows[i];
+            const buttons = tr.querySelectorAll('td button.status-badge');
+            const results = student.test_results || [];
+            buttons.forEach((btn, idx) => {
+                const r = results[idx];
+                btn.dataset.studentName = student.name;
+                btn.dataset.submissionId = student.submission_id || '';
+                btn.dataset.testCaseId = r ? r.test_case_id : btn.dataset.testCaseId;
+                setCellVisual(btn, r ? r.status : 'EMPTY');
+            });
+        }
+    }
+
     function exportToCSV() {
-        let csv = 'Student,Email,Score,Passed Tests,Total Tests\n';
+        let csv = 'Student,Email\n';
         {% for row in grade_data %}
-        csv += `"{{ row.name }}","{{ row.email }}",{{ row.score }},{{ row.passed_tests }},{{ row.total_tests }}\n`;
+        csv += `"{{ row.name }}","{{ row.email }}"\n`;
         {% endfor %}
         
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

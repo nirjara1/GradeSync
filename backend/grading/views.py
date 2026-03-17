@@ -1504,116 +1504,36 @@ def grade_report(request, assignment_id):
     
     submission_dict = {sub.student_id: sub for sub in submissions}
     
-    # Get all test results for these submissions in one query
-    all_results = TestResult.objects.filter(
-        submission__assignment=assignment
-    ).select_related('submission', 'test_case')
-    
-    # Organize results: submission_id -> test_case_id -> result_object
-    results_map = {}
-    for res in all_results:
-        if res.submission_id not in results_map:
-            results_map[res.submission_id] = {}
-        results_map[res.submission_id][res.test_case_id] = res
-    
-    def get_status_label(result):
-        if not result:
-            return 'UNGRADED'
-        if result.passed:
-            return 'PASS'
-        err = (result.error_message or '').lower()
-        if 'timeout' in err:
-            return 'TIMEOUT'
-        if result.error_message:
-            return 'ERROR'
-        return 'FAIL'
-
-    # Build grade report data
+    # Build grade report data (initially EMPTY cells; results are filled after "Run Bulk Testing")
     grade_data = []
     
     for student in students:
         submission = submission_dict.get(student.id)
         
         student_results = []
-        passed_count = 0
         
-        if submission:
-            sub_results = results_map.get(submission.id, {})
-            for tc in test_cases:
-                res = sub_results.get(tc.id)
-                status = get_status_label(res)
-                if status == 'PASS':
-                    passed_count += 1
-                
-                student_results.append({
-                    'test_case_id': tc.id,
-                    'status': status,
-                    'actual': res.actual_output if res else '',
-                    'expected': tc.expected_output,
-                    'error': res.error_message if res else '',
-                    'time': res.execution_time if res else 0
-                })
-            
-            total_tests = len(test_cases)
-            pass_rate = round((passed_count / total_tests * 100) if total_tests > 0 else 0, 1)
-            
-            # Safe access to grade (from incoming branch)
-            g = getattr(submission, 'grade', None)
-            
-            # Normalize score to percentage out of 100
-            raw_score = submission.total_score
-            raw_max = submission.max_score or assignment.points or 0
-            normalized_score = round(raw_score / raw_max * 100, 1) if raw_max > 0 else 0
-            
-            grade_data.append({
-                'id': student.id,
-                'name': student.user.get_full_name() or student.user.username,
-                'email': student.user.email,
-                'submission_id': submission.id,
-                'status': submission.status.upper(),
-                'submitted_at': submission.submission_time,
-                'score': normalized_score,
-                'max_score': 100,
-                'passed_tests': passed_count,
-                'total_tests': total_tests,
-                'pass_rate': pass_rate,
-                'test_results': student_results,
-                'has_submission': True,
-                'grade': g,
+        for tc in test_cases:
+            student_results.append({
+                'test_case_id': tc.id,
+                'status': 'EMPTY',
             })
-        else:
-            # No submission
-            for tc in test_cases:
-                student_results.append({
-                    'test_case_id': tc.id,
-                    'status': 'NOT SUBMITTED'
-                })
-                
-            grade_data.append({
-                'id': student.id,
-                'name': student.user.get_full_name() or student.user.username,
-                'email': student.user.email,
-                'status': 'NOT SUBMITTED',
-                'passed_tests': 0,
-                'total_tests': len(test_cases),
-                'pass_rate': 0,
-                'score': 0,
-                'max_score': assignment.points,
-                'test_results': student_results,
-                'has_submission': False
-            })
+
+        grade_data.append({
+            'id': student.id,
+            'name': student.user.get_full_name() or student.user.username,
+            'email': student.user.email,
+            'submission_id': submission.id if submission else None,
+            'has_submission': bool(submission),
+            'test_results': student_results,
+        })
     
     # Sort by name
     grade_data.sort(key=lambda x: x['name'])
     
-    # Calculate statistics
+    # Calculate statistics (keep only the essentials for this page)
     total_students = len(grade_data)
     submitted_count = sum(1 for g in grade_data if g['has_submission'])
     missing_count = total_students - submitted_count
-    
-    graded_subs = [g for g in grade_data if g['has_submission']]
-    avg_score = sum(g['score'] for g in graded_subs) / submitted_count if submitted_count > 0 else 0
-    avg_pass_rate = sum(g['pass_rate'] for g in graded_subs) / submitted_count if submitted_count > 0 else 0
     
     context = {
         'assignment': assignment,
@@ -1622,13 +1542,109 @@ def grade_report(request, assignment_id):
         'total_students': total_students,
         'submitted': submitted_count,
         'missing': missing_count,
-        'avg_score': round(avg_score, 1),
-        'max_score': 100,
-        'avg_pass_rate': round(avg_pass_rate, 1),
         'base_template': 'base_professor.html' if course_role == 'INSTRUCTOR' else 'base_grading_assistant.html'
     }
     
     return render(request, 'grading/grade_report.html', context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def grade_report_data_api(request, assignment_id):
+    """
+    Return the grade report grid data as JSON (used after bulk testing runs).
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    user = get_user_from_request(request)
+
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role not in ['INSTRUCTOR', 'GRADING_ASSISTANT']:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    students = Student.objects.filter(
+        user__course_memberships__course=assignment.course,
+        user__course_memberships__role_in_course='STUDENT'
+    ).select_related('user')
+
+    test_cases = list(TestCase.objects.filter(assignment=assignment).order_by('order'))
+
+    submissions = Submission.objects.filter(
+        assignment=assignment
+    ).select_related('student__user')
+    submission_dict = {sub.student_id: sub for sub in submissions}
+
+    all_results = TestResult.objects.filter(
+        submission__assignment=assignment
+    ).select_related('submission', 'test_case')
+
+    results_map = {}
+    for res in all_results:
+        results_map.setdefault(res.submission_id, {})[res.test_case_id] = res
+
+    def status_for(res: Optional[TestResult]) -> str:
+        if not res:
+            return "EMPTY"
+        if res.passed:
+            return "PASS"
+        # Never surface "ERROR" as a grid label; treat as FAIL and show details in modal
+        return "FAIL"
+
+    rows = []
+    for student in students:
+        submission = submission_dict.get(student.id)
+        sub_results = results_map.get(submission.id, {}) if submission else {}
+
+        test_results = []
+        for tc in test_cases:
+            res = sub_results.get(tc.id)
+            test_results.append({
+                "test_case_id": tc.id,
+                "status": status_for(res) if submission else "EMPTY",
+            })
+
+        rows.append({
+            "id": student.id,
+            "name": student.user.get_full_name() or student.user.username,
+            "email": student.user.email,
+            "submission_id": submission.id if submission else None,
+            "has_submission": bool(submission),
+            "test_results": test_results,
+        })
+
+    rows.sort(key=lambda x: x["name"])
+
+    return JsonResponse({
+        "students": rows,
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def test_result_detail_api(request, submission_id, test_case_id):
+    """
+    Return expected/actual/error details for one submission x test case.
+    Used by the grade report modal on click.
+    """
+    submission = get_object_or_404(Submission, id=submission_id)
+    assignment = submission.assignment
+    user = get_user_from_request(request)
+
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role not in ['INSTRUCTOR', 'GRADING_ASSISTANT']:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    tc = get_object_or_404(TestCase, id=test_case_id, assignment=assignment)
+    res = TestResult.objects.filter(submission=submission, test_case=tc).first()
+
+    return JsonResponse({
+        "test_case": {"id": tc.id, "name": tc.name, "order": tc.order},
+        "passed": bool(res.passed) if res else False,
+        "expected_output": tc.expected_output or "",
+        "actual_output": (res.actual_output or "") if res else "",
+        "error_message": (res.error_message or "") if res else "",
+        "execution_time": float(res.execution_time) if res else 0.0,
+        "has_result": bool(res),
+    })
 
 
 @login_required

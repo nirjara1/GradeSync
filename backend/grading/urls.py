@@ -39,6 +39,8 @@ urlpatterns = [
     path('api/assignments/<int:assignment_id>/bulk-grade/', views.trigger_bulk_grade, name='trigger_bulk_grade'),
     path('api/bulk-grade/<str:task_id>/status/', views.get_bulk_grade_status, name='get_bulk_grade_status'),
     path('assignments/<int:assignment_id>/grade-report/', views.grade_report, name='grade_report'),
+    path('api/assignments/<int:assignment_id>/grade-report-data/', views.grade_report_data_api, name='grade_report_data_api'),
+    path('api/submissions/<int:submission_id>/test-cases/<int:test_case_id>/result/', views.test_result_detail_api, name='test_result_detail_api'),
     
     # Remote code execution sandbox endpoint
     path('api/execute/', execute_code_view, name='execute_code'),
