@@ -27,10 +27,39 @@ def dashboard(request):
     if user.username == 'poudelb2':
         is_faculty = True
 
+    # Real-time data for widgets
+    from grading.models import Assignment, Submission
+    from django.utils import timezone
+    
+    # Upcoming Assignments
+    upcoming_assignments = Assignment.objects.filter(
+        course__professor=user, 
+        due_date__gte=timezone.now()
+    ).order_by('due_date')[:5]
+
+    # Recent Submissions
+    recent_submissions = Submission.objects.filter(
+        assignment__course__professor=user
+    ).order_by('-submission_time')[:5]
+    
+    # Pending Grading Tasks
+    pending_grading = Submission.objects.filter(
+        assignment__course__professor=user,
+        status__in=['submitted', 'grading']
+    ).order_by('submission_time')[:5]
+
+    # To-Do Items
+    from .models import ToDoItem
+    todo_items = ToDoItem.objects.filter(user=user)
+
     context = {
         'courses': courses,
         'archived_courses': archived_courses,
         'is_faculty': is_faculty,
+        'upcoming_assignments': upcoming_assignments,
+        'recent_submissions': recent_submissions,
+        'pending_grading': pending_grading,
+        'todo_items': todo_items,
     }
     return render(request, 'professor_dashboard.html', context)
 
@@ -288,3 +317,35 @@ class CustomLoginView(LoginView):
 
         # ── Fallback: LOGIN_REDIRECT_URL defined in settings.py ─────────────
         return super().get_success_url()
+
+@login_required
+def add_todo(request):
+    if request.method == 'POST':
+        text = request.POST.get('text', '').strip()
+        if text:
+            from .models import ToDoItem
+            ToDoItem.objects.create(user=request.user, text=text)
+    return redirect('professor_dashboard')
+
+@login_required
+def toggle_todo(request, item_id):
+    if request.method == 'POST':
+        from .models import ToDoItem
+        try:
+            item = ToDoItem.objects.get(id=item_id, user=request.user)
+            item.is_completed = not item.is_completed
+            item.save()
+        except ToDoItem.DoesNotExist:
+            pass
+    return redirect('professor_dashboard')
+
+@login_required
+def delete_todo(request, item_id):
+    if request.method == 'POST':
+        from .models import ToDoItem
+        try:
+            item = ToDoItem.objects.get(id=item_id, user=request.user)
+            item.delete()
+        except ToDoItem.DoesNotExist:
+            pass
+    return redirect('professor_dashboard')

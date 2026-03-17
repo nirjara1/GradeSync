@@ -76,3 +76,15 @@ class PendingEnrollment(models.Model):
 
     def __str__(self):
         return f"Pending: {self.email} in {self.course.code}"
+
+class ToDoItem(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todo_items')
+    text = models.CharField(max_length=255)
+    is_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['is_completed', '-created_at']
+
+    def __str__(self):
+        return f"[{'x' if self.is_completed else ' '}] {self.text}"
