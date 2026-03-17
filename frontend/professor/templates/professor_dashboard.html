@@ -348,19 +348,12 @@
                                     let listItem = this.closest('.todo-item'); 
                                     listItem.classList.add('vanish-out'); 
                                     setTimeout(() => form.submit(), 300);
-                                " 
-                                {% if item.is_completed %}checked{% endif %}>
+                                ">
                         </form>
-                        <label for="todo{{ item.id }}" class="todo-label" style="{% if item.is_completed %}text-decoration: line-through; color: var(--text-muted);{% endif %}">
+                        <label for="todo{{ item.id }}" class="todo-label">
                             {{ item.text }}
                         </label>
                     </div>
-                    <form method="post" action="{% url 'delete_todo' item.id %}" style="margin: 0; display: inline;" onsubmit="return confirm('Delete this task?');">
-                        {% csrf_token %}
-                        <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px;" title="Delete Task">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </form>
                 </li>
                 {% empty %}
                 <li style="color: var(--text-muted); font-size: 14px;">No pending tasks. Add one below!</li>

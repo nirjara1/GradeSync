@@ -333,8 +333,7 @@ def toggle_todo(request, item_id):
         from .models import ToDoItem
         try:
             item = ToDoItem.objects.get(id=item_id, user=request.user)
-            item.is_completed = not item.is_completed
-            item.save()
+            item.delete()  # Checking it off now completely removes the task
         except ToDoItem.DoesNotExist:
             pass
     return redirect('professor_dashboard')
