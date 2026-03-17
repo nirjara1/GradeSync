@@ -1,6 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from professor.models import CourseMember, UserProfile
+from django.utils import timezone
+from django.db.models import Q
+from grading.models import Assignment, Submission, Student
 
 @login_required
 def student_dashboard_view(request):
@@ -80,9 +83,28 @@ def student_courses_list(request):
 @login_required
 def student_assignments(request):
     request.session['active_role'] = 'STUDENT'
-    # For now, just a placeholder view like the professor's reports
-    # In a real app, this would fetch assignments from enrolled courses
-    return render(request, 'portal/student_assignments.html')
+    # Show only assignments that are still due AND not yet submitted by this student.
+    enrollments = CourseMember.objects.filter(
+        user=request.user,
+        role_in_course='STUDENT',
+    ).select_related('course')
+    courses = [e.course for e in enrollments]
+
+    student_profile, _ = Student.objects.get_or_create(user=request.user)
+    submitted_assignment_ids = Submission.objects.filter(student=student_profile).values_list('assignment_id', flat=True)
+
+    now = timezone.now()
+    assignments = (
+        Assignment.objects.filter(course__in=courses)
+        .exclude(id__in=submitted_assignment_ids)
+        .filter(Q(no_due_date=True) | Q(due_date__isnull=True) | Q(due_date__gte=now))
+        .order_by('due_date', 'id')
+    )
+
+    return render(request, 'portal/student_assignments.html', {
+        'assignments': assignments,
+        'enrollments': enrollments,
+    })
 
 @login_required
 def student_inbox(request):

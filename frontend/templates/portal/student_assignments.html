@@ -10,10 +10,49 @@
     
     <hr class="divider">
 
+    {% if assignments %}
+    <div class="assignments-list" style="margin-top: 18px;">
+        {% for assignment in assignments %}
+        <div class="assignment-item" style="justify-content: space-between; display:flex; align-items:flex-start; gap: 16px;">
+            <div style="display: flex; gap: 12px;">
+                <i class="fa-solid fa-book assignment-icon" style="margin-top: 3px;"></i>
+                <div class="assignment-details">
+                    <a href="{% url 'assignment_detail' assignment.pk %}" class="assignment-title" style="color: var(--maroon); font-weight: 800;">
+                        {{ assignment.name }}
+                    </a>
+                    {% if assignment.course %}
+                    <p class="assignment-meta" style="margin: 4px 0 0 0;">
+                        {{ assignment.course.title }}-{{ assignment.course.section }}
+                        <span style="color:#9ca3af;">({{ assignment.course.code }})</span>
+                        {% if assignment.course.term %}-{{ assignment.course.term }}{% endif %}
+                    </p>
+                    {% endif %}
+                    <p class="assignment-meta" style="margin: 2px 0 0 0;">Points: {{ assignment.points }}</p>
+                    <p class="assignment-meta" style="margin: 2px 0 0 0;">
+                        Due:
+                        {% if assignment.no_due_date or not assignment.due_date %}
+                            No due date
+                        {% else %}
+                            {{ assignment.due_date|date:"M j \\a\\t g:ia" }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div style="margin-left:auto;">
+                <a href="{% url 'assignment_detail' assignment.pk %}"
+                   style="background: var(--maroon); color: white; text-decoration:none; padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 13px; display:inline-flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-arrow-right"></i> Open
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
     <div class="empty-state" style="text-align: center; padding: 50px; background: #f9f9f9; border-radius: 8px; margin-top: 30px;">
         <i class="fa-solid fa-list-check" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
         <h3>No Assignments Due</h3>
         <p style="color: #666;">You do not currently have any pending assignments across your enrolled courses.</p>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

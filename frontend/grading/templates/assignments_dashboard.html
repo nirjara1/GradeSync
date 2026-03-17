@@ -13,7 +13,7 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
 
 <h2 class="page-title">
     {% if course %}
-    {{ course.code }}-{{ course.section }} Assignments
+    {{ course.title }}-{{ course.section }} Assignments
     {% else %}
     All Assignments
     {% endif %}
@@ -30,7 +30,11 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
                 <a href="{% url 'assignment_detail' assignment.pk %}" class="assignment-title">{{ assignment.name }}</a>
                 <!-- The Figma mockup specifically concatenates the course info string. We match the format exactly. -->
                 {% if assignment.course %}
-                <p class="assignment-meta">{{ assignment.course.code }}-{{ assignment.course.section }}-{{ assignment.course.term }}-{{ assignment.course.title }}</p>
+                <p class="assignment-meta">
+                    {{ assignment.course.title }}-{{ assignment.course.section }}
+                    <span style="color:#9ca3af;">({{ assignment.course.code }})</span>
+                    {% if assignment.course.term %}-{{ assignment.course.term }}{% endif %}
+                </p>
                 {% endif %}
                 <p class="assignment-meta">Points: {{ assignment.points }}</p>
                 <!-- Formatting datetime precisely matches "Feb 18 at 11:59pm" format from the image -->

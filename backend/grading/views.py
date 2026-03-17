@@ -41,7 +41,19 @@ def assignments_dashboard(request):
     elif role == 'STUDENT':
         base_template = 'portal/base_portal.html'
         courses = Course.objects.filter(members__user=user, members__role_in_course='STUDENT')
-        assignments = Assignment.objects.filter(course__in=courses).order_by('due_date')
+
+        # Student assignments tab should only show assignments that are still due
+        # AND have not been submitted yet by this student.
+        student_profile, _ = Student.objects.get_or_create(user=user)
+        submitted_assignment_ids = Submission.objects.filter(student=student_profile).values_list('assignment_id', flat=True)
+
+        now = timezone.now()
+        assignments = (
+            Assignment.objects.filter(course__in=courses)
+            .exclude(id__in=submitted_assignment_ids)
+            .filter(Q(no_due_date=True) | Q(due_date__isnull=True) | Q(due_date__gte=now))
+            .order_by('due_date', 'id')
+        )
         return render(request, 'assignments_dashboard.html', {
             'assignments': assignments, 'is_instructor': False, 'is_student': True, 'base_template': base_template
         })
