@@ -24,8 +24,40 @@ def student_dashboard_view(request):
         role_in_course__in=['STUDENT', 'GRADING_ASSISTANT']
     ).select_related('course', 'course__professor')
 
+    # Get course IDs to filter assignments
+    course_ids = enrollments.values_list('course_id', flat=True)
+
+    # To-Do Items
+    from professor.models import ToDoItem
+    todo_items = ToDoItem.objects.filter(user=request.user)
+
+    # Upcoming Assignments
+    student_profile = getattr(request.user, 'student_profile', None)
+    
+    if student_profile:
+        # Assignments not submitted, due in future
+        submitted_assignment_ids = Submission.objects.filter(student=student_profile).values_list('assignment_id', flat=True)
+        now = timezone.now()
+        upcoming_assignments = (
+            Assignment.objects.filter(course__in=course_ids)
+            .exclude(id__in=submitted_assignment_ids)
+            .filter(Q(no_due_date=True) | Q(due_date__isnull=True) | Q(due_date__gte=now))
+            .order_by('due_date', 'id')[:5]
+        )
+        
+        # Recent Submissions by this student
+        recent_submissions = Submission.objects.filter(
+            student=student_profile
+        ).order_by('-submission_time')[:5]
+    else:
+        upcoming_assignments = []
+        recent_submissions = []
+
     context = {
         'enrollments': enrollments,
+        'todo_items': todo_items,
+        'upcoming_assignments': upcoming_assignments,
+        'recent_submissions': recent_submissions,
     }
     
     return render(request, 'portal/dashboard.html', context)
@@ -205,7 +237,50 @@ def execution_sandbox(request):
         # Default fallback or for GRADING_ASSISTANT etc.
         base_template = 'base_grading_assistant.html'
         
+        base_template = 'base_grading_assistant.html'
+        
     context = {
         'base_template': base_template,
     }
     return render(request, 'shared/sandbox.html', context)
+
+def get_dashboard_url(user):
+    from professor.models import UserProfile
+    try:
+        profile = UserProfile.objects.get(user=user)
+        if profile.role == 'STUDENT':
+            return 'student_dashboard'
+    except UserProfile.DoesNotExist:
+        pass
+    return 'professor_dashboard'
+
+@login_required
+def add_todo(request):
+    if request.method == 'POST':
+        text = request.POST.get('text', '').strip()
+        if text:
+            from professor.models import ToDoItem
+            ToDoItem.objects.create(user=request.user, text=text)
+    return redirect(get_dashboard_url(request.user))
+
+@login_required
+def toggle_todo(request, item_id):
+    if request.method == 'POST':
+        from professor.models import ToDoItem
+        try:
+            item = ToDoItem.objects.get(id=item_id, user=request.user)
+            item.delete()  # Checking it off now completely removes the task
+        except ToDoItem.DoesNotExist:
+            pass
+    return redirect(get_dashboard_url(request.user))
+
+@login_required
+def delete_todo(request, item_id):
+    if request.method == 'POST':
+        from professor.models import ToDoItem
+        try:
+            item = ToDoItem.objects.get(id=item_id, user=request.user)
+            item.delete()
+        except ToDoItem.DoesNotExist:
+            pass
+    return redirect(get_dashboard_url(request.user))

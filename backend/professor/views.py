@@ -314,37 +314,5 @@ class CustomLoginView(LoginView):
                 return '/student/dashboard/'
         except UserProfile.DoesNotExist:
             pass
-
         # ── Fallback: LOGIN_REDIRECT_URL defined in settings.py ─────────────
         return super().get_success_url()
-
-@login_required
-def add_todo(request):
-    if request.method == 'POST':
-        text = request.POST.get('text', '').strip()
-        if text:
-            from .models import ToDoItem
-            ToDoItem.objects.create(user=request.user, text=text)
-    return redirect('professor_dashboard')
-
-@login_required
-def toggle_todo(request, item_id):
-    if request.method == 'POST':
-        from .models import ToDoItem
-        try:
-            item = ToDoItem.objects.get(id=item_id, user=request.user)
-            item.delete()  # Checking it off now completely removes the task
-        except ToDoItem.DoesNotExist:
-            pass
-    return redirect('professor_dashboard')
-
-@login_required
-def delete_todo(request, item_id):
-    if request.method == 'POST':
-        from .models import ToDoItem
-        try:
-            item = ToDoItem.objects.get(id=item_id, user=request.user)
-            item.delete()
-        except ToDoItem.DoesNotExist:
-            pass
-    return redirect('professor_dashboard')

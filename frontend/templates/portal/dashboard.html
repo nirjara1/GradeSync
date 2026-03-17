@@ -3,47 +3,340 @@
 
 {% block extra_css %}
 <style>
-    body { background-color: #e8e8e8; }
+    body { background-color: #f4f6f8; }
+
+    /* Structural Redesign */
+    .dashboard-split {
+        display: flex;
+        gap: 30px;
+        align-items: flex-start;
+    }
+    
+    .left-column {
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .right-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+        position: sticky;
+        top: 30px;
+    }
+
+    /* Redesigned Course Cards */
+    .left-column .course-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+    }
+
+    .course-card-enhanced {
+        background: var(--white);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        position: relative;
+        border: 1px solid transparent;
+    }
+
+    .course-card-enhanced:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 24px rgba(132, 0, 41, 0.1);
+        border-color: rgba(132, 0, 41, 0.3);
+    }
+
+    .card-image-enhanced {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .card-content-enhanced {
+        padding: 20px;
+    }
+
+    .card-content-enhanced .course-title {
+        font-size: 16px;
+        color: var(--maroon);
+        margin-bottom: 8px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .card-content-enhanced .course-prof, 
+    .card-content-enhanced .course-term {
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 13px;
+        margin-bottom: 4px;
+        margin-top: 0;
+    }
+
+    /* Widgets Panel */
+    .widget-panel {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        border: 1px solid #eaeaea;
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .widget-panel:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .widget-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--maroon);
+        margin-top: 0;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid #eaeaea;
+        padding-bottom: 12px;
+    }
+
+    /* Widget 1: To-Do List */
+    .todo-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .todo-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 14px;
+        transition: opacity 0.2s;
+    }
+
+    .todo-item:hover {
+        opacity: 0.8;
+    }
+
+    .todo-checkbox {
+        margin-top: 2px;
+        accent-color: var(--maroon);
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+    }
+    
+    .todo-label {
+        cursor: pointer;
+        line-height: 1.4;
+        color: var(--text-main);
+        font-weight: 500;
+        transition: color 0.3s;
+    }
+
+    @keyframes vanishOut {
+        0% { opacity: 1; transform: scale(1) translateX(0); }
+        100% { opacity: 0; transform: scale(0.9) translateX(20px); }
+    }
+    
+    .vanish-out {
+        animation: vanishOut 0.3s ease-out forwards !important;
+    }
+
+    /* Widget 2 & 3: Lists */
+    .feed-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .feed-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f5f5f5;
+    }
+
+    .feed-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .feed-main {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.3;
+        color: var(--text-main);
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .feed-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-left: 22px;
+    }
+
+    .feed-icon {
+        color: var(--maroon);
+        margin-top: 2px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .dashboard-split {
+            flex-direction: column;
+        }
+        .left-column {
+            width: 100%;
+        }
+        .right-column {
+            width: 100%;
+        }
+    }
+    @media (max-width: 768px) {
+        .left-column .course-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="main-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-        <h2 class="page-title" style="margin: 0;">Student Dashboard</h2>
-    </div>
-    <hr class="divider" style="margin-top: 0;">
-
-    {% if enrollments %}
-    <div class="course-grid">
-        {% for enrollment in enrollments %}
-        <a href="{% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}{% url 'ga_course' enrollment.course.id %}{% else %}{% url 'student_course' enrollment.course.id %}{% endif %}" class="course-card" style="position: relative;">
-            
-            <!-- GA Badge -->
-            {% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}
-            <div style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.75); color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
-                <i class="fa-solid fa-user-tie" style="margin-right: 4px;"></i> Assistant
+    <div class="dashboard-split">
+        <!-- Left Column (2/3 width) -->
+        <div class="left-column">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <h2 class="page-title" style="margin: 0; font-weight: 600; font-size: 28px;">Student Dashboard</h2>
             </div>
-            {% endif %}
+            <hr class="divider" style="margin-top: 0; margin-bottom: 10px; border-top: 2px solid #e5e7eb;">
 
-            <!-- Cover Image -->
-            {% if enrollment.course.image_url %}
-            <img src="{{ enrollment.course.image_url }}" alt="{{ enrollment.course.title }} cover" class="card-image">
+            {% if enrollments %}
+            <div class="course-grid">
+                {% for enrollment in enrollments %}
+                <div style="position: relative;">
+                    <a href="{% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}{% url 'ga_course' enrollment.course.id %}{% else %}{% url 'student_course' enrollment.course.id %}{% endif %}" class="course-card-enhanced">
+                        
+                        <!-- GA Badge -->
+                        {% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}
+                        <div style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.75); color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; z-index: 10;">
+                            <i class="fa-solid fa-user-tie" style="margin-right: 4px;"></i> Assistant
+                        </div>
+                        {% endif %}
+
+                        <!-- Cover Image -->
+                        {% if enrollment.course.image_url %}
+                        <img src="{{ enrollment.course.image_url }}" alt="{{ enrollment.course.title }} cover" class="card-image-enhanced">
+                        {% else %}
+                        <img src="{% static 'images/Dashboard Pic.png' %}" alt="Campus Placeholder" class="card-image-enhanced">
+                        {% endif %}
+
+                        <div class="card-content-enhanced">
+                            <p class="course-title">{{ enrollment.course.code }}-{{ enrollment.course.section|default:"001" }} - {{ enrollment.course.title }}</p>
+                            <p class="course-prof">{{ enrollment.course.professor.get_full_name|default:enrollment.course.professor.username }}</p>
+                            <p class="course-term">{{ enrollment.course.term }}</p>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
             {% else %}
-            <!-- Default local image -->
-            <img src="{% static 'images/course default.png' %}" alt="Placeholder Building" class="card-image">
-            {% endif %}
-
-            <div class="card-content">
-                <p class="course-title">{{ enrollment.course.code }}-{{ enrollment.course.section|default:"001" }} - {{ enrollment.course.title }}</p>
-                <p class="course-prof">{{ enrollment.course.professor.get_full_name|default:enrollment.course.professor.username }}</p>
-                <p class="course-term">{{ enrollment.course.term }}</p>
+            <div style="background: var(--white); padding: 40px; border-radius: 12px; border: 2px dashed #eaeaea; text-align: center;">
+                <i class="fa-solid fa-graduation-cap" style="font-size: 48px; color: #ccc; margin-bottom: 15px;"></i>
+                <p style="color: var(--text-muted); font-size: 16px; margin: 0;">You are not enrolled in any courses yet. Welcome to GradeSync!</p>
             </div>
-        </a>
-        {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Right Column (1/3 width) -->
+        <div class="right-column">
+            <!-- Widget 1: Personal Tasks (To-Do List) -->
+            <div class="widget-panel">
+                <h3 class="widget-title"><i class="fa-solid fa-list-check" style="font-size: 18px;"></i> Personal Tasks</h3>
+                <ul class="todo-list" style="margin-bottom: 15px;">
+                    {% for item in todo_items %}
+                    <li class="todo-item" style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <form method="post" action="{% url 'toggle_todo' item.id %}" style="margin: 0; display: inline;">
+                                {% csrf_token %}
+                                <input type="checkbox" id="todo{{ item.id }}" class="todo-checkbox" 
+                                    onchange="
+                                        let form = this.form; 
+                                        let listItem = this.closest('.todo-item'); 
+                                        listItem.classList.add('vanish-out'); 
+                                        setTimeout(() => form.submit(), 300);
+                                    ">
+                            </form>
+                            <label for="todo{{ item.id }}" class="todo-label">
+                                {{ item.text }}
+                            </label>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li style="color: var(--text-muted); font-size: 14px;">No personal tasks. Add one below!</li>
+                    {% endfor %}
+                </ul>
+                <form method="post" action="{% url 'add_todo' %}" style="display: flex; gap: 8px;">
+                    {% csrf_token %}
+                    <input type="text" name="text" placeholder="Add a new task..." required style="flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;">
+                    <button type="submit" style="background-color: var(--maroon); color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: bold;">
+                        <i class="fa-solid fa-plus"></i> Add
+                    </button>
+                </form>
+            </div>
+
+            <!-- Widget 2: Upcoming Assignments -->
+            <div class="widget-panel">
+                <h3 class="widget-title"><i class="fa-regular fa-clock" style="font-size: 18px;"></i> Upcoming Due Dates</h3>
+                <ul class="feed-list">
+                    {% for assignment in upcoming_assignments %}
+                    <li class="feed-item">
+                        <span class="feed-main"><i class="fa-solid fa-file-code feed-icon"></i> {{ assignment.name }}</span>
+                        <span class="feed-sub">{{ assignment.course.code }} - {{ assignment.due_date|date:"l, P"|default:"No due date" }}</span>
+                    </li>
+                    {% empty %}
+                    <li style="color: var(--text-muted); font-size: 14px;">No upcoming assignments. Enjoy your free time!</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Widget 3: Recent Submissions -->
+            <div class="widget-panel">
+                <h3 class="widget-title"><i class="fa-solid fa-bolt" style="font-size: 18px;"></i> Completed Work</h3>
+                <ul class="feed-list">
+                    {% for submission in recent_submissions %}
+                    <li class="feed-item">
+                        <span class="feed-main">
+                            <i class="fa-solid fa-circle-check feed-icon" style="color: #10b981;"></i> 
+                            {{ submission.assignment.name }}
+                        </span>
+                        <span class="feed-sub">Submitted {{ submission.submission_time|timesince }} ago</span>
+                    </li>
+                    {% empty %}
+                    <li style="color: var(--text-muted); font-size: 14px;">No recent submissions.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
-    {% else %}
-    <p>You are not enrolled in any courses yet. Welcome to GradeSync!</p>
-    {% endif %}
 </div>
 {% endblock %}
