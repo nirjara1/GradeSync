@@ -18,6 +18,8 @@ import json
 import csv
 import openpyxl
 from io import TextIOWrapper
+from typing import Optional
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -630,7 +632,12 @@ def gradebook_view(request, pk):
             for a in grid_assignments:
                 sub = cell_lookup.get((stu.id, a.id))
                 if not sub:
-                    status = 'missing'
+                    # If due date has passed, mark as missing; otherwise it's simply not submitted yet
+                    due = getattr(a, 'due_date', None)
+                    if due and due < timezone.now():
+                        status = 'missing'
+                    else:
+                        status = 'not_submitted'
                     score = None
                 else:
                     g = getattr(sub, 'grade', None)
@@ -1582,8 +1589,10 @@ def grade_report_data_api(request, assignment_id):
         results_map.setdefault(res.submission_id, {})[res.test_case_id] = res
 
     def status_for(res: Optional[TestResult]) -> str:
+        # When bulk testing has run, missing results should be treated as FAIL
+        # (e.g., compilation/runtime error prevented a per-test result row).
         if not res:
-            return "EMPTY"
+            return "FAIL"
         if res.passed:
             return "PASS"
         # Never surface "ERROR" as a grid label; treat as FAIL and show details in modal
@@ -1613,9 +1622,8 @@ def grade_report_data_api(request, assignment_id):
 
     rows.sort(key=lambda x: x["name"])
 
-    return JsonResponse({
-        "students": rows,
-    })
+    logger.info("[grade_report_data_api] assignment=%s rows=%s", assignment_id, len(rows))
+    return JsonResponse({"students": rows})
 
 
 @login_required
