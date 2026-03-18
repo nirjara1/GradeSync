@@ -1964,18 +1964,20 @@ def run_public_tests_api(request):
             
             results.append({
                 'test_case_id': test_case.id,
+                'test_name': test_case.name,
                 'passed': passed,
                 'expected_output': expected_output,
-                'actual_output': actual_output
+                'actual_output': actual_output,
             })
             
         except Exception as e:
             logger.error(f"Error executing test case {test_case.id}: {e}")
             results.append({
+                'test_case_id': test_case.id,
+                'test_name': test_case.name,
                 'passed': False,
                 'expected_output': test_case.expected_output,
                 'actual_output': f"Error: {str(e)}",
-                'test_name': test_case.name
             })
     
     return JsonResponse({'results': results})

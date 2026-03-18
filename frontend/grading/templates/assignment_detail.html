@@ -680,11 +680,61 @@
                 body: JSON.stringify({ code: editorInstance.getValue(), language: configLang, filename: files[activeFileIndex].name, files: files.map(f => ({ filename: f.name, code: f.model.getValue() })), assignment_id: {{ assignment.id }} })
             });
             const data = await resp.json(); list.innerHTML = '';
-            if (!data.results || data.results.length === 0) list.innerHTML = '<div style="color: #999; padding: 10px;">No tests found.</div>';
-            data.results.forEach(r => {
-                const div = document.createElement('div'); div.style.cssText = 'padding: 12px; border-bottom: 1px solid #333; color: #eee; display: flex; justify-content: space-between; align-items: center;';
-                div.innerHTML = `<span>${r.test_name}</span><span style="color:${r.passed?'#4caf50':'#f44336'}; font-weight: 700;">${r.passed?'PASSED':'FAILED'}</span>`;
-                list.appendChild(div);
+            if (!data.results || data.results.length === 0) {
+                list.innerHTML = '<div style="color: #999; padding: 10px;">No public tests are configured for this assignment.</div>';
+                return;
+            }
+            data.results.forEach((r, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.style.cssText = 'padding: 12px 0; border-bottom: 1px solid #1f2933; color: #e5e7eb;';
+
+                const header = document.createElement('div');
+                header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; cursor:pointer;';
+                const left = document.createElement('div');
+                left.style.cssText = 'display:flex; align-items:center; gap:8px;';
+
+                const badge = document.createElement('span');
+                badge.style.cssText = `display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; background:${r.passed ? '#064e3b' : '#7f1d1d'}; color:${r.passed ? '#6ee7b7' : '#fecaca'};`;
+                badge.textContent = r.passed ? 'PASSED' : 'FAILED';
+
+                const name = document.createElement('span');
+                name.textContent = r.test_name || `Test ${index + 1}`;
+                name.style.fontWeight = '600';
+
+                left.appendChild(badge);
+                left.appendChild(name);
+
+                const caret = document.createElement('span');
+                caret.textContent = '▾';
+                caret.style.cssText = 'font-size:11px; opacity:0.7; margin-left:8px;';
+
+                header.appendChild(left);
+                header.appendChild(caret);
+
+                const body = document.createElement('div');
+                body.style.cssText = 'margin-top:8px; display:none; font-size:12px; color:#e5e7eb;';
+                body.innerHTML = `
+                    <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                        <div style="flex:1 1 250px;">
+                            <div style="font-weight:600; margin-bottom:4px; color:#bfdbfe;">Expected Output</div>
+                            <pre style="background:#020617; border-radius:6px; padding:8px; max-height:160px; overflow:auto; white-space:pre-wrap;">${(r.expected_output || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+                        </div>
+                        <div style="flex:1 1 250px;">
+                            <div style="font-weight:600; margin-bottom:4px; color:#bfdbfe;">Your Output</div>
+                            <pre style="background:#020617; border-radius:6px; padding:8px; max-height:160px; overflow:auto; white-space:pre-wrap;">${(r.actual_output || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+                        </div>
+                    </div>
+                `;
+
+                header.addEventListener('click', () => {
+                    const visible = body.style.display === 'block';
+                    body.style.display = visible ? 'none' : 'block';
+                    caret.textContent = visible ? '▾' : '▴';
+                });
+
+                wrapper.appendChild(header);
+                wrapper.appendChild(body);
+                list.appendChild(wrapper);
             });
         } catch(e) { list.innerHTML = '<div style="color: #f44336; padding: 10px;">Error: ' + e.message + '</div>'; }
         finally { testBtn.disabled = false; testIcon.className = 'fa-solid fa-vial'; testText.textContent = 'Test'; }
