@@ -2,7 +2,7 @@
 
 {% block content %}
 <!-- Assignment Header -->
-<div style="margin-bottom: 25px;">
+<div id="assignment-header" style="margin-bottom: 25px; scroll-margin-top: 100px;">
     <h2 class="page-title" style="margin: 0; color: #333; font-size: 28px; font-weight: 600;">{{ assignment.name }}</h2>
     <p style="margin: 5px 0 0 0; color: #666; font-size: 15px;">
         Due: {{ assignment.due_date|date:"M j \a\t g:ia"|default:"No due date" }}
@@ -197,7 +197,7 @@
 
         <!-- Submission Status & Grade -->
         {% if latest_submission %}
-        <div id="submissionStatus" style="margin-bottom: 25px; border-top: 1px solid #eee; padding-top: 20px;">
+        <div id="submission-section" style="margin-bottom: 25px; border-top: 1px solid #eee; padding-top: 20px; scroll-margin-top: 100px;">
             <div
                 style="font-size: 14px; color: #666; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-clock" style="color: #999;"></i>

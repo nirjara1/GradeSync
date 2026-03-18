@@ -210,7 +210,7 @@
         
         <div class="assignments-grid">
             {% for assignment in course_group.list %}
-            <div class="assignment-card" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}'" style="cursor: pointer;">
+            <div class="assignment-card" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}#assignment-header'" style="cursor: pointer;">
                 <div class="assignment-card-content">
                     <div class="assignment-card-header">
                         <span class="assignment-card-title">{{ assignment.name }}</span>
@@ -240,15 +240,15 @@
 
                 <div class="assignment-card-footer" onclick="event.stopPropagation();">
                     {% if assignment.student_status == 'GRADED' %}
-                        <a href="{% url 'assignment_detail' assignment.pk %}" class="btn-view">
+                        <a href="{% url 'assignment_detail' assignment.pk %}#submission-section" class="btn-view">
                             <i class="fa-solid fa-check-double"></i> View Results
                         </a>
                     {% elif assignment.student_status == 'SUBMITTED' %}
-                        <a href="{% url 'assignment_detail' assignment.pk %}" class="btn-view">
+                        <a href="{% url 'assignment_detail' assignment.pk %}#submission-section" class="btn-view">
                             <i class="fa-solid fa-file-code"></i> View Submission
                         </a>
                     {% else %}
-                        <a href="{% url 'assignment_detail' assignment.pk %}" class="btn-open">
+                        <a href="{% url 'assignment_detail' assignment.pk %}#assignment-header" class="btn-open">
                             <i class="fa-solid fa-arrow-right"></i> Open Assignment
                         </a>
                     {% endif %}
