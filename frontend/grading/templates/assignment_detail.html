@@ -200,6 +200,7 @@
         background: #2d3748;
         padding: 4px 12px;
         border-bottom: 1px solid #3d4654;
+        border-radius: 12px 12px 0 0;
     }
 
     .action-row {
@@ -485,10 +486,11 @@
         switchTab(files.length - 1);
     }
 
-    require(['vs/editor/editor.main'], function() {
+    require(['vs/editor/editor.main'], function(monaco) {
         window.monaco = monaco; // Global for helper functions
         editorInstance = monaco.editor.create(document.getElementById('monaco-editor-container-submission'), {
-            theme: 'vs-dark', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, padding: { top: 16 }
+            theme: 'vs-dark', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, padding: { top: 16 },
+            scrollbar: { alwaysConsumeMouseWheel: false }
         });
         let initialFiles = [];
         try { initialFiles = JSON.parse(`{{ submission_files_json|escapejs }}` || '[]'); } catch(e) {}
@@ -497,7 +499,7 @@
 
         const previewContainer = document.getElementById('monaco-editor-container-preview');
         if (previewContainer && initialFiles.length > 0) {
-            previewEditorInstance = monaco.editor.create(previewContainer, { theme: 'vs-dark', readOnly: true, automaticLayout: true, fontSize: 14, minimap: { enabled: false } });
+            previewEditorInstance = monaco.editor.create(previewContainer, { theme: 'vs-dark', readOnly: true, automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollbar: { alwaysConsumeMouseWheel: false } });
             const previewModels = initialFiles.map(f => ({ name: f.name, model: monaco.editor.createModel(f.content, f.language) }));
             let activePreview = 0;
             function switchPreview(idx) {
