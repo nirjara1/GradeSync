@@ -20,39 +20,197 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
 </h2>
 <hr class="divider">
 
- 
-<div class="assignments-list">
-    {% for assignment in assignments %}
-    <div class="assignment-item" style="justify-content: space-between;">
-        <div style="display: flex; gap: 15px;">
-            <i class="fa-solid fa-book assignment-icon"></i>
-            <div class="assignment-details">
-                <a href="{% url 'assignment_detail' assignment.pk %}" class="assignment-title">{{ assignment.name }}</a>
-                <!-- The Figma mockup specifically concatenates the course info string. We match the format exactly. -->
-                {% if assignment.course %}
-                <p class="assignment-meta">
-                    {{ assignment.course.title }}-{{ assignment.course.section }}
-                    <span style="color:#9ca3af;">({{ assignment.course.code }})</span>
-                    {% if assignment.course.term %}-{{ assignment.course.term }}{% endif %}
-                </p>
-                {% endif %}
-                <p class="assignment-meta">Points: {{ assignment.points }}</p>
-                <!-- Formatting datetime precisely matches "Feb 18 at 11:59pm" format from the image -->
-                <p class="assignment-meta">Due: {{ assignment.due_date|date:"M j \a\t g:ia" }}</p>
-            </div>
-        </div>
+<style>
+    .assignments-container {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .course-group {
+        background-color: var(--white);
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .course-header {
+        background-color: #f9fafb;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .course-header:hover {
+        background-color: #f3f4f6;
+    }
+    
+    .course-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #111827;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .course-header-icon {
+        color: var(--maroon);
+        font-size: 20px;
+    }
+    
+    .assignments-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px;
+        background-color: #ffffff;
+    }
+    
+    .assignment-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background-color: #ffffff;
+    }
+    
+    .assignment-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+        border-color: #d1d5db;
+    }
+    
+    .assignment-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+    
+    .assignment-card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--maroon);
+        text-decoration: none;
+        line-height: 1.3;
+    }
+    
+    .assignment-card-title:hover {
+        text-decoration: underline;
+    }
+    
+    .assignment-details-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 16px 0;
+        font-size: 13px;
+        color: #4b5563;
+    }
+    
+    .assignment-details-list li {
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .assignment-details-list i {
+        color: #9ca3af;
+        width: 14px;
+        text-align: center;
+    }
+    
+    .assignment-card-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding-top: 12px;
+        border-top: 1px solid #f3f4f6;
+    }
+    
+    .action-icon {
+        color: #6b7280;
+        transition: color 0.2s;
+        font-size: 16px;
+        padding: 4px;
+    }
+    
+    .action-icon:hover {
+        color: var(--maroon);
+    }
+    
+    .action-icon.delete:hover {
+        color: #ef4444;
+    }
+</style>
 
-        {% if is_instructor %}
-        <div class="assignment-actions" style="display: flex; gap: 10px; align-items: flex-start; margin-top: 5px;">
-            <a href="{% url 'edit_assignment' assignment.pk %}" title="Edit Assignment"
-                style="color: var(--text-muted); font-size: 18px;"><i class="fa-solid fa-pen"></i></a>
-            <a href="{% url 'delete_assignment' assignment.pk %}" title="Delete Assignment"
-                style="color: var(--red-link); font-size: 18px;"><i class="fa-solid fa-trash"></i></a>
+<div class="assignments-container">
+    {% regroup assignments by course as course_list %}
+    
+    {% for course_group in course_list %}
+    <div class="course-group">
+        <div class="course-header" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'grid' : 'none';">
+            <h3>
+                <i class="fa-solid fa-graduation-cap course-header-icon"></i>
+                {% if course_group.grouper %}
+                    {{ course_group.grouper.title }}-{{ course_group.grouper.section }} 
+                    <span style="color:#6b7280; font-size:14px; font-weight:normal;">({{ course_group.grouper.code }}) {% if course_group.grouper.term %}- {{ course_group.grouper.term }}{% endif %}</span>
+                {% else %}
+                    General Assignments
+                {% endif %}
+            </h3>
+            <i class="fa-solid fa-chevron-down" style="color: #9ca3af;"></i>
         </div>
-        {% endif %}
+        
+        <div class="assignments-grid">
+            {% for assignment in course_group.list %}
+            <div class="assignment-card">
+                <div>
+                    <div class="assignment-card-header">
+                        <a href="{% url 'assignment_detail' assignment.pk %}" class="assignment-card-title">{{ assignment.name }}</a>
+                    </div>
+                    
+                    <ul class="assignment-details-list">
+                        <li>
+                            <i class="fa-solid fa-star"></i>
+                            Points: {{ assignment.points|default:"0" }}
+                        </li>
+                        <li>
+                            <i class="fa-regular fa-clock"></i>
+                            Due: {% if assignment.due_date %}{{ assignment.due_date|date:"M j \a\t g:ia" }}{% else %}No Due Date{% endif %}
+                        </li>
+                    </ul>
+                </div>
+
+                {% if is_instructor %}
+                <div class="assignment-card-footer">
+                    <a href="{% url 'edit_assignment' assignment.pk %}" title="Edit Assignment" class="action-icon">
+                        <i class="fa-solid fa-pen"></i>
+                    </a>
+                    <a href="{% url 'delete_assignment' assignment.pk %}" title="Delete Assignment" class="action-icon delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% empty %}
-    <p>No assignments found.</p>
+    <div style="padding: 40px; text-align: center; background: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+        <i class="fa-solid fa-folder-open" style="font-size: 32px; color: #9ca3af; margin-bottom: 15px;"></i>
+        <p style="color: #4b5563; font-size: 16px;">No assignments found.</p>
+    </div>
     {% endfor %}
 </div>
 
