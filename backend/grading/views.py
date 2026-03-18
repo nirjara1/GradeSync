@@ -379,29 +379,7 @@ def edit_assignment(request, pk):
     else:
         base_template = 'base_grading_assistant.html'
     
-    # Fetch rubric for this assignment (if any) to display in the edit form
-    try:
-        rubric = assignment.rubric
-        criteria = list(rubric.criteria.all())
-        total_pts = int(assignment.points) if assignment.points is not None else 0
-        criteria_with_display = []
-        for c in criteria:
-            if rubric.is_weighted and c.weight is not None:
-                display_pts = round(float(total_pts) * float(c.weight) / 100)
-            else:
-                display_pts = int(c.points) if c.points is not None else 0
-            criteria_with_display.append({'criterion': c, 'display_points': display_pts})
-    except Exception:
-        rubric = None
-        criteria_with_display = []
-
-    return render(request, 'edit_assignment.html', {
-        'form': form,
-        'assignment': assignment,
-        'base_template': base_template,
-        'rubric': rubric,
-        'criteria_with_display': criteria_with_display,
-    })
+    return render(request, 'edit_assignment.html', {'form': form, 'assignment': assignment, 'base_template': base_template})
 
 @login_required
 def delete_assignment(request, pk):
