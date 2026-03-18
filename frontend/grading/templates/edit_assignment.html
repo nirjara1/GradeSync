@@ -1,65 +1,372 @@
 {% extends base_template %}
 
 {% block content %}
-<h2 class="page-title">Edit Assignment: {{ assignment.name }}</h2>
-<hr class="divider">
+<style>
+    /* Premium unified form styling */
+    .main-content {
+        background-color: transparent !important;
+        box-shadow: none !important;
+        padding: 0 40px !important;
+    }
 
-{% if messages %}
-<ul class="messages">
-    {% for message in messages %}
-    <li{% if message.tags %} class="{{ message.tags }}" {% endif %}
-        style="color: var(--maroon); font-weight: bold; list-style: none;">
-        {{ message }}
-        </li>
-        {% endfor %}
-</ul>
-{% endif %}
+    .unified-form-container {
+        background-color: var(--white);
+        padding: 50px 60px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        max-width: 900px;
+        margin: 40px auto;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-<div
-    style="background: var(--white); padding: 30px; border-radius: 8px; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    .page-title {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--maroon);
+        margin-bottom: 30px;
+        text-align: center;
+        letter-spacing: -0.5px;
+    }
+
+    .section-header {
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+        margin-top: 40px;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f3f4f6;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-header i {
+        color: var(--maroon);
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        font-size: 14px;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+
+    .form-control, .form-control-file {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 15px;
+        background-color: #f9fafb;
+        color: #111827;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        background-color: #ffffff;
+        border-color: var(--maroon);
+        box-shadow: 0 0 0 4px rgba(132, 0, 41, 0.1);
+        outline: none;
+    }
+    
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    .form-control-file {
+        background-color: #ffffff;
+        padding: 10px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+    }
+
+    .form-col {
+        flex: 1;
+    }
+
+    /* Radio / Checkbox Group */
+    .radio-group-container {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        padding: 12px 16px;
+        background: #f9fafb;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .custom-radio {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+    .form-check-input {
+        accent-color: var(--maroon);
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    /* Buttons */
+    .btn-action-group {
+        display: flex;
+        justify-content: flex-end;
+        gap: 16px;
+        margin-top: 50px;
+        padding-top: 30px;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .btn-secondary {
+        background-color: #ffffff;
+        color: #4b5563;
+        border: 1px solid #d1d5db;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-secondary:hover {
+        background-color: #f9fafb;
+        color: #111827;
+        border-color: #9ca3af;
+    }
+
+    .btn-primary {
+        background-color: var(--maroon);
+        color: var(--white);
+        border: none;
+        padding: 12px 32px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(132, 0, 41, 0.2);
+    }
+
+    .btn-primary:hover {
+        background-color: #6b0021;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(132, 0, 41, 0.3);
+    }
+
+    /* Flatpickr theming */
+    .flatpickr-calendar {
+        font-family: inherit;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+        border: 1px solid #e5e7eb !important;
+    }
+    .flatpickr-months {
+        background-color: var(--maroon) !important;
+        border-radius: 12px 12px 0 0 !important;
+    }
+    .flatpickr-weekdays {
+        background-color: #991b3d !important;
+    }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange, .flatpickr-day.selected:focus, .flatpickr-day.selected:hover {
+        background: var(--maroon) !important;
+        border-color: var(--maroon) !important;
+    }
+    
+    .current-file-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        margin-top: 10px;
+    }
+
+    .current-file-badge a {
+        color: #15803d;
+        text-decoration: underline;
+    }
+</style>
+
+<div class="unified-form-container">
+    <h2 class="page-title">Edit Assignment: {{ assignment.name }}</h2>
+
+    {% if form.errors or messages %}
+    <div style="margin-bottom: 24px; padding: 16px; background: #fef2f2; border: 1px solid #f87171; border-radius: 8px;">
+        {% if messages %}
+            {% for message in messages %}
+                <div style="color: #b91c1c; font-weight: 600; margin-bottom: 4px;"><i class="fa-solid fa-circle-exclamation"></i> {{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% if form.errors %}
+            <div style="color: #b91c1c; font-weight: 600;"><i class="fa-solid fa-circle-exclamation"></i> Please correct the errors in the form.</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <form method="POST" enctype="multipart/form-data" action="{% url 'edit_assignment' assignment.pk %}">
         {% csrf_token %}
 
-        {% for field in form %}
+        <!-- SECTION 1: Basic Information -->
+        <h3 class="section-header"><i class="fa-solid fa-file-signature"></i> 1. Basic Details</h3>
+        
         <div class="form-group">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            
-            {% if field.name == 'public_test_data' and form.instance.public_test_data %}
-                <div class="current-file" style="margin-bottom: 5px; font-size: 14px;">
-                    Currently: <a href="{{ form.instance.public_test_data.url }}" target="_blank">{{ form.instance.public_test_data.name }}</a>
-                </div>
-            {% elif field.name == 'expected_outputs' and form.instance.expected_outputs %}
-                <div class="current-file" style="margin-bottom: 5px; font-size: 14px;">
-                    Currently: <a href="{{ form.instance.expected_outputs.url }}" target="_blank">{{ form.instance.expected_outputs.name }}</a>
-                </div>
-            {% elif field.name == 'test_cases_file' and form.instance.test_cases_file %}
-                <div class="current-file" style="margin-bottom: 5px; font-size: 14px;">
-                    Currently: <a href="{{ form.instance.test_cases_file.url }}" target="_blank">{{ form.instance.test_cases_file.name }}</a>
-                </div>
-            {% endif %}
-
-            {{ field }}
-            {% if field.help_text %}
-            <small style="color: grey">{{ field.help_text }}</small>
-            {% endif %}
-            {% for error in field.errors %}
-            <p style="color: red">{{ error }}</p>
-            {% endfor %}
+            <label for="{{ form.name.id_for_label }}" class="form-label">Assignment Title</label>
+            {{ form.name }}
+            <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.name.errors }}</div>
         </div>
-        {% endfor %}
 
-        <div style="display: flex; gap: 15px; margin-top: 20px;">
-            <button type="submit" class="btn-submit">Save Changes</button>
-            {% if assignment.course %}
-            <a href="{% if request.user_role == 'FACULTY' %}{% url 'professor_course' assignment.course.id %}{% elif request.user_role == 'STUDENT' %}{% url 'student_course' assignment.course.id %}{% else %}{% url 'ga_course' assignment.course.id %}{% endif %}"
-                class="btn-submit"
-                style="background-color: var(--text-muted); text-align: center; text-decoration: none;">Cancel</a>
-            {% else %}
-            <a href="{% url 'assignments_dashboard' %}" class="btn-submit"
-                style="background-color: var(--text-muted); text-align: center; text-decoration: none;">Cancel</a>
+        <div class="form-group">
+            <label for="{{ form.description.id_for_label }}" class="form-label">Description & Instructions</label>
+            {{ form.description }}
+            <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.description.errors }}</div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <div class="form-group">
+                    <label for="{{ form.course.id_for_label }}" class="form-label">Course</label>
+                    {{ form.course }}
+                    <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.course.errors }}</div>
+                </div>
+            </div>
+            <div class="form-col">
+                <div class="form-group">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">Visibility Status</label>
+                    {{ form.status }}
+                    <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.status.errors }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: Logistics -->
+        <h3 class="section-header"><i class="fa-regular fa-calendar-check"></i> 2. Deadlines & Grading</h3>
+
+        <div class="form-row" style="align-items: center;">
+            <div class="form-col" style="flex: 2;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date & Time</label>
+                    {{ form.due_date }}
+                    <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.due_date.errors }}</div>
+                </div>
+            </div>
+            <div class="form-col" style="flex: 1; margin-top: 24px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    {{ form.no_due_date }}
+                    <label for="{{ form.no_due_date.id_for_label }}" style="margin: 0; font-weight: 500; color: #374151; cursor: pointer;">No Due Date</label>
+                </div>
+            </div>
+            <div class="form-col" style="flex: 1;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="{{ form.points.id_for_label }}" class="form-label">Total Points</label>
+                    {{ form.points }}
+                    <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.points.errors }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: Environment -->
+        <h3 class="section-header"><i class="fa-solid fa-code"></i> 3. Environment</h3>
+        
+        <div class="form-group">
+            <label class="form-label">Allowed Programming Language</label>
+            <div class="radio-group-container">
+                {% for radio in form.allowed_language %}
+                <div class="custom-radio">
+                    {{ radio.tag }}
+                    <label for="{{ radio.id_for_label }}" style="margin: 0; font-weight: 500; color: #374151; cursor: pointer;">{{ radio.choice_label }}</label>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.allowed_language.errors }}</div>
+        </div>
+
+        <!-- SECTION 4: Test Cases & Grading Data -->
+        <h3 class="section-header"><i class="fa-solid fa-vial-virus"></i> 4. Testing Data & Files</h3>
+
+        <div class="form-group" style="background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 20px;">
+            <label for="{{ form.public_test_data.id_for_label }}" class="form-label" style="font-size: 15px;">Public Test Data (Visible to Students) <span style="font-weight:normal; color:#6b7280;">(.csv format)</span></label>
+            {{ form.public_test_data }}
+            {% if form.instance.public_test_data %}
+                <div class="current-file-badge">
+                    <i class="fa-solid fa-file-csv"></i> Currently uploaded: <a href="{{ form.instance.public_test_data.url }}" target="_blank">{{ form.instance.public_test_data.name|slice:"15:" }}</a>
+                </div>
             {% endif %}
+            <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.public_test_data.errors }}</div>
+        </div>
+
+        <div class="form-group" style="background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 20px;">
+            <label for="{{ form.test_cases_file.id_for_label }}" class="form-label" style="font-size: 15px;">Hidden Test Cases <span style="font-weight:normal; color:#6b7280;">(.json format)</span></label>
+            {{ form.test_cases_file }}
+            {% if form.instance.test_cases_file %}
+                <div class="current-file-badge">
+                    <i class="fa-solid fa-file-code"></i> Currently uploaded: <a href="{{ form.instance.test_cases_file.url }}" target="_blank">{{ form.instance.test_cases_file.name|slice:"15:" }}</a>
+                </div>
+            {% endif %}
+            <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.test_cases_file.errors }}</div>
+        </div>
+        
+        <div class="form-group" style="background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 20px;">
+            <label for="{{ form.expected_outputs.id_for_label }}" class="form-label" style="font-size: 15px;">Expected Outputs Archive <span style="font-weight:normal; color:#6b7280;">(.txt or .zip)</span></label>
+            {{ form.expected_outputs }}
+            {% if form.instance.expected_outputs %}
+                <div class="current-file-badge">
+                    <i class="fa-solid fa-file-zipper"></i> Currently uploaded: <a href="{{ form.instance.expected_outputs.url }}" target="_blank">{{ form.instance.expected_outputs.name|slice:"15:" }}</a>
+                </div>
+            {% endif %}
+            <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.expected_outputs.errors }}</div>
+        </div>
+
+        <div class="btn-action-group">
+            {% if assignment.course %}
+                <a href="{% if request.user_role == 'FACULTY' %}{% url 'professor_course' assignment.course.id %}{% elif request.user_role == 'STUDENT' %}{% url 'student_course' assignment.course.id %}{% else %}{% url 'ga_course' assignment.course.id %}{% endif %}" class="btn-secondary">Cancel</a>
+            {% else %}
+                <a href="{% url 'assignments_dashboard' %}" class="btn-secondary">Cancel</a>
+            {% endif %}
+            <button type="submit" class="btn-primary"><i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i> Save Changes</button>
         </div>
     </form>
 </div>
 
+<!-- Flatpickr (pretty date/time picker) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var dueInput = document.querySelector('input[name="due_date"]');
+    if (!dueInput || typeof flatpickr === 'undefined') return;
+
+    flatpickr(dueInput, {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        altInput: true,
+        altFormat: "M j, Y h:i K",
+    });
+});
+</script>
 {% endblock %}
