@@ -50,4 +50,5 @@ urlpatterns = [
     
     # Individual student course report
     path('courses/<int:course_id>/students/<int:student_id>/report/', views.student_course_report, name='student_course_report'),
+    path('courses/<int:course_id>/students/<int:student_id>/report/download/', views.download_student_course_report, name='download_student_course_report'),
 ]

@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Max, Q, Count, Avg
-from django.http import HttpResponseForbidden, FileResponse, Http404, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, FileResponse, Http404, JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult
@@ -20,6 +20,7 @@ import openpyxl
 from io import TextIOWrapper
 from typing import Optional
 from django.utils import timezone
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -1752,6 +1753,97 @@ def student_course_report(request, course_id, student_id):
     }
     
     return render(request, 'grading/student_course_report.html', context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def download_student_course_report(request, course_id, student_id):
+    """
+    Downloadable CSV version of the student course report.
+    Mirrors the on-page report but excludes class average and action columns.
+    """
+    user = get_user_from_request(request)
+    course = get_object_or_404(Course, id=course_id)
+    student = get_object_or_404(Student, id=student_id)
+
+    course_role = get_user_course_role(user, course, request)
+    is_instructor = course_role in ["INSTRUCTOR", "GRADING_ASSISTANT"]
+    is_self_student = (course_role == "STUDENT" and student.user == user)
+    if not (is_instructor or is_self_student or user.is_staff):
+        return HttpResponseForbidden("You do not have permission to download this report.")
+
+    assignments = Assignment.objects.filter(course=course).order_by("due_date", "id")
+    submissions = (
+        Submission.objects.filter(student=student, assignment__in=assignments)
+        .select_related("grade", "assignment")
+    )
+    submission_lookup = {sub.assignment_id: sub for sub in submissions}
+
+    total_points_possible = 0.0
+    total_points_earned = 0.0
+    rows = []
+
+    for a in assignments:
+        sub = submission_lookup.get(a.id)
+        points_possible = float(a.points or 0)
+        total_points_possible += points_possible
+
+        score = None
+        status = "missing"
+        if sub:
+            g = getattr(sub, "grade", None)
+            if g:
+                status = "graded"
+                score = float(g.score)
+                total_points_earned += score
+            else:
+                status = "ungraded"
+
+        rows.append({
+            "assignment": a,
+            "status": status,
+            "score": score,
+            "points_possible": points_possible,
+        })
+
+    overall_percentage = (
+        (total_points_earned / total_points_possible * 100.0)
+        if total_points_possible > 0
+        else 0.0
+    )
+
+    student_name = student.user.get_full_name() or student.user.username or "student"
+    course_code = getattr(course, "code", "") or "course"
+    safe_base = re.sub(r"[^A-Za-z0-9._-]+", "_", f"{course_code}_{student_name}").strip("_")
+    filename = f"student_report_{safe_base}.csv"
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow(["Student Performance Report"])
+    writer.writerow(["Student Name", student_name])
+    writer.writerow(["Student Email", student.user.email or ""])
+    writer.writerow(["Course", f"{course.code}: {course.title}"])
+    writer.writerow(["Overall Course Grade (%)", f"{overall_percentage:.1f}"])
+    writer.writerow(["Points Earned", f"{total_points_earned:.1f}"])
+    writer.writerow(["Points Possible", f"{total_points_possible:.1f}"])
+    writer.writerow([])
+    writer.writerow(["Assignment", "Due Date", "Status", "Score", "Points Possible"])
+
+    for r in rows:
+        a = r["assignment"]
+        due = a.due_date.strftime("%Y-%m-%d") if getattr(a, "due_date", None) else ""
+        score_str = "" if r["score"] is None else f"{r['score']:.1f}"
+        writer.writerow([
+            a.name,
+            due,
+            r["status"],
+            score_str,
+            f"{r['points_possible']:.1f}",
+        ])
+
+    return response
 
 
 @login_required

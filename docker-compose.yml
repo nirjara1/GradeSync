@@ -23,6 +23,7 @@ services:
     env_file:
       - .env
     environment:
+      - POSTGRES_HOST=db
       # Execution sandbox settings (override in .env if needed)
       - EXECUTION_TIMEOUT_SECONDS=10
       - CELERY_BROKER_URL=redis://redis:6379/0
@@ -51,6 +52,7 @@ services:
     env_file:
       - .env
     environment:
+      - POSTGRES_HOST=db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - EXECUTION_TIMEOUT_SECONDS=10

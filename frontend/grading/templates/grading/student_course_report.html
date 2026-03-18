@@ -17,12 +17,20 @@
                     {{ course.code }}: {{ course.title }}
                 </div>
             </div>
-            <div style="text-align: right; background: #fdf2f2; padding: 12px 20px; border-radius: 12px; border: 1px solid #fee2e2;">
-                <div style="font-size: 28px; font-weight: 800; color: var(--maroon); line-height: 1;">
-                    {{ overall_percentage|floatformat:1 }}%
-                </div>
-                <div style="font-size: 10px; color: #991b1b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">
-                    Overall Course Grade
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <a href="{% url 'download_student_course_report' course_id=course.id student_id=student.id %}"
+                   class="btn-publish"
+                   style="padding: 10px 14px; font-size: 12px; text-decoration: none; border-radius: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-download"></i>
+                    Download Report
+                </a>
+                <div style="text-align: right; background: #fdf2f2; padding: 12px 20px; border-radius: 12px; border: 1px solid #fee2e2;">
+                    <div style="font-size: 28px; font-weight: 800; color: var(--maroon); line-height: 1;">
+                        {{ overall_percentage|floatformat:1 }}%
+                    </div>
+                    <div style="font-size: 10px; color: #991b1b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">
+                        Overall Course Grade
+                    </div>
                 </div>
             </div>
         </div>
