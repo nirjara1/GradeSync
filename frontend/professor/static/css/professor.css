@@ -53,7 +53,7 @@ html {
 
 .maroon-band {
     background-color: var(--maroon);
-    height: 120px;
+    height: 100px;
     padding: 10px 20px;
     display: flex;
     justify-content: center;
@@ -63,23 +63,27 @@ html {
 
 .ulm-seal {
     max-width: 100%;
-    max-height: 95px;
+    max-height: 85px;
     width: auto;
     object-fit: contain;
+    animation: simpleFadeIn 1.2s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+    transition: filter 0.3s cubic-bezier(0.165, 0.84, 0.44, 1), transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    cursor: pointer;
 }
 
-.gradesync-logo {
-    color: var(--white);
-    font-size: 36px;
-    font-weight: 700;
-    font-family: Arial, Helvetica, sans-serif;
-    margin: 0;
-    letter-spacing: 0.5px;
+.ulm-seal:hover {
+    transform: scale(1.06);
+    filter: drop-shadow(0px 8px 20px rgba(0, 0, 0, 0.25)) brightness(1.05);
+}
+
+@keyframes simpleFadeIn {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
 }
 
 .vertical-separator {
     width: 2px;
-    height: 60px;
+    height: 50px;
     background-color: var(--white);
     margin: 0 15px;
 }
