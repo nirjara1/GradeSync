@@ -10,80 +10,214 @@
     
     <hr class="divider">
 
-    <div class="reports-layout" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">
-        <!-- Mock Report Card 1 -->
-        <div class="report-card" style="background: white; border-radius: 8px; border: 1px solid #eaeaea; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
-                <h3 style="margin: 0; color: var(--maroon);">Class Averages</h3>
-                <i class="fa-solid fa-chart-bar" style="color: var(--gold); font-size: 24px;"></i>
+<style>
+    .reports-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .course-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+    }
+    
+    .course-section-header {
+        background-color: #f9fafb;
+        padding: 20px 25px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .course-section-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .course-section-header .course-icon {
+        color: var(--maroon);
+        font-size: 20px;
+    }
+    
+    .reports-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .reports-table th {
+        text-align: left;
+        padding: 12px 25px;
+        background-color: #ffffff;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .reports-table td {
+        padding: 16px 25px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: center;
+    }
+    
+    .assignment-name-cell {
+        font-weight: 600;
+        color: var(--maroon);
+        font-size: 15px;
+    }
+    
+    .assignment-meta-text {
+        color: #6b7280;
+        font-size: 13px;
+        margin-top: 2px;
+    }
+    
+    .action-button-group {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    
+    .report-btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+    }
+    
+    .btn-gradebook {
+        background-color: #fefcfb;
+        color: #374151;
+        border-color: #d1d5db;
+    }
+    
+    .btn-gradebook:hover {
+        background-color: #f3f4f6;
+        border-color: #9ca3af;
+        color: #111827;
+    }
+    
+    .btn-test-report {
+        background-color: var(--maroon);
+        color: white;
+    }
+    
+    .btn-test-report:hover {
+        background-color: #6a0020;
+        box-shadow: 0 4px 10px rgba(132, 0, 41, 0.2);
+    }
+    
+    .empty-state {
+        padding: 60px 20px;
+        text-align: center;
+        background-color: #f9fafb;
+        border-radius: 12px;
+        border: 2px dashed #e5e7eb;
+    }
+    
+    .empty-state i {
+        font-size: 40px;
+        color: #9ca3af;
+        margin-bottom: 15px;
+    }
+    
+    .empty-state p {
+        color: #6b7280;
+        font-size: 16px;
+        margin: 0;
+    }
+</style>
+
+<div class="reports-container">
+    <div class="reports-header" style="margin-bottom: 25px;">
+        <h2 class="page-title">Grading & Reports Center</h2>
+        <p class="profile-subtitle">Access student performance grids, test case reports, and grading tools.</p>
+    </div>
+    
+    <hr class="divider">
+
+    <div class="reports-layout" style="margin-top: 30px;">
+        {% for course in courses %}
+        <div class="course-section">
+            <div class="course-section-header">
+                <h3>
+                    <i class="fa-solid fa-graduation-cap course-icon"></i>
+                    {{ course.code }}-{{ course.section }} {{ course.title }}
+                </h3>
+                <span style="font-size: 13px; color: #6b7280; font-weight: 500;">{{ course.term }}</span>
             </div>
-            <div style="height: 200px; display: flex; align-items: flex-end; justify-content: space-around; padding-top: 20px; border-bottom: 1px solid #eee;">
-                {% if courses %}
-                    {% for course in courses %}
-                        {% if forloop.counter <= 4 %}
-                            <div style="width: 40px; background: {% if forloop.last %}var(--gold){% else %}var(--maroon){% endif %}; height: {% cycle '85%' '92%' '78%' '70%' %}; border-radius: 4px 4px 0 0; text-align: center; color: white; font-size: 12px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px;" title="{{ course.title }}">
-                                {% cycle '85%' '92%' '78%' '70%' %}
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                    <!-- Average Bar -->
-                    <div style="width: 40px; background: #666; height: 84%; border-radius: 4px 4px 0 0; text-align: center; color: white; font-size: 12px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px;" title="Overall Average">
-                        84%
-                    </div>
+            
+            <div class="course-assignments-list">
+                {% if course.assignments.all %}
+                <table class="reports-table">
+                    <thead>
+                        <tr>
+                            <th>Assignment Name</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Reporting Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in course.assignments.all %}
+                        <tr>
+                            <td>
+                                <div class="assignment-name-cell">{{ assignment.name }}</div>
+                                <div class="assignment-meta-text">Points: {{ assignment.points }} • Due: {% if assignment.due_date %}{{ assignment.due_date|date:"M j, Y" }}{% else %}No Due Date{% endif %}</div>
+                            </td>
+                            <td>
+                                <span class="badge {% if assignment.status == 'published' %}status-published{% else %}status-draft{% endif %}">
+                                    {{ assignment.status|capfirst }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-button-group">
+                                    <a href="{% url 'gradebook' assignment.pk %}" class="report-btn btn-gradebook">
+                                        <i class="fa-solid fa-table-list"></i>
+                                        Gradebook
+                                    </a>
+                                    <a href="{% url 'grade_report' assignment.pk %}" class="report-btn btn-test-report">
+                                        <i class="fa-solid fa-flask-vial"></i>
+                                        Test Case Report
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
                 {% else %}
-                    <p style="color: #888; text-align: center; width: 100%;">No courses assigned yet to display analytics.</p>
+                <div style="padding: 30px; text-align: center; color: #6b7280; font-size: 14px; font-style: italic;">
+                    No assignments created for this course yet.
+                </div>
                 {% endif %}
             </div>
-            
-            {% if courses %}
-            <div style="display: flex; justify-content: space-around; margin-top: 10px; font-size: 12px; font-weight: bold; color: #666;">
-                {% for course in courses %}
-                    {% if forloop.counter <= 4 %}
-                        <span>{{ course.code }}</span>
-                    {% endif %}
-                {% endfor %}
-                <span>Average</span>
-            </div>
-            {% endif %}
         </div>
-
-        <!-- Mock Report Card 2 -->
-        <div class="report-card" style="background: white; border-radius: 8px; border: 1px solid #eaeaea; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
-                <h3 style="margin: 0; color: var(--maroon);">Recent Activity</h3>
-                <i class="fa-solid fa-chart-line" style="color: var(--gold); font-size: 24px;"></i>
-            </div>
-            
-            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 15px;">
-                <li style="display: flex; gap: 15px; align-items: center;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: var(--maroon);">
-                        <i class="fa-solid fa-file-arrow-up"></i>
-                    </div>
-                    <div>
-                        <strong style="display: block; font-size: 14px;">Assignment 3 Submissions</strong>
-                        <span style="color: #666; font-size: 12px;">32/40 students submitted</span>
-                    </div>
-                </li>
-                <li style="display: flex; gap: 15px; align-items: center;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: var(--maroon);">
-                        <i class="fa-solid fa-check-double"></i>
-                    </div>
-                    <div>
-                        <strong style="display: block; font-size: 14px;">Midterm Grading</strong>
-                        <span style="color: #666; font-size: 12px;">Grading 100% complete</span>
-                    </div>
-                </li>
-                <li style="display: flex; gap: 15px; align-items: center;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: var(--maroon);">
-                        <i class="fa-solid fa-user-plus"></i>
-                    </div>
-                    <div>
-                        <strong style="display: block; font-size: 14px;">Roster Update</strong>
-                        <span style="color: #666; font-size: 12px;">2 students dropped CSCI4060</span>
-                    </div>
-                </li>
-            </ul>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fa-solid fa-folder-open"></i>
+            <p>You don't have any active courses yet.</p>
         </div>
+        {% endfor %}
     </div>
+</div>
 </div>
 {% endblock %}

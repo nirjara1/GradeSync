@@ -130,7 +130,8 @@ def courses_list(request):
 def reports(request):
     user = get_user_from_request(request)
     request.session['active_role'] = 'INSTRUCTOR'
-    courses = Course.objects.filter(professor=user).distinct()
+    # Fetch courses for the professor and prefetch their assignments
+    courses = Course.objects.filter(professor=user).prefetch_related('assignments').distinct()
     return render(request, 'professor_reports.html', {'courses': courses})
 
 from .models import Course, UserProfile, Message
