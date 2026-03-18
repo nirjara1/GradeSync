@@ -174,10 +174,10 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
         
         <div class="assignments-grid">
             {% for assignment in course_group.list %}
-            <div class="assignment-card">
+            <div class="assignment-card" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}'" style="cursor: pointer;">
                 <div>
                     <div class="assignment-card-header">
-                        <a href="{% url 'assignment_detail' assignment.pk %}" class="assignment-card-title">{{ assignment.name }}</a>
+                        <span class="assignment-card-title">{{ assignment.name }}</span>
                     </div>
                     
                     <ul class="assignment-details-list">
@@ -193,7 +193,7 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
                 </div>
 
                 {% if is_instructor %}
-                <div class="assignment-card-footer">
+                <div class="assignment-card-footer" onclick="event.stopPropagation();">
                     <a href="{% url 'edit_assignment' assignment.pk %}" title="Edit Assignment" class="action-icon">
                         <i class="fa-solid fa-pen"></i>
                     </a>
