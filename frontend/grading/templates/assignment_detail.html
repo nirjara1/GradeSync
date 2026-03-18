@@ -407,7 +407,7 @@
 
     let editorInstance = null, previewEditorInstance = null;
     let files = [], activeFileIndex = -1;
-    let configLang = '{{ assignment.allowed_language }}';
+    let configLang = '{{ assignment.allowed_language|default:"python"|lower }}';
 
     function switchMainTab(tabId) {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -420,7 +420,7 @@
     }
 
     function addFile(name, content, language) {
-        if (!monaco.editor) return;
+        if (typeof monaco === 'undefined' || !monaco.editor) { console.warn('Monaco not ready'); return; }
         const model = monaco.editor.createModel(content, language);
         files.push({ name, model, language });
         renderTabs();
@@ -429,7 +429,7 @@
     function switchTab(index) {
         if (index < 0 || index >= files.length) return;
         activeFileIndex = index;
-        editorInstance.setModel(files[index].model);
+        if (editorInstance) editorInstance.setModel(files[index].model);
         renderTabs();
     }
 
@@ -469,12 +469,24 @@
 
     function createNewFile() {
         const ext = configLang === 'java' ? '.java' : '.py';
-        const fileName = prompt(`Enter new file name:`, `new_file${ext}`);
-        if (!fileName || !fileName.endsWith(ext)) { if (fileName) alert('Invalid file name'); return; }
-        addFile(fileName, '', configLang); switchTab(files.length - 1);
+        const fileName = prompt(`Enter new file name:`, `new_file${files.length + 1}${ext}`);
+        if (!fileName) return;
+
+        // If no extension, add it
+        let finalName = fileName;
+        if (!finalName.endsWith('.py') && !finalName.endsWith('.java')) {
+            finalName += ext;
+        }
+
+        // Validate final extension
+        if (!finalName.endsWith(ext)) { alert(`Invalid extension. Assignment expects ${configLang} files.`); return; }
+        
+        addFile(finalName, '', configLang); 
+        switchTab(files.length - 1);
     }
 
     require(['vs/editor/editor.main'], function() {
+        window.monaco = monaco; // Global for helper functions
         editorInstance = monaco.editor.create(document.getElementById('monaco-editor-container-submission'), {
             theme: 'vs-dark', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, padding: { top: 16 }
         });
@@ -523,6 +535,7 @@
     }
 
     async function runCode() {
+        if (!editorInstance || activeFileIndex < 0) return;
         const termPanel = document.getElementById('terminalPanel'), termOut = document.getElementById('terminalOutput');
         const runBtn = document.getElementById('runCodeBtn'), runIcon = document.getElementById('runIcon'), runText = document.getElementById('runBtnText');
         termPanel.style.display = 'block'; termOut.innerHTML = 'Running...'; switchOutputTab('terminal');
@@ -540,6 +553,7 @@
     }
 
     async function runPublicTests() {
+        if (!editorInstance || activeFileIndex < 0) return;
         const termPanel = document.getElementById('terminalPanel'), list = document.getElementById('testResultsList');
         const testBtn = document.getElementById('runPublicTestsBtn'), testIcon = document.getElementById('testIcon'), testText = document.getElementById('testBtnText');
         termPanel.style.display = 'block'; list.innerHTML = '<div style="color: #888; padding: 10px;">Running tests...</div>'; switchOutputTab('testResults');
