@@ -333,30 +333,33 @@ def edit_assignment(request, pk):
 
                     reader = csv.DictReader(content.splitlines())
 
-                    # Remove only non-private tests; keep private grading tests intact
+                    # Remove any existing PUBLIC tests (we treat all rows from this CSV as public)
                     TestCase.objects.filter(assignment=assignment, is_private=False).delete()
 
                     count = 0
                     for idx, row in enumerate(reader, 1):
                         input_data = row.get('input_data', '')
                         expected_output = row.get('expected_output', '')
-                        # default to public if column missing
-                        is_private_val = str(row.get('is_private', 'false')).strip().lower()
-                        is_private = is_private_val in ('true', '1', 'yes')
+                        # Force these to be PUBLIC tests (students can run); private tests should come from the JSON/manager flows
+                        is_private = False
                         points_val = row.get('points', '') or '5'
                         try:
                             points = int(points_val)
                         except ValueError:
                             points = 5
 
-                        TestCase.objects.create(
+                        # Avoid duplicates on re-import by upserting on core fields
+                        TestCase.objects.update_or_create(
                             assignment=assignment,
-                            name=f"Test Case {idx}",
                             input_data=input_data,
                             expected_output=expected_output,
                             is_private=is_private,
-                            points_awarded=points,
-                            order=idx,
+                            defaults={
+                                'name': f"Test Case {idx}",
+                                'is_hidden': False,
+                                'points_awarded': points,
+                                'order': idx,
+                            },
                         )
                         count += 1
 
@@ -944,21 +947,32 @@ def upload_test_cases(request, assignment_id):
                 # Get the maximum order to append new tests
                 max_order = TestCase.objects.filter(assignment=assignment).aggregate(Max('order'))['order__max'] or 0
                 
-                # Create TestCase objects
+                # Create TestCase objects (avoid duplicates for same assignment + core fields)
                 created_count = 0
                 for idx, tc in enumerate(test_cases):
-                    TestCase.objects.create(
+                    name = tc.get('name', f'Test {max_order + idx + 1}')
+                    description = tc.get('description', '')
+                    input_data = tc.get('input_data', '')
+                    expected_output = tc.get('expected_output', '')
+                    points_awarded = float(tc.get('points_awarded', 1))
+                    is_hidden = tc.get('is_hidden', False)
+                    is_private = tc.get('is_private', False)
+
+                    obj, created = TestCase.objects.update_or_create(
                         assignment=assignment,
-                        name=tc.get('name', f'Test {max_order + idx + 1}'),
-                        description=tc.get('description', ''),
-                        input_data=tc.get('input_data', ''),
-                        expected_output=tc.get('expected_output', ''),
-                        points_awarded=float(tc.get('points_awarded', 1)),
-                        is_hidden=tc.get('is_hidden', False),
-                        is_private=tc.get('is_private', False),
-                        order=max_order + idx + 1,
+                        input_data=input_data,
+                        expected_output=expected_output,
+                        is_private=is_private,
+                        is_hidden=is_hidden,
+                        defaults={
+                            'name': name,
+                            'description': description,
+                            'points_awarded': points_awarded,
+                            'order': max_order + idx + 1,
+                        },
                     )
-                    created_count += 1
+                    if created:
+                        created_count += 1
                 
                 messages.success(request, f'Successfully imported {created_count} test cases.')
                 return redirect('assignment_detail', pk=assignment_id)
