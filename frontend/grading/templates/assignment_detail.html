@@ -1,282 +1,409 @@
 {% extends base_template %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --gs-border: #e2e8f0;
+        --gs-bg-light: #f8fafc;
+        --gs-text-main: #1e293b;
+        --gs-text-muted: #64748b;
+        --gs-maroon: #840029;
+        --gs-maroon-hover: #6a0020;
+    }
+
+    /* Overall Layout */
+    .detail-container {
+        animation: fadeIn 0.4s ease-out;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Updated Header */
+    .assignment-header {
+        margin-bottom: 24px;
+        padding: 24px 0;
+        border-bottom: 1px solid var(--gs-border);
+    }
+
+    .assignment-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--gs-text-main);
+        margin: 0 0 8px 0;
+    }
+
+    .assignment-meta {
+        display: flex;
+        gap: 20px;
+        color: var(--gs-text-muted);
+        font-size: 14px;
+        align-items: center;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Tabs Navigation */
+    .tabs-nav {
+        display: flex;
+        gap: 2px;
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 10px;
+        margin-bottom: 24px;
+        width: fit-content;
+    }
+
+    .tab-btn {
+        padding: 10px 24px;
+        border: none;
+        background: transparent;
+        color: var(--gs-text-muted);
+        font-weight: 600;
+        font-size: 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tab-btn:hover {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .tab-btn.active {
+        background: white;
+        color: var(--gs-maroon);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .tab-panel {
+        display: none;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(5px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .tab-panel.active {
+        display: block;
+    }
+
+    /* Modern Rubric Table */
+    .rubric-card {
+        background: white;
+        border: 1px solid var(--gs-border);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 24px;
+    }
+
+    .rubric-header {
+        padding: 16px 20px;
+        background: var(--gs-bg-light);
+        border-bottom: 1px solid var(--gs-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .rubric-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .rubric-table th {
+        text-align: left;
+        padding: 14px 20px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--gs-text-muted);
+        background: #fdfdfd;
+        border-bottom: 1px solid var(--gs-border);
+    }
+
+    .rubric-table td {
+        padding: 16px 20px;
+        color: var(--gs-text-main);
+        font-size: 14px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: top;
+    }
+
+    /* Editor and Terminal */
+    .editor-wrapper {
+        border: 1px solid var(--gs-border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .terminal-wrapper {
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .file-tab {
+        border: none !important;
+        border-bottom: 2px solid transparent !important;
+        background: #f8fafc !important;
+        transition: all 0.2s !important;
+    }
+
+    .file-tab.active {
+        background: white !important;
+        border-bottom: 2px solid var(--gs-maroon) !important;
+        color: var(--gs-maroon) !important;
+    }
+
+    .section-box {
+        background: white;
+        padding: 30px;
+        border-radius: 16px;
+        border: 1px solid var(--gs-border);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-bottom: 24px;
+    }
+
+    .section-title-modern {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--gs-text-main);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .action-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 0;
+        margin-top: 32px;
+        border-top: 1px solid var(--gs-border);
+    }
+
+    .btn-back {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--gs-maroon);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Assignment Header -->
-<div id="assignment-header" style="margin-bottom: 25px; scroll-margin-top: 100px;">
-    <h2 class="page-title" style="margin: 0; color: #333; font-size: 28px; font-weight: 600;">{{ assignment.name }}</h2>
-    <p style="margin: 5px 0 0 0; color: #666; font-size: 15px;">
-        Due: {{ assignment.due_date|date:"M j \a\t g:ia"|default:"No due date" }}
-        <span style="margin: 0 10px;">|</span>
-        Total Points: {{ assignment.points|default:"0" }}
-    </p>
-</div>
-
-<!-- Details Section -->
-<div style="margin-bottom: 35px;">
-    <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 18px; font-weight: 600; color: #333;">Details</h3>
-    <p style="color: #444; line-height: 1.6; margin-bottom: 15px;">
-        {{ assignment.description|default:"No description provided." }}
-    </p>
-
-    <div style="display: flex; gap: 20px;">
-
-        {% if not is_student and assignment.expected_outputs %}
-        <a href="{{ assignment.expected_outputs.url }}" download target="_blank"
-            style="color: var(--maroon); text-decoration: none; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-file-export"></i> Download Expected Outputs
-        </a>
-        {% endif %}
-        {% if not is_student %}
-        <a href="{% url 'assignment_rubric' assignment.pk %}"
-            style="color: var(--maroon); text-decoration: none; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-list-check"></i> {% if has_rubric %}Edit Rubric{% else %}Add Rubric{% endif %}
-        </a>
-        {% endif %}
-    </div>
-
-    <!-- Grading rubric (visible to students and instructors) -->
-    {% if rubric and criteria_with_display %}
-    <div style="margin-top: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
-        <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #333;">
-            <i class="fa-solid fa-list-check" style="margin-right: 6px; color: var(--maroon);"></i>Grading Rubric
-        </h4>
-        <p style="margin: 0 0 12px 0; font-size: 13px; color: #666;">This assignment is graded using the following criteria (total: {{ assignment.points }} points).</p>
-        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-            <thead>
-                <tr style="border-bottom: 2px solid #dee2e6;">
-                    <th style="text-align: left; padding: 8px 12px; color: #495057;">Criterion</th>
-                    <th style="text-align: right; padding: 8px 12px; color: #495057;">Points</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in criteria_with_display %}
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 8px 12px; color: #333;">{{ row.criterion.name }}</td>
-                    <td style="text-align: right; padding: 8px 12px; font-weight: 500;">{{ row.display_points }}{% if rubric.is_weighted and row.criterion.weight is not None %} <span style="font-weight: normal; color: #666;">({{ row.criterion.weight|floatformat:0 }}%)</span>{% endif %}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-</div>
-
-<hr style="border: none; border-top: 2px solid #333; margin: 30px 0;">
-
-<!-- Student Submission Section -->
-{% if is_student %}
-<div style="margin-top: 30px;">
-    <h3 style="margin-bottom: 20px; font-size: 16px; font-weight: 600; color: #333;">Add Submission</h3>
-
-    <form id="submissionForm" method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <p style="font-size: 14px; color: #555; margin-bottom: 15px;">
-            You may either upload <strong>{% if assignment.allowed_language == 'java' %}Java (.java){% else %}Python (.py){% endif %}</strong> files or write your code directly below.
-        </p>
-
-        <!-- Large Upload Card -->
-        <div id="uploadCard"
-            style="width: 210px; height: 130px; background: #fafafa; border-radius: 8px; border: 2px dashed #ddd; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease; margin-bottom: 25px;"
-            onmouseover="this.style.background='#f0f0f0'; this.style.borderColor='#bbb';"
-            onmouseout="this.style.background='#fafafa'; this.style.borderColor='#ddd';">
-            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 36px; color: #999; margin-bottom: 10px;"></i>
-            <span id="uploadLabel"
-                style="font-size: 13px; color: var(--maroon); text-align: center; padding: 0 15px; font-weight: 500;">Upload
-                from your computer</span>
-            <input type="file" id="id_file_path" name="file_path" style="display: none;" accept="{% if assignment.allowed_language == 'java' %}.java{% else %}.py{% endif %}" multiple
-                onchange="handleFileSelect(this)">
+<div class="detail-container">
+    <header class="assignment-header">
+        <h2 class="assignment-title">{{ assignment.name }}</h2>
+        <div class="assignment-meta">
+            <span class="meta-item"><i class="fa-regular fa-calendar"></i> Due: {{ assignment.due_date|date:"M j \a\t g:ia"|default:"No due date" }}</span>
+            <span class="meta-item"><i class="fa-solid fa-star"></i> Points: {{ assignment.points|default:"0" }}</span>
         </div>
+    </header>
 
-        <!-- Live Code Editor Area -->
-        <h3 style="margin-bottom: 8px; font-size: 16px; font-weight: 600; color: #333;">Code Editor</h3>
-        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Write your submission here or upload a file.</p>
+    <nav class="tabs-nav">
+        <button class="tab-btn active" onclick="switchMainTab('overview')">
+            <i class="fa-solid fa-circle-info"></i> Overview
+        </button>
+        <button class="tab-btn" onclick="switchMainTab('submit')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Submit Work
+        </button>
+        <button class="tab-btn" onclick="switchMainTab('history')">
+            <i class="fa-solid fa-clock-rotate-left"></i> History & Results
+        </button>
+    </nav>
 
-        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-            <div id="fileTabs"
-                style="display: flex; flex: 1; overflow-x: auto; gap: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
-                <!-- Tabs will be injected here -->
-            </div>
-            <button type="button" onclick="createNewFile()"
-                style="background: none; border: 1px solid #ddd; border-radius: 4px; padding: 5px 10px; cursor: pointer; color: #555; font-size: 13px;">
-                <i class="fa-solid fa-plus"></i> Add File
-            </button>
-            <!-- ▶ Run Code Button -->
-            <button type="button" id="runCodeBtn" onclick="runCode()"
-                style="background: #1e7e34; color: white; border: none; border-radius: 4px; padding: 6px 14px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: background 0.2s;">
-                <i id="runIcon" class="fa-solid fa-play"></i>
-                <span id="runBtnText">Run Code</span>
-            </button>
-            <!-- ▶ Run Public Tests Button -->
-            <button type="button" id="runPublicTestsBtn" onclick="runPublicTests()"
-                style="background: #1976d2; color: white; border: none; border-radius: 4px; padding: 6px 14px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: background 0.2s;">
-                <i id="testIcon" class="fa-solid fa-check-double"></i>
-                <span id="testBtnText">Run Public Tests</span>
-            </button>
-        </div>
-
-        <div id="monaco-editor-container-submission"
-            style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 0;">
-        </div>
-
-        <!-- ════════════════════════════════════════════════
-             OUTPUT PANEL WITH TABS (Terminal & Test Results)
-             ════════════════════════════════════════════════ -->
-        <div id="terminalPanel"
-            style="display: none; margin-top: 0; margin-bottom: 25px; border: 1px solid #333; border-top: none; border-radius: 0 0 6px 6px; background: #1a1a2e; overflow: hidden;">
-
-            <!-- Tab navigation -->
-            <div style="display: flex; background: #0f3460; border-bottom: 1px solid #333;">
-                <button type="button" class="output-tab-btn active" onclick="switchOutputTab('terminal')"
-                    style="flex: 1; padding: 8px 12px; background: #16213e; color: #aaa; border: none; cursor: pointer; font-size: 12px; font-weight: 600; border-bottom: 2px solid #1976d2; transition: all 0.2s;"
-                    id="terminalTabBtn">
-                    <i class="fa-solid fa-terminal" style="margin-right: 5px;"></i>GradeSync Terminal
-                </button>
-                <button type="button" class="output-tab-btn" onclick="switchOutputTab('testResults')"
-                    style="flex: 1; padding: 8px 12px; background: #0f3460; color: #888; border: none; border-left: 1px solid #333; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;"
-                    id="testResultsTabBtn">
-                    <i class="fa-solid fa-check-circle" style="margin-right: 5px;"></i>Test Results
-                </button>
-            </div>
-
-            <!-- Terminal content -->
-            <div id="terminalContent" style="display: block;">
-                <!-- Terminal title bar -->
-                <div style="display: flex; justify-content: space-between; align-items: center;
-                            background: #16213e; padding: 8px 12px; border-bottom: 1px solid #333;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <!-- Traffic-light dots -->
-                        <span style="width:11px;height:11px;background:#ff5f57;border-radius:50%;display:inline-block;"></span>
-                        <span style="width:11px;height:11px;background:#ffbd2e;border-radius:50%;display:inline-block;"></span>
-                        <span style="width:11px;height:11px;background:#28c840;border-radius:50%;display:inline-block;"></span>
-                    </div>
-                    <div style="display:flex;gap:10px;align-items:center;">
-                        <span id="terminalExitBadge" style="display:none;font-size:11px;padding:2px 8px;
-                              border-radius:12px;font-weight:600;font-family:monospace;"></span>
-                        <button type="button" onclick="clearTerminal()"
-                            style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;padding:2px 6px;
-                                   border-radius:3px;transition:color 0.2s;"
-                            onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">
-                            <i class="fa-solid fa-xmark"></i> Clear
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Terminal output body -->
-                <div id="terminalOutput"
-                    style="padding: 14px 16px; min-height: 180px; max-height: 340px; overflow-y: auto;
-                           font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.6;
-                           color: #e0e0e0; white-space: pre-wrap; word-break: break-all; background: #1a1a2e;">
+    <div class="tab-panels">
+        <!-- Tab 1: Overview Panel -->
+        <div id="panel-overview" class="tab-panel active">
+            <div class="section-box">
+                <h3 class="section-title-modern"><i class="fa-solid fa-align-left" style="color: var(--gs-maroon);"></i>Instructions</h3>
+                <div style="color: var(--gs-text-main); line-height: 1.7; font-size: 15px;">
+                    {{ assignment.description|default:"No specific instructions provided."|linebreaks }}
                 </div>
             </div>
 
-            <!-- Test Results content -->
-            <div id="testResultsContent" style="display: none;">
-                <div style="padding: 14px 16px; min-height: 180px; max-height: 340px; overflow-y: auto; background: #1a1a2e;">
-                    <div id="testResultsList" style="color: #e0e0e0;">
-                        <!-- Test results will be rendered here -->
-                    </div>
+            {% if rubric and criteria_with_display %}
+            <div class="rubric-card">
+                <div class="rubric-header">
+                    <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--gs-text-main);">
+                        <i class="fa-solid fa-list-check" style="color: var(--gs-maroon); margin-right: 8px;"></i>Grading Rubric
+                    </h4>
+                    <span style="font-size: 13px; font-weight: 500; color: var(--gs-text-muted);">Total: {{ assignment.points }} points</span>
                 </div>
-            </div>
-        </div>
-
-        <!-- Hidden input to stash code on submit -->
-        <input type="hidden" name="monaco_files" id="id_monaco_code">
-
-        <!-- Success Message -->
-        {% if messages %}
-        <div id="statusMessage"
-            style="margin-bottom: 20px; padding: 12px 15px; background: #e8f5e9; border-radius: 6px; border: 1px solid #c8e6c9;">
-            {% for message in messages %}
-            <div
-                style="color: #2e7d32; font-size: 14px; display: flex; align-items: center; gap: 8px; font-weight: 600;">
-                <i class="fa-solid fa-circle-check"></i> Submission successful.
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Submission Status & Grade -->
-        {% if latest_submission %}
-        <div id="submission-section" style="margin-bottom: 25px; border-top: 1px solid #eee; padding-top: 20px; scroll-margin-top: 100px;">
-            <div
-                style="font-size: 14px; color: #666; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-clock" style="color: #999;"></i>
-                <span>Submitted: {{ latest_submission.submission_time|date:"F j, Y, g:i A" }}</span>
-            </div>
-
-            {% if latest_submission.grade %}
-            <div
-                style="margin-bottom: 18px; font-size: 18px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 10px;">
-                <span style="color: #666; font-weight: 500; font-size: 15px;">Grade:</span>
-                <span style="color: #2e7d32;">
-                    {{ latest_submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}
-                </span>
+                <table class="rubric-table">
+                    <thead>
+                        <tr>
+                            <th>Criterion</th>
+                            <th style="text-align: right;">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in criteria_with_display %}
+                        <tr>
+                            <td>
+                                <strong>{{ row.criterion.name }}</strong>
+                                {% if row.criterion.description %}
+                                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--gs-text-muted); font-weight: normal;">{{ row.criterion.description }}</p>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right; font-weight: 600;">
+                                {{ row.display_points }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
             {% endif %}
-            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 25px;">
-                <a href="{{ latest_submission.file_path.url }}" download target="_blank"
-                    style="color: var(--maroon); text-decoration: none; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; background: #fdfdfd; border: 1px solid #ddd; padding: 10px 18px; border-radius: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
-                    onmouseover="this.style.background='#f5f5f5';" onmouseout="this.style.background='#fdfdfd';">
-                    <i class="fa-solid fa-file-arrow-down"></i> Download Submitted File
-                </a>
+        </div>
 
-                {% if not latest_submission.grade %}
-                <!-- Delete script handles POST outside of normal form -->
-                <button type="button" onclick="document.getElementById('deleteSubmissionForm').submit();"
-                    style="background: white; color: #d32f2f; border: 1px solid #d32f2f; padding: 10px 18px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
-                    onmouseover="this.style.background='#ffebee';" onmouseout="this.style.background='white';">
-                    <i class="fa-solid fa-trash"></i> Delete Submission
-                </button>
-                {% endif %}
+        <!-- Tab 2: Submit Work Panel -->
+        <div id="panel-submit" class="tab-panel">
+            {% if is_student %}
+            <div class="section-box">
+                <h3 class="section-title-modern"><i class="fa-solid fa-file-arrow-up" style="color: var(--gs-maroon);"></i>New Submission</h3>
+                <form id="submissionForm" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <p style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: 20px;">
+                        Upload your <strong>{% if assignment.allowed_language == 'java' %}Java (.java){% else %}Python (.py){% endif %}</strong> files or write code directly in the editor.
+                    </p>
+                    <div id="uploadCard" style="width: 100%; max-width: 400px; height: 120px; background: #fafafa; border-radius: 12px; border: 2px dashed #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease; margin-bottom: 24px;" onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#94a3b8';" onmouseout="this.style.background='#fafafa'; this.style.borderColor='#cbd5e1';">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 32px; color: #94a3b8; margin-bottom: 8px;"></i>
+                        <span id="uploadLabel" style="font-size: 14px; color: var(--gs-maroon); text-align: center; padding: 0 15px; font-weight: 600;">Choose files to upload</span>
+                        <input type="file" id="id_file_path" name="file_path" style="display: none;" accept="{% if assignment.allowed_language == 'java' %}.java{% else %}.py{% endif %}" multiple onchange="handleFileSelect(this)">
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <h4 class="section-title-modern"><i class="fa-solid fa-code" style="color: var(--gs-maroon);"></i>Code Editor</h4>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
+                            <div id="fileTabs" style="display: flex; flex: 1; overflow-x: auto; gap: 4px; border-bottom: 1px solid var(--gs-border); padding-bottom: 8px;"></div>
+                            <button type="button" onclick="createNewFile()" style="background: white; border: 1px solid var(--gs-border); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-plus"></i> New File</button>
+                            <button type="button" id="runCodeBtn" onclick="runCode()" style="background: #059669; color: white; border: none; border-radius: 6px; padding: 7px 16px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;"><i id="runIcon" class="fa-solid fa-play"></i><span id="runBtnText">Run</span></button>
+                            <button type="button" id="runPublicTestsBtn" onclick="runPublicTests()" style="background: #2563eb; color: white; border: none; border-radius: 6px; padding: 7px 16px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;"><i id="testIcon" class="fa-solid fa-vial"></i><span id="testBtnText">Test</span></button>
+                        </div>
+                        <div class="editor-wrapper"><div id="monaco-editor-container-submission" style="width: 100%; height: 500px;"></div></div>
+                    </div>
+                    <div id="terminalPanel" class="terminal-wrapper" style="display: none; margin-bottom: 24px;">
+                        <div style="display: flex; background: #1e293b; padding: 0 4px;">
+                            <button type="button" class="tab-btn active" onclick="switchOutputTab('terminal')" id="terminalTabBtn" style="padding: 10px 16px; font-size: 12px; background: transparent; color: white; border: none; border-bottom: 2px solid white; cursor: pointer;"><i class="fa-solid fa-terminal" style="margin-right: 6px;"></i>Terminal</button>
+                            <button type="button" class="tab-btn" onclick="switchOutputTab('testResults')" id="testResultsTabBtn" style="padding: 10px 16px; font-size: 12px; background: transparent; color: #94a3b8; border: none; cursor: pointer;"><i class="fa-solid fa-square-check" style="margin-right: 6px;"></i>Test Results</button>
+                        </div>
+                        <div id="terminalContent" style="background: #0f172a; padding: 16px; min-height: 200px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 13px;"><div id="terminalOutput" style="color: #e2e8f0; white-space: pre-wrap;"></div><div id="terminalExitBadge" style="display: none; margin-top: 10px; padding: 4px 10px; border-radius: 4px; font-weight: bold; width: fit-content;"></div></div>
+                        <div id="testResultsContent" style="display: none; background: #0f172a; padding: 16px; min-height: 200px; max-height: 400px; overflow-y: auto;"><div id="testResultsList"></div></div>
+                    </div>
+                    <input type="hidden" name="monaco_files" id="id_monaco_code">
+                    <div style="display: flex; gap: 12px; margin-top: 24px;">
+                        <button type="submit" id="submitBtn" style="background: var(--gs-maroon); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 10px;"><span id="btnText">Submit Assignment</span><i id="loadingIcon" class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i></button>
+                        <button type="button" onclick="location.reload();" style="background: white; color: var(--gs-text-main); border: 1px solid var(--gs-border); padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">Cancel</button>
+                    </div>
+                </form>
             </div>
+            {% else %}
+            <div class="section-box" style="text-align: center; color: var(--gs-text-muted); padding: 60px;"><i class="fa-solid fa-lock" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i><p>Instructors cannot submit work. Use the History tab to manage student submissions.</p></div>
+            {% endif %}
         </div>
-        {% endif %}
 
-        <!-- Submit Button -->
-        <div style="display: flex; gap: 15px; margin-bottom: 30px;">
-            <button type="submit" id="submitBtn"
-                style="background: var(--maroon); color: white; border: none; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;">
-                <span id="btnText">Submit Assignment</span>
-                <i id="loadingIcon" class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i>
-            </button>
-            <button type="button" onclick="location.reload();"
-                style="background: white; color: #555; border: 1px solid #ccc; padding: 10px 28px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;"
-                onmouseover="this.style.background='#f0f0f0';" onmouseout="this.style.background='white';">
-                Cancel
-            </button>
+        <!-- Tab 3: History & Results Panel -->
+        <div id="panel-history" class="tab-panel">
+            {% if latest_submission %}
+            <div id="submission-section" class="section-box" style="scroll-margin-top: 100px;">
+                <h3 class="section-title-modern"><i class="fa-solid fa-check-circle" style="color: var(--gs-maroon);"></i>Latest Submission Status</h3>
+                <div style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-clock"></i><span>Submitted on {{ latest_submission.submission_time|date:"F j, Y, g:i A" }}</span></div>
+                {% if latest_submission.grade %}
+                <div style="margin-bottom: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 16px;">
+                    <div style="font-size: 15px; font-weight: 600; color: #166534;">Final Grade:</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #15803d;">{{ latest_submission.grade.score|floatformat:"0" }} <span style="font-size: 14px; font-weight: 500; color: #166534; opacity: 0.7;">/ {{ assignment.points|floatformat:"0" }}</span></div>
+                </div>
+                {% else %}
+                <div style="margin-bottom: 24px; padding: 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #92400e; font-weight: 600;"><i class="fa-solid fa-hourglass-half"></i><span>Awaiting Grading</span></div>
+                {% endif %}
+                <div style="display: flex; gap: 12px;">
+                    <a href="{{ latest_submission.file_path.url }}" download target="_blank" style="color: var(--gs-maroon); text-decoration: none; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--gs-border); padding: 12px 20px; border-radius: 8px;"><i class="fa-solid fa-file-arrow-down"></i> Download Submitted Files</a>
+                    {% if is_student and not latest_submission.grade %}<form id="deleteSubmissionForm" method="POST" action="{% url 'delete_submission' latest_submission.pk %}" style="display: none;">{% csrf_token %}</form><button type="button" onclick="if(confirm('Delete your latest submission?')) document.getElementById('deleteSubmissionForm').submit();" style="background: white; color: #dc2626; border: 1px solid #fecaca; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"><i class="fa-solid fa-trash"></i> Delete Submission</button>{% endif %}
+                </div>
+            </div>
+
+            {% if is_student and can_preview_code %}
+            <div class="section-box">
+                <h3 class="section-title-modern"><i class="fa-solid fa-eye" style="color: var(--gs-maroon);"></i>Submitted Code Preview</h3>
+                <div style="display: flex; gap: 4px; border-bottom: 1px solid var(--gs-border); padding-bottom: 8px; margin-bottom: 16px;" id="studentPreviewTabs"></div>
+                <div class="editor-wrapper"><div id="monaco-editor-container-preview" style="width: 100%; height: 500px;"></div></div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {% if not is_student %}
+            <div class="section-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h3 class="section-title-modern" style="margin: 0;"><i class="fa-solid fa-users-viewfinder" style="color: var(--gs-maroon);"></i>Student Submissions</h3>
+                    <a href="{% url 'grade_report' assignment.pk %}" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background-color: var(--gs-maroon); color: white; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600;"><i class="fa-solid fa-chart-bar"></i> Test Case Report</a>
+                </div>
+                <div style="border: 1px solid var(--gs-border); border-radius: 12px; overflow: hidden;">
+                    <table class="rubric-table">
+                        <thead style="background: #f8fafc;"><tr><th>Student</th><th>Submitted At</th><th>Grade</th><th style="text-align: center;">Actions</th></tr></thead>
+                        <tbody>
+                            {% for submission in submissions %}
+                            <tr>
+                                <td style="font-weight: 600;">{{ submission.student.user.get_full_name|default:submission.student.user.username }}</td>
+                                <td style="color: var(--gs-text-muted); font-size: 13px;">{{ submission.submission_time|date:"M j, g:i A" }}</td>
+                                <td style="font-weight: 700; color: {% if submission.grade %}#15803d{% else %}#94a3b8{% endif %};">{% if submission.grade %}{{ submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}{% else %}Needs Grading{% endif %}</td>
+                                <td style="text-align: center;"><div style="display: flex; gap: 8px; justify-content: center;"><a href="{% url 'download_submission' submission.pk %}" title="Download" style="color: var(--gs-text-muted); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gs-border); border-radius: 6px;"><i class="fa-solid fa-download"></i></a><a href="{% url 'grade_submission' submission.pk %}" target="_blank" style="background: var(--gs-maroon); color: white; text-decoration: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;">{% if submission.grade %}Edit{% else %}Grade{% endif %}</a></div></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" style="padding: 60px; text-align: center; color: var(--gs-text-muted); font-style: italic;">No submissions yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
         </div>
-    </form>
-</div>
+    </div> <!-- End tab-panels -->
 
-{% if latest_submission and not latest_submission.grade %}
-<form id="deleteSubmissionForm" method="POST" action="{% url 'delete_submission' latest_submission.pk %}"
-    onsubmit="return confirm('Are you sure you want to delete this submission? This action cannot be undone.');"
-    style="display: none;">
-    {% csrf_token %}
-</form>
-{% endif %}
+    <div class="action-row">
+        <a href="{% if request.user_role == 'FACULTY' %}{% url 'professor_course' assignment.course.id %}{% elif request.user_role == 'STUDENT' %}{% url 'student_course' assignment.course.id %}{% else %}{% url 'ga_course' assignment.course.id %}{% endif %}" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Assignments</a>
+    </div>
+</div> <!-- End detail-container -->
+ <!-- End detail-container -->
 
-<!-- Load Monaco Editor via CDN -->
-<script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 <script>
-    const uploadCard = document.getElementById('uploadCard');
-    const fileInput = document.getElementById('id_file_path');
-    const uploadLabel = document.getElementById('uploadLabel');
-    const submitBtn = document.getElementById('submitBtn');
-    const submissionForm = document.getElementById('submissionForm');
-    const hiddenCodeInput = document.getElementById('id_monaco_code');
-    const btnText = document.getElementById('btnText');
-    const loadingIcon = document.getElementById('loadingIcon');
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
 
-    let editorInstance = null;
-    let previewEditorInstance = null;
-    let files = [];
-    let activeFileIndex = -1;
-    let configLang = 'python';
+    let editorInstance = null, previewEditorInstance = null;
+    let files = [], activeFileIndex = -1;
+    let configLang = '{{ assignment.allowed_language }}';
+
+    function switchMainTab(tabId) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('panel-' + tabId).classList.add('active');
+        const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.textContent.toLowerCase().includes(tabId));
+        if (btn) btn.classList.add('active');
+        if (tabId === 'submit' && editorInstance) setTimeout(() => editorInstance.layout(), 50);
+        if (tabId === 'history' && previewEditorInstance) setTimeout(() => previewEditorInstance.layout(), 50);
+    }
 
     function addFile(name, content, language) {
         if (!monaco.editor) return;
@@ -292,732 +419,140 @@
         renderTabs();
     }
 
-    function deleteTab(index, event) {
-        event.stopPropagation(); // Prevent tab switch
-        if (files.length <= 1) {
-            alert("You must have at least one file.");
-            return;
-        }
-
-        // Dispose Monaco model to free memory
-        if (files[index].model) {
-            files[index].model.dispose();
-        }
-
-        files.splice(index, 1);
-
-        // Adjust active index
-        if (activeFileIndex === index) {
-            switchTab(Math.max(0, index - 1));
-        } else if (activeFileIndex > index) {
-            activeFileIndex--;
-            renderTabs();
-        } else {
-            renderTabs();
-        }
-    }
-
     function renderTabs() {
         const tabsContainer = document.getElementById('fileTabs');
         if (!tabsContainer) return;
-
         tabsContainer.innerHTML = '';
         files.forEach((file, index) => {
             const isActive = index === activeFileIndex;
-
-            // Create wrapper
-            const tabWrapper = document.createElement('div');
-            tabWrapper.style.display = 'inline-flex';
-            tabWrapper.style.alignItems = 'center';
-            tabWrapper.style.padding = '8px 15px';
-            tabWrapper.style.border = '1px solid #ddd';
-            tabWrapper.style.background = isActive ? 'white' : '#f5f5f5';
-            tabWrapper.style.borderBottom = isActive ? '2px solid white' : '1px solid #ddd';
-            tabWrapper.style.marginBottom = isActive ? '-6px' : '0';
-            tabWrapper.style.borderRadius = '6px 6px 0 0';
-            tabWrapper.style.cursor = 'pointer';
-            tabWrapper.style.position = 'relative';
-            tabWrapper.style.zIndex = isActive ? '2' : '1';
-            tabWrapper.onclick = () => switchTab(index);
-
-            // Create text
-            const tabText = document.createElement('span');
-            tabText.textContent = file.name;
-            tabText.style.fontSize = '13px';
-            tabText.style.color = isActive ? 'var(--maroon)' : '#666';
-            tabText.style.fontWeight = isActive ? 'bold' : 'normal';
-            tabText.style.marginRight = files.length > 1 ? '8px' : '0';
-
-            tabWrapper.appendChild(tabText);
-
-            // Create delete button if more than 1 file
+            const tab = document.createElement('div');
+            tab.className = `file-tab ${isActive ? 'active' : ''}`;
+            tab.style.cssText = `padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: ${isActive ? '700' : '500'}; color: ${isActive ? 'var(--gs-maroon)' : 'var(--gs-text-muted)'};`;
+            tab.onclick = () => switchTab(index);
+            const name = document.createElement('span'); name.textContent = file.name; tab.appendChild(name);
             if (files.length > 1) {
-                const deleteBtn = document.createElement('i');
-                deleteBtn.className = 'fa-solid fa-times';
-                deleteBtn.style.fontSize = '12px';
-                deleteBtn.style.color = '#999';
-                deleteBtn.style.padding = '2px';
-                deleteBtn.style.borderRadius = '50%';
-                deleteBtn.onmouseover = () => { deleteBtn.style.color = 'var(--red-link)'; deleteBtn.style.background = '#ffebee'; };
-                deleteBtn.onmouseout = () => { deleteBtn.style.color = '#999'; deleteBtn.style.background = 'transparent'; };
-                deleteBtn.onclick = (e) => deleteTab(index, e);
-                tabWrapper.appendChild(deleteBtn);
+                const close = document.createElement('i'); close.className = 'fa-solid fa-times'; close.style.fontSize = '10px';
+                close.onclick = (e) => { e.stopPropagation(); if (files.length <= 1) return; if (files[index].model) files[index].model.dispose(); files.splice(index, 1); switchTab(Math.max(0, index - 1)); };
+                tab.appendChild(close);
             }
-
-            tabsContainer.appendChild(tabWrapper);
+            tabsContainer.appendChild(tab);
         });
     }
 
     function createNewFile() {
         const ext = configLang === 'java' ? '.java' : '.py';
-        const fileName = prompt(`Enter new file name (e.g. main${ext}):`, `new_file${ext}`);
-        if (!fileName) return;
-
-        if (!fileName.endsWith('.py') && !fileName.endsWith('.java')) {
-            alert('File must end with .py or .java');
-            return;
-        }
-
-        let language = fileName.endsWith('.java') ? 'java' : 'python';
-        if (language !== configLang) {
-            alert(`Assignment requires ${configLang} files.`);
-            return;
-        }
-
-        addFile(fileName, '', language);
-        switchTab(files.length - 1);
+        const fileName = prompt(`Enter new file name:`, `new_file${ext}`);
+        if (!fileName || !fileName.endsWith(ext)) { if (fileName) alert('Invalid file name'); return; }
+        addFile(fileName, '', configLang); switchTab(files.length - 1);
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        if (typeof monaco !== 'undefined') {
-            configLang = '{{ assignment.allowed_language }}';
+    require(['vs/editor/editor.main'], function() {
+        editorInstance = monaco.editor.create(document.getElementById('monaco-editor-container-submission'), {
+            theme: 'vs-light', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, padding: { top: 16 }
+        });
+        let initialFiles = [];
+        try { initialFiles = JSON.parse(`{{ submission_files_json|escapejs }}` || '[]'); } catch(e) {}
+        if (initialFiles.length > 0) { initialFiles.forEach(f => addFile(f.name, f.content, f.language)); switchTab(0); }
+        else { addFile(`main${configLang === 'java' ? '.java' : '.py'}`, '', configLang); switchTab(0); }
 
-            let initialFiles = [];
-            try {
-                const rawJson = `{{ submission_files_json|escapejs }}`;
-                if (rawJson) {
-                    initialFiles = JSON.parse(rawJson);
-                }
-            } catch (e) {
-                console.error("Error parsing submission_files_json", e);
-            }
-
-            // Initialize submission editor
-            editorInstance = monaco.editor.create(document.getElementById('monaco-editor-container-submission'), {
-                theme: 'vs-light',
-                readOnly: false,
-                lineNumbers: 'on',
-                wordWrap: 'on',
-                minimap: { enabled: false },
-                automaticLayout: true,
-                scrollBeyondLastLine: false,
-                fontSize: 14,
-                padding: { top: 16, bottom: 16 }
-            });
-
-            if (initialFiles.length > 0) {
-                initialFiles.forEach(f => addFile(f.name, f.content, f.language));
-                switchTab(0);
-            } else {
-                const ext = configLang === 'java' ? '.java' : '.py';
-                addFile(`main${ext}`, '', configLang);
-                switchTab(0);
-            }
-
-            // Initialize preview editor if applicable
-            const previewContainer = document.getElementById('monaco-editor-container-preview');
-            if (previewContainer && initialFiles.length > 0) {
-                previewEditorInstance = monaco.editor.create(previewContainer, {
-                    theme: 'vs-light',
-                    readOnly: true,
-                    lineNumbers: 'on',
-                    wordWrap: 'on',
-                    minimap: { enabled: false },
-                    automaticLayout: true,
-                    scrollBeyondLastLine: false,
-                    fontSize: 14,
-                    padding: { top: 16, bottom: 16 }
-                });
-
-                const previewModels = [];
-                initialFiles.forEach((file) => {
-                    const model = monaco.editor.createModel(file.content, file.language);
-                    previewModels.push({ name: file.name, model: model });
-                });
-
-                let activePreviewIndex = -1;
-
-                function switchPreviewTab(index) {
-                    if (index < 0 || index >= previewModels.length) return;
-                    activePreviewIndex = index;
-                    previewEditorInstance.setModel(previewModels[index].model);
-                    renderPreviewTabs();
-                }
-
-                function renderPreviewTabs() {
-                    const tabsContainer = document.getElementById('studentPreviewTabs');
-                    if (!tabsContainer) return;
-
-                    tabsContainer.innerHTML = '';
-                    previewModels.forEach((file, index) => {
-                        const isActive = index === activePreviewIndex;
-                        const tabBtn = document.createElement('button');
-                        tabBtn.type = 'button';
-                        tabBtn.textContent = file.name;
-                        tabBtn.style.padding = '8px 15px';
-                        tabBtn.style.border = '1px solid #ddd';
-                        tabBtn.style.background = isActive ? 'white' : '#f5f5f5';
-                        tabBtn.style.borderBottom = isActive ? '2px solid white' : '1px solid #ddd';
-                        tabBtn.style.marginBottom = isActive ? '-6px' : '0';
-                        tabBtn.style.borderRadius = '6px 6px 0 0';
-                        tabBtn.style.cursor = 'pointer';
-                        tabBtn.style.fontSize = '13px';
-                        tabBtn.style.color = isActive ? 'var(--maroon)' : '#666';
-                        tabBtn.style.fontWeight = isActive ? 'bold' : 'normal';
-                        tabBtn.style.position = 'relative';
-                        tabBtn.style.zIndex = isActive ? '2' : '1';
-                        tabBtn.onclick = () => switchPreviewTab(index);
-                        tabsContainer.appendChild(tabBtn);
+        const previewContainer = document.getElementById('monaco-editor-container-preview');
+        if (previewContainer && initialFiles.length > 0) {
+            previewEditorInstance = monaco.editor.create(previewContainer, { theme: 'vs-light', readOnly: true, automaticLayout: true, fontSize: 14, minimap: { enabled: false } });
+            const previewModels = initialFiles.map(f => ({ name: f.name, model: monaco.editor.createModel(f.content, f.language) }));
+            let activePreview = 0;
+            function switchPreview(idx) {
+                activePreview = idx; previewEditorInstance.setModel(previewModels[idx].model);
+                const cont = document.getElementById('studentPreviewTabs');
+                if (cont) {
+                    cont.innerHTML = '';
+                    previewModels.forEach((m, i) => {
+                        const tab = document.createElement('button'); tab.textContent = m.name;
+                        tab.style.cssText = `padding: 6px 16px; border: 1px solid var(--gs-border); background: ${i === activePreview ? 'white' : '#f8fafc'}; border-bottom: ${i === activePreview ? '2px solid var(--gs-maroon)' : '1px solid var(--gs-border)'}; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 13px; font-weight: ${i === activePreview ? '700' : '500'}; color: ${i === activePreview ? 'var(--gs-maroon)' : 'var(--gs-text-muted)'};`;
+                        tab.onclick = () => switchPreview(i); cont.appendChild(tab);
                     });
                 }
-
-                if (previewModels.length > 0) {
-                    switchPreviewTab(0);
-                }
             }
+            switchPreview(0);
         }
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab) switchMainTab(tab);
+        else if (window.location.hash === '#submission-section') switchMainTab('history');
     });
 
-    uploadCard.addEventListener('click', () => {
-        fileInput.click();
-    });
-
-    function handleFileSelect(input) {
-        if (input.files && input.files.length > 0) {
-            uploadLabel.innerHTML = `<strong>Selected:</strong><br><span style="font-size: 11px;">${input.files.length} file(s)</span>`;
-            uploadLabel.style.color = '#333';
-
-            uploadCard.style.borderColor = 'var(--maroon)';
-            uploadCard.style.background = '#fffafb';
-
-            Array.from(input.files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    let language = file.name.endsWith('.java') ? 'java' : 'python';
-                    addFile(file.name, e.target.result, language);
-                    switchTab(files.length - 1);
-                };
-                reader.readAsText(file);
-            });
-            input.value = ''; // Reset input to allow submitting same file again if deleted
+    function switchOutputTab(tab) {
+        const term = document.getElementById('terminalContent'), res = document.getElementById('testResultsContent');
+        const termBtn = document.getElementById('terminalTabBtn'), resBtn = document.getElementById('testResultsTabBtn');
+        if (tab === 'terminal') {
+            term.style.display = 'block'; res.style.display = 'none';
+            termBtn.style.color = 'white'; termBtn.style.borderBottom = '2px solid white';
+            resBtn.style.color = '#94a3b8'; resBtn.style.borderBottom = 'none';
         } else {
-            uploadLabel.textContent = 'Upload from your computer';
-            uploadLabel.style.color = 'var(--maroon)';
-
-            uploadCard.style.borderColor = '#ddd';
-            uploadCard.style.background = '#fafafa';
+            term.style.display = 'none'; res.style.display = 'block';
+            resBtn.style.color = 'white'; resBtn.style.borderBottom = '2px solid white';
+            termBtn.style.color = '#94a3b8'; termBtn.style.borderBottom = 'none';
         }
-    }
-
-    // ──────────────────────────────────────────────────────
-    // TERMINAL HELPERS
-    // ──────────────────────────────────────────────────────
-
-    const terminalPanel  = document.getElementById('terminalPanel');
-    const terminalOutput = document.getElementById('terminalOutput');
-    const runCodeBtn     = document.getElementById('runCodeBtn');
-    const runIcon        = document.getElementById('runIcon');
-    const runBtnText     = document.getElementById('runBtnText');
-    const exitBadge      = document.getElementById('terminalExitBadge');
-
-    function termWrite(text, color) {
-        const span = document.createElement('span');
-        span.style.color = color || '#e0e0e0';
-        span.textContent = text;
-        terminalOutput.appendChild(span);
-        terminalOutput.scrollTop = terminalOutput.scrollHeight;
-    }
-
-    function clearTerminal() {
-        terminalOutput.innerHTML = '';
-        exitBadge.style.display  = 'none';
-    }
-
-    function setRunning(isRunning) {
-        runCodeBtn.disabled       = isRunning;
-        runCodeBtn.style.opacity  = isRunning ? '0.7' : '1';
-        runCodeBtn.style.cursor   = isRunning ? 'wait' : 'pointer';
-        runIcon.className         = isRunning ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-play';
-        runBtnText.textContent    = isRunning ? 'Running…' : 'Run Code';
     }
 
     async function runCode() {
-        if (!editorInstance) return;
-
-        // Gather the active file
-        const code     = editorInstance.getValue();
-        const fileName = files[activeFileIndex]  ? files[activeFileIndex].name  : 'main.py';
-        const language = files[activeFileIndex]  ? files[activeFileIndex].language : 'python';
-
-        // Show the terminal panel
-        terminalPanel.style.display = 'block';
-        clearTerminal();
-        termWrite('$ Running ' + fileName + ' …\n', '#888');
-        setRunning(true);
-
-        // Grab CSRF token from cookie (Django standard)
-        function getCookie(name) {
-            const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-            return v ? v.pop() : '';
-        }
-
+        const termPanel = document.getElementById('terminalPanel'), termOut = document.getElementById('terminalOutput');
+        const runBtn = document.getElementById('runCodeBtn'), runIcon = document.getElementById('runIcon'), runText = document.getElementById('runBtnText');
+        termPanel.style.display = 'block'; termOut.innerHTML = 'Running...'; switchOutputTab('terminal');
+        runBtn.disabled = true; runIcon.className = 'fa-solid fa-spinner fa-spin'; runText.textContent = 'Running...';
         try {
             const resp = await fetch('/grading/api/execute/', {
-                method:  'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken':  getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    // Backward compatible fields
-                    code:     code,
-                    language: language,
-                    filename: fileName,
-                    // Multi-file support: send every open file
-                    files: files.map(f => ({
-                        filename: f.name,
-                        code: f.model ? f.model.getValue() : ''
-                    })),
-                }),
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ code: editorInstance.getValue(), language: configLang, filename: files[activeFileIndex].name, files: files.map(f => ({ filename: f.name, code: f.model.getValue() })) })
             });
-
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({ error: 'Unknown server error' }));
-                termWrite('Error: ' + (err.error || resp.statusText) + '\n', '#ff6b6b');
-                setRunning(false);
-                return;
-            }
-
             const data = await resp.json();
-
-            // Show stdout
-            if (data.stdout) {
-                termWrite(data.stdout, '#e0e0e0');
-                if (!data.stdout.endsWith('\n')) termWrite('\n', '#e0e0e0');
-            }
-
-            // Show stderr in yellow
-            if (data.stderr) {
-                termWrite(data.stderr, '#ffbd2e');
-                if (!data.stderr.endsWith('\n')) termWrite('\n', '#ffbd2e');
-            }
-
-            // Empty output
-            if (!data.stdout && !data.stderr) {
-                termWrite('(no output)\n', '#888');
-            }
-
-            // Show exit badge
-            const isOk = data.exit_code === 0 && !data.timed_out;
-            exitBadge.textContent    = data.timed_out ? '⏱ TIMED OUT' :
-                                       (data.exit_code === 0 ? '✓ exit 0' : '✗ exit ' + data.exit_code);
-            exitBadge.style.display  = 'inline-block';
-            exitBadge.style.background = isOk ? '#1e7e34' : '#c0392b';
-            exitBadge.style.color      = 'white';
-
-            // Process done prompt
-            termWrite('\n[Process exited with code ' + data.exit_code + ']\n', '#888');
-
-        } catch (err) {
-            termWrite('Network error: ' + err.message + '\n', '#ff6b6b');
-        } finally {
-            setRunning(false);
-            terminalOutput.scrollTop = terminalOutput.scrollHeight;
-        }
-    }
-
-    // ──────────────────────────────────────────────────────
-    // FORM SUBMIT
-    // ──────────────────────────────────────────────────────
-    submissionForm.addEventListener('submit', function (e) {
-        if (files.length === 0) {
-            e.preventDefault();
-            alert('Please upload or create at least one file before submitting.');
-            return false;
-        }
-
-        const filesData = files.map(f => ({
-            name: f.name,
-            content: f.model.getValue()
-        }));
-
-        hiddenCodeInput.value = JSON.stringify(filesData);
-
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.8';
-        submitBtn.style.cursor = 'wait';
-        btnText.textContent = 'Submitting...';
-        loadingIcon.style.display = 'inline-block';
-    });
-
-    // ──────────────────────────────────────────────────────
-    // RUN PUBLIC TESTS
-    // ──────────────────────────────────────────────────────
-    const runPublicTestsBtn = document.getElementById('runPublicTestsBtn');
-    const testIcon = document.getElementById('testIcon');
-    const testBtnText = document.getElementById('testBtnText');
-
-    function switchOutputTab(tab) {
-        const terminalContent = document.getElementById('terminalContent');
-        const testResultsContent = document.getElementById('testResultsContent');
-        const terminalTabBtn = document.getElementById('terminalTabBtn');
-        const testResultsTabBtn = document.getElementById('testResultsTabBtn');
-
-        if (tab === 'terminal') {
-            terminalContent.style.display = 'block';
-            testResultsContent.style.display = 'none';
-            terminalTabBtn.style.background = '#16213e';
-            terminalTabBtn.style.color = '#aaa';
-            terminalTabBtn.style.borderBottom = '2px solid #1976d2';
-            testResultsTabBtn.style.background = '#0f3460';
-            testResultsTabBtn.style.color = '#888';
-            testResultsTabBtn.style.borderBottom = '1px solid #333';
-        } else if (tab === 'testResults') {
-            terminalContent.style.display = 'none';
-            testResultsContent.style.display = 'block';
-            terminalTabBtn.style.background = '#0f3460';
-            terminalTabBtn.style.color = '#888';
-            terminalTabBtn.style.borderBottom = '1px solid #333';
-            testResultsTabBtn.style.background = '#16213e';
-            testResultsTabBtn.style.color = '#aaa';
-            testResultsTabBtn.style.borderBottom = '2px solid #1976d2';
-        }
-    }
-
-    function setTestRunning(isRunning) {
-        runPublicTestsBtn.disabled = isRunning;
-        runPublicTestsBtn.style.opacity = isRunning ? '0.7' : '1';
-        runPublicTestsBtn.style.cursor = isRunning ? 'wait' : 'pointer';
-        testIcon.className = isRunning ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-check-double';
-        testBtnText.textContent = isRunning ? 'Running…' : 'Run Public Tests';
-    }
-
-    function renderTestResults(results) {
-        const testResultsList = document.getElementById('testResultsList');
-        testResultsList.innerHTML = '';
-
-        if (!results || results.length === 0) {
-            testResultsList.innerHTML = '<div style="color: #999; font-size: 13px; padding: 15px;">No test results available.</div>';
-            return;
-        }
-
-        results.forEach((result, idx) => {
-            const passed = result.passed;
-            const isPrivate = result.is_private === true;
-            
-            let statusColor = '';
-            let statusText = '';
-            
-            if (isPrivate) {
-                statusColor = '#6c757d'; // Gray
-                statusText = 'HIDDEN';
-            } else if (passed) {
-                statusColor = '#28a745'; // Vibrant Green
-                statusText = 'PASSED';
-            } else {
-                statusColor = '#dc3545'; // Bright Red
-                statusText = 'FAILED';
-            }
-
-            const resultDiv = document.createElement('div');
-            resultDiv.style.cssText = `
-                margin-bottom: 10px;
-                border-radius: 6px;
-                border: 1px solid #2d2d2d;
-                background-color: #1a1a1a;
-                overflow: hidden;
-            `;
-
-            // HEADER (Clickable Accordion)
-            const headerDiv = document.createElement('div');
-            headerDiv.style.cssText = `
-                padding: 12px 16px;
-                background: #242424;
-                cursor: pointer;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                user-select: none;
-                transition: background-color 0.2s ease;
-            `;
-            headerDiv.onmouseover = () => headerDiv.style.background = '#2a2a2a';
-            headerDiv.onmouseout = () => headerDiv.style.background = '#242424';
-
-            const titleContainer = document.createElement('div');
-            titleContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
-            
-            const expandIcon = document.createElement('i');
-            expandIcon.className = 'fa-solid fa-chevron-right';
-            expandIcon.style.cssText = 'color: #888; font-size: 12px; transition: transform 0.2s; width: 12px; text-align: center;';
-            
-            const titleSpan = document.createElement('span');
-            titleSpan.style.cssText = 'color: #e0e0e0; font-weight: 600; font-size: 14px;';
-            titleSpan.textContent = result.test_name || `Test Case ${idx + 1}`;
-            
-            titleContainer.appendChild(expandIcon);
-            titleContainer.appendChild(titleSpan);
-
-            const badgeSpan = document.createElement('span');
-            badgeSpan.style.cssText = `
-                background-color: ${statusColor};
-                color: white;
-                padding: 4px 12px;
-                border-radius: 12px;
-                font-size: 11px;
-                font-weight: 700;
-                letter-spacing: 0.5px;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            `;
-            badgeSpan.textContent = statusText;
-
-            headerDiv.appendChild(titleContainer);
-            headerDiv.appendChild(badgeSpan);
-            resultDiv.appendChild(headerDiv);
-
-            // DETAILS PANE (Hidden by default, Flex/Grid)
-            const detailsDiv = document.createElement('div');
-            detailsDiv.style.cssText = `
-                display: none;
-                padding: 16px;
-                background: #141414;
-                border-top: 1px solid #333;
-            `;
-
-            // Toggle logic
-            headerDiv.onclick = () => {
-                const isHidden = detailsDiv.style.display === 'none';
-                detailsDiv.style.display = isHidden ? 'block' : 'none';
-                expandIcon.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
-            };
-
-            if (isPrivate) {
-                detailsDiv.innerHTML = '<div style="color: #aaa; font-size: 13px; text-align: center; padding: 15px; font-style: italic;">The details of this private test case are hidden.</div>';
-            } else {
-                const gridContainer = document.createElement('div');
-                gridContainer.style.cssText = `
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 16px;
-                `;
-
-                // Expected Output Card
-                const expectedCard = document.createElement('div');
-                expectedCard.style.cssText = `
-                    background: #1e1e1e;
-                    border: 1px solid #333;
-                    border-radius: 6px;
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
-                `;
-                expectedCard.innerHTML = `
-                    <div style="background: #252525; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #bbb; text-transform: uppercase; border-bottom: 1px solid #333;">Expected Output</div>
-                    <pre style="margin: 0; padding: 14px; color: #ddd; font-size: 13px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; word-wrap: break-word; flex-grow: 1;">${escapeHtml(result.expected_output || "")}</pre>
-                `;
-
-                // Actual Output Card
-                const actualCard = document.createElement('div');
-                const outputColor = passed ? '#4caf50' : '#ff5252';
-                actualCard.style.cssText = `
-                    background: #1e1e1e;
-                    border: 1px solid #333;
-                    border-radius: 6px;
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
-                `;
-                actualCard.innerHTML = `
-                    <div style="background: #252525; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #bbb; text-transform: uppercase; border-bottom: 1px solid #333;">Your Actual Output</div>
-                    <pre style="margin: 0; padding: 14px; color: ${outputColor}; font-size: 13px; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; word-wrap: break-word; flex-grow: 1;">${escapeHtml(result.actual_output || "")}</pre>
-                `;
-
-                gridContainer.appendChild(expectedCard);
-                gridContainer.appendChild(actualCard);
-                detailsDiv.appendChild(gridContainer);
-            }
-
-            resultDiv.appendChild(detailsDiv);
-            testResultsList.appendChild(resultDiv);
-        });
+            termOut.textContent = (data.stdout || '') + (data.stderr || '');
+            if (!data.stdout && !data.stderr) termOut.textContent = '(no output)';
+        } catch(e) { termOut.textContent = 'Error: ' + e.message; }
+        finally { runBtn.disabled = false; runIcon.className = 'fa-solid fa-play'; runText.textContent = 'Run'; }
     }
 
     async function runPublicTests() {
-        if (!editorInstance) return;
-
-        const code = editorInstance.getValue();
-        const fileName = files[activeFileIndex] ? files[activeFileIndex].name : 'main.py';
-        const language = files[activeFileIndex] ? files[activeFileIndex].language : 'python';
-        const assignmentId = {{ assignment.id }};
-
-        terminalPanel.style.display = 'block';
-        switchOutputTab('testResults');
-        setTestRunning(true);
-
-        const testResultsList = document.getElementById('testResultsList');
-        testResultsList.innerHTML = '<div style="color: #888; font-size: 13px;">Running tests...</div>';
-
-        function getCookie(name) {
-            const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-            return v ? v.pop() : '';
-        }
-
+        const termPanel = document.getElementById('terminalPanel'), list = document.getElementById('testResultsList');
+        const testBtn = document.getElementById('runPublicTestsBtn'), testIcon = document.getElementById('testIcon'), testText = document.getElementById('testBtnText');
+        termPanel.style.display = 'block'; list.innerHTML = '<div style="color: #888; padding: 10px;">Running tests...</div>'; switchOutputTab('testResults');
+        testBtn.disabled = true; testIcon.className = 'fa-solid fa-spinner fa-spin'; testText.textContent = 'Testing...';
         try {
             const resp = await fetch('/grading/api/run-public-tests/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    code: code,
-                    language: language,
-                    filename: fileName,
-                    files: files.map(f => ({
-                        filename: f.name,
-                        code: f.model ? f.model.getValue() : ''
-                    })),
-                    assignment_id: assignmentId,
-                }),
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ code: editorInstance.getValue(), language: configLang, filename: files[activeFileIndex].name, files: files.map(f => ({ filename: f.name, code: f.model.getValue() })), assignment_id: {{ assignment.id }} })
             });
-
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({ error: 'Unknown server error' }));
-                testResultsList.innerHTML = `<div style="color: #f44336; font-size: 13px;">${escapeHtml(err.error || resp.statusText)}</div>`;
-                setTestRunning(false);
-                return;
-            }
-
-            const data = await resp.json();
-            renderTestResults(data.results);
-        } catch (err) {
-            testResultsList.innerHTML = `<div style="color: #f44336; font-size: 13px;">Network error: ${escapeHtml(err.message)}</div>`;
-        } finally {
-            setTestRunning(false);
-        }
+            const data = await resp.json(); list.innerHTML = '';
+            if (!data.results || data.results.length === 0) list.innerHTML = '<div style="color: #999; padding: 10px;">No tests found.</div>';
+            data.results.forEach(r => {
+                const div = document.createElement('div'); div.style.cssText = 'padding: 12px; border-bottom: 1px solid #333; color: #eee; display: flex; justify-content: space-between; align-items: center;';
+                div.innerHTML = `<span>${r.test_name}</span><span style="color:${r.passed?'#4caf50':'#f44336'}; font-weight: 700;">${r.passed?'PASSED':'FAILED'}</span>`;
+                list.appendChild(div);
+            });
+        } catch(e) { list.innerHTML = '<div style="color: #f44336; padding: 10px;">Error: ' + e.message + '</div>'; }
+        finally { testBtn.disabled = false; testIcon.className = 'fa-solid fa-vial'; testText.textContent = 'Test'; }
     }
 
-    function escapeHtml(text) {
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
+    const form = document.getElementById('submissionForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (files.length === 0) { e.preventDefault(); alert('Please add at least one file.'); return; }
+            document.getElementById('id_monaco_code').value = JSON.stringify(files.map(f => ({ name: f.name, content: f.model.getValue() })));
+            const btn = document.getElementById('submitBtn'), load = document.getElementById('loadingIcon'), text = document.getElementById('btnText');
+            btn.disabled = true; load.style.display = 'inline-block'; text.textContent = 'Submitting...';
+        });
     }
+
+    function handleFileSelect(input) {
+        if (!input.files.length) return;
+        Array.from(input.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => { addFile(file.name, e.target.result, file.name.endsWith('.java') ? 'java' : 'python'); switchTab(files.length - 1); };
+            reader.readAsText(file);
+        });
+        input.value = '';
+    }
+
+    const uploadCard = document.getElementById('uploadCard');
+    if (uploadCard) uploadCard.onclick = () => document.getElementById('id_file_path').click();
 </script>
-
-<hr style="border: none; border-top: 2px solid #333; margin: 30px 0;">
-{% endif %}
-
-<!-- Code Preview Section -->
-{% if is_student and latest_submission %}
-<div style="margin-top: 40px; margin-bottom: 20px;">
-    <h3 style="margin-bottom: 8px; font-size: 18px; font-weight: 600; color: #333;">Submitted Code</h3>
-    {% if can_preview_code %}
-    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Read-only preview of your latest submission.</p>
-
-    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-        <div id="studentPreviewTabs"
-            style="display: flex; flex: 1; overflow-x: auto; gap: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
-            <!-- Tabs will be injected here -->
-        </div>
-    </div>
-
-    <div id="monaco-editor-container-preview"
-        style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-    </div>
-    {% else %}
-    <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; text-align: center;">
-        <i class="fa-solid fa-file-code" style="font-size: 24px; color: #999; margin-bottom: 10px; display: block;"></i>
-        <p style="color: #666; font-size: 14px; margin: 0;">Code preview is available only for .py and .java files.</p>
-    </div>
-    {% endif %}
-</div>
-{% endif %}
-
-<!-- Instructor Submissions Table -->
-{% if not is_student %}
-<div style="margin-top: 30px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: #333;">Submissions</h3>
-        <a href="{% url 'grade_report' assignment.pk %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; background-color: var(--maroon); color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">
-            <i class="fa-solid fa-chart-bar"></i> Test Case Report
-        </a>
-    </div>
-
-    <div
-        style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #eee;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead style="background-color: var(--maroon); color: white;">
-                <tr>
-                    <th style="padding: 15px; border-bottom: 2px solid #ddd;">Student</th>
-                    <th style="padding: 15px; border-bottom: 2px solid #ddd;">Submitted At</th>
-                    <th style="padding: 15px; border-bottom: 2px solid #ddd;">File</th>
-                    <th style="padding: 15px; border-bottom: 2px solid #ddd;">Grade</th>
-                    <th style="padding: 15px; border-bottom: 2px solid #ddd; text-align: center;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for submission in submissions %}
-                <tr style="border-bottom: 1px solid #eee; background-color: {% cycle '#ffffff' '#fafafa' %};">
-                    <td style="padding: 15px; font-weight: 500; font-size: 14px;">
-                        {{ submission.student.user.get_full_name|default:submission.student.user.username }}
-                    </td>
-                    <td style="padding: 15px; color: #666; font-size: 13px;">
-                        {{ submission.submission_time|date:"F j, Y, g:i A" }}
-                    </td>
-                    <td style="padding: 15px;">
-                        <a href="{% url 'download_submission' submission.pk %}"
-                            title="Download submission file. The save location is controlled by your browser."
-                            style="color: var(--red-link); text-decoration: none; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;">
-                            <i class="fa-solid fa-file-code"></i> Download
-                        </a>
-                    </td>
-                    <td
-                        style="padding: 15px; font-weight: bold; font-size: 15px; color: {% if submission.grade %}#2e7d32{% else %}#999{% endif %};">
-                        {% if submission.grade %}
-                        {{ submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}
-                        {% else %}
-                        <span style="font-weight: normal; font-style: italic;">Needs Grading</span>
-                        {% endif %}
-                    </td>
-                    <td style="padding: 15px; text-align: center;">
-                        <a href="{% url 'grade_submission' submission.pk %}" target="_blank" rel="noopener noreferrer" class="btn-publish"
-                            style="padding: 8px 18px; font-size: 13px; text-decoration: none; display: inline-block; font-weight: 600;">
-                            {% if submission.grade %}Edit Grade{% else %}Grade{% endif %}
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" style="padding: 40px; text-align: center; color: #999; font-style: italic;">
-                        No submissions found for this assignment yet.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endif %}
-
-<!-- Navigation -->
-<div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; margin-bottom: 50px;">
-    <a href="{% if request.user_role == 'FACULTY' %}{% url 'professor_course' assignment.course.id %}{% elif request.user_role == 'STUDENT' %}{% url 'student_course' assignment.course.id %}{% else %}{% url 'ga_course' assignment.course.id %}{% endif %}"
-        style="color: var(--maroon); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-arrow-left"></i> Back to Assignments
-    </a>
-</div>
 {% endblock %}
