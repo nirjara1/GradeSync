@@ -115,23 +115,44 @@ def student_courses_list(request):
 @login_required
 def student_assignments(request):
     request.session['active_role'] = 'STUDENT'
-    # Show only assignments that are still due AND not yet submitted by this student.
+    
+    # Fetch all courses the student is enrolled in
     enrollments = CourseMember.objects.filter(
         user=request.user,
-        role_in_course='STUDENT',
+        role_in_course__in=['STUDENT', 'GRADING_ASSISTANT']
     ).select_related('course')
     courses = [e.course for e in enrollments]
 
     student_profile, _ = Student.objects.get_or_create(user=request.user)
-    submitted_assignment_ids = Submission.objects.filter(student=student_profile).values_list('assignment_id', flat=True)
-
-    now = timezone.now()
+    
+    # Fetch all published assignments for these courses
     assignments = (
-        Assignment.objects.filter(course__in=courses)
-        .exclude(id__in=submitted_assignment_ids)
-        .filter(Q(no_due_date=True) | Q(due_date__isnull=True) | Q(due_date__gte=now))
+        Assignment.objects.filter(course__in=courses, status='published')
         .order_by('due_date', 'id')
     )
+    
+    # Fetch submissions for this student for these assignments to determine status
+    submissions = Submission.objects.filter(
+        student=student_profile, 
+        assignment__in=assignments
+    ).select_related('grade')
+    
+    submission_dict = {s.assignment_id: s for s in submissions}
+    now = timezone.now()
+
+    for assignment in assignments:
+        submission = submission_dict.get(assignment.id)
+        if submission:
+            if hasattr(submission, 'grade') and submission.grade:
+                assignment.student_status = 'GRADED'
+                assignment.student_grade = submission.grade.score
+            else:
+                assignment.student_status = 'SUBMITTED'
+        else:
+            if not assignment.no_due_date and assignment.due_date and assignment.due_date < now:
+                assignment.student_status = 'MISSING'
+            else:
+                assignment.student_status = 'UPCOMING'
 
     return render(request, 'portal/student_assignments.html', {
         'assignments': assignments,

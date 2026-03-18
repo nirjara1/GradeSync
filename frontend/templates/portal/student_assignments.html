@@ -2,57 +2,254 @@
 {% load static %}
 
 {% block content %}
-<div class="assignments-container">
-    <div class="assignments-header" style="margin-bottom: 20px;">
-        <h2 class="page-title">My Assignments</h2>
-        <p class="profile-subtitle">View and submit assignments for your courses.</p>
-    </div>
+<style>
+    .assignments-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
     
-    <hr class="divider">
+    .course-group {
+        background-color: var(--white);
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 25px;
+    }
+    
+    .course-header {
+        background-color: #f9fafb;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .course-header:hover {
+        background-color: #f3f4f6;
+    }
+    
+    .course-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #111827;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .course-header-icon {
+        color: var(--maroon);
+        font-size: 20px;
+    }
+    
+    .assignments-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+        padding: 20px;
+        background-color: #ffffff;
+    }
+    
+    .assignment-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background-color: #ffffff;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .assignment-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        border-color: var(--maroon);
+    }
 
-    {% if assignments %}
-    <div class="assignments-list" style="margin-top: 18px;">
-        {% for assignment in assignments %}
-        <div class="assignment-item" style="justify-content: space-between; display:flex; align-items:flex-start; gap: 16px;">
-            <div style="display: flex; gap: 12px;">
-                <i class="fa-solid fa-book assignment-icon" style="margin-top: 3px;"></i>
-                <div class="assignment-details">
-                    <a href="{% url 'assignment_detail' assignment.pk %}" class="assignment-title" style="color: var(--maroon); font-weight: 800;">
-                        {{ assignment.name }}
-                    </a>
-                    {% if assignment.course %}
-                    <p class="assignment-meta" style="margin: 4px 0 0 0;">
-                        {{ assignment.course.title }}-{{ assignment.course.section }}
-                        <span style="color:#9ca3af;">({{ assignment.course.code }})</span>
-                        {% if assignment.course.term %}-{{ assignment.course.term }}{% endif %}
-                    </p>
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-graded { background-color: #ecfdf5; color: #10b981; border: 1px solid #c6f6d5; }
+    .status-submitted { background-color: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; }
+    .status-missing { background-color: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
+    .status-upcoming { background-color: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+
+    .assignment-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+    
+    .assignment-card-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: #111827;
+        text-decoration: none;
+        line-height: 1.3;
+        flex: 1;
+        padding-right: 10px;
+    }
+    
+    .assignment-details-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px 0;
+        font-size: 14px;
+        color: #4b5563;
+    }
+    
+    .assignment-details-list li {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .assignment-details-list i {
+        color: #9ca3af;
+        width: 16px;
+        text-align: center;
+    }
+
+    .btn-open {
+        background: var(--maroon);
+        color: white;
+        text-decoration: none;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: background 0.2s;
+        border: none;
+        width: 100%;
+    }
+
+    .btn-open:hover {
+        background: #6a0021;
+        color: white;
+    }
+
+    .btn-view {
+        background: #f3f4f6;
+        color: #374151;
+        text-decoration: none;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid #d1d5db;
+        transition: all 0.2s;
+        width: 100%;
+    }
+
+    .btn-view:hover {
+        background: #e5e7eb;
+        color: #111827;
+    }
+</style>
+
+<div class="assignments-header" style="margin-bottom: 30px;">
+    <h1 class="page-title">My Assignments</h1>
+    <p class="profile-subtitle">Track your progress and submit work across all your courses.</p>
+</div>
+
+<div class="assignments-container">
+    {% regroup assignments by course as course_list %}
+    
+    {% for course_group in course_list %}
+    <div class="course-group">
+        <div class="course-header" onclick="const grid = this.nextElementSibling; const icon = this.querySelector('.chevron-icon'); if(grid.style.display === 'none') { grid.style.display = 'grid'; icon.style.transform = 'rotate(0deg)'; } else { grid.style.display = 'none'; icon.style.transform = 'rotate(-90deg)'; }">
+            <h3>
+                <i class="fa-solid fa-graduation-cap course-header-icon"></i>
+                {% if course_group.grouper %}
+                    {{ course_group.grouper.title }}-{{ course_group.grouper.section }} 
+                    <span style="color:#6b7280; font-size:14px; font-weight:normal;">({{ course_group.grouper.code }}) {% if course_group.grouper.term %}- {{ course_group.grouper.term }}{% endif %}</span>
+                {% else %}
+                    General Assignments
+                {% endif %}
+            </h3>
+            <i class="fa-solid fa-chevron-down chevron-icon" style="color: #9ca3af; transition: transform 0.3s; transform: rotate(0deg);"></i>
+        </div>
+        
+        <div class="assignments-grid">
+            {% for assignment in course_group.list %}
+            <div class="assignment-card" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}'" style="cursor: pointer;">
+                <div>
+                    <div class="assignment-card-header">
+                        <span class="assignment-card-title">{{ assignment.name }}</span>
+                        <span class="status-badge 
+                            {% if assignment.student_status == 'GRADED' %}status-graded
+                            {% elif assignment.student_status == 'SUBMITTED' %}status-submitted
+                            {% elif assignment.student_status == 'MISSING' %}status-missing
+                            {% else %}status-upcoming{% endif %}">
+                            {{ assignment.student_status }}
+                        </span>
+                    </div>
+                    
+                    <ul class="assignment-details-list">
+                        <li>
+                            <i class="fa-solid fa-star"></i>
+                            Points: {{ assignment.points|default:"0" }}
+                            {% if assignment.student_status == 'GRADED' %}
+                                <span style="font-weight: bold; color: #10b981; margin-left: 8px;">(Score: {{ assignment.student_grade }})</span>
+                            {% endif %}
+                        </li>
+                        <li>
+                            <i class="fa-regular fa-clock"></i>
+                            Due: {% if assignment.no_due_date %}No Due Date{% elif assignment.due_date %}{{ assignment.due_date|date:"M j \a\t g:ia" }}{% else %}No Due Date{% endif %}
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="assignment-card-footer" onclick="event.stopPropagation();">
+                    {% if assignment.student_status == 'GRADED' %}
+                        <a href="{% url 'assignment_detail' assignment.pk %}" class="btn-view">
+                            <i class="fa-solid fa-check-double"></i> View Results
+                        </a>
+                    {% elif assignment.student_status == 'SUBMITTED' %}
+                        <a href="{% url 'assignment_detail' assignment.pk %}" class="btn-view">
+                            <i class="fa-solid fa-file-code"></i> View Submission
+                        </a>
+                    {% else %}
+                        <a href="{% url 'assignment_detail' assignment.pk %}" class="btn-open">
+                            <i class="fa-solid fa-arrow-right"></i> Open Assignment
+                        </a>
                     {% endif %}
-                    <p class="assignment-meta" style="margin: 2px 0 0 0;">Points: {{ assignment.points }}</p>
-                    <p class="assignment-meta" style="margin: 2px 0 0 0;">
-                        Due:
-                        {% if assignment.no_due_date or not assignment.due_date %}
-                            No due date
-                        {% else %}
-                            {{ assignment.due_date|date:"M j \\a\\t g:ia" }}
-                        {% endif %}
-                    </p>
                 </div>
             </div>
-            <div style="margin-left:auto;">
-                <a href="{% url 'assignment_detail' assignment.pk %}"
-                   style="background: var(--maroon); color: white; text-decoration:none; padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 13px; display:inline-flex; align-items:center; gap:8px;">
-                    <i class="fa-solid fa-arrow-right"></i> Open
-                </a>
-            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="empty-state" style="text-align: center; padding: 50px; background: #f9f9f9; border-radius: 8px; margin-top: 30px;">
-        <i class="fa-solid fa-list-check" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
-        <h3>No Assignments Due</h3>
-        <p style="color: #666;">You do not currently have any pending assignments across your enrolled courses.</p>
+    {% empty %}
+    <div class="empty-state" style="text-align: center; padding: 60px; background: white; border-radius: 12px; border: 1px dashed #d1d5db; margin-top: 20px;">
+        <i class="fa-solid fa-list-check" style="font-size: 64px; color: #d1d5db; margin-bottom: 20px;"></i>
+        <h3 style="color: #374151; margin-bottom: 10px;">No Assignments Found</h3>
+        <p style="color: #6b7280; font-size: 16px;">You don't have any assignments assigned to you yet. Check back later!</p>
     </div>
-    {% endif %}
+    {% endfor %}
 </div>
 {% endblock %}
