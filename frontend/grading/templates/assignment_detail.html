@@ -238,11 +238,14 @@
         <button class="tab-btn active" onclick="switchMainTab('overview')">
             <i class="fa-solid fa-circle-info"></i> Overview
         </button>
+        {% if is_student %}
         <button class="tab-btn" onclick="switchMainTab('submit')">
             <i class="fa-solid fa-cloud-arrow-up"></i> Submit Work
         </button>
+        {% endif %}
         <button class="tab-btn" onclick="switchMainTab('history')">
-            <i class="fa-solid fa-clock-rotate-left"></i> History & Results
+            <i class="fa-solid fa-{% if is_student %}clock-rotate-left{% else %}users-viewfinder{% endif %}"></i> 
+            {% if is_student %}History & Results{% else %}Student Submissions{% endif %}
         </button>
     </nav>
 
@@ -383,7 +386,19 @@
                                 <td style="font-weight: 600;">{{ submission.student.user.get_full_name|default:submission.student.user.username }}</td>
                                 <td style="color: var(--gs-text-muted); font-size: 13px;">{{ submission.submission_time|date:"M j, g:i A" }}</td>
                                 <td style="font-weight: 700; color: {% if submission.grade %}#15803d{% else %}#94a3b8{% endif %};">{% if submission.grade %}{{ submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}{% else %}Needs Grading{% endif %}</td>
-                                <td style="text-align: center;"><div style="display: flex; gap: 8px; justify-content: center;"><a href="{% url 'download_submission' submission.pk %}" title="Download" style="color: var(--gs-text-muted); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gs-border); border-radius: 6px;"><i class="fa-solid fa-download"></i></a><a href="{% url 'grade_submission' submission.pk %}" target="_blank" style="background: var(--gs-maroon); color: white; text-decoration: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;">{% if submission.grade %}Edit{% else %}Grade{% endif %}</a></div></td>
+                                <td style="text-align: center;">
+                                    <div style="display: flex; gap: 8px; justify-content: center;">
+                                        <button onclick="previewStudentSubmission('{{ submission.pk }}', '{{ submission.student.user.get_full_name|default:submission.student.user.username }}')" title="Preview Code" style="background: white; color: var(--gs-maroon); border: 1px solid var(--gs-border); padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                            <i class="fa-solid fa-eye"></i> Preview
+                                        </button>
+                                        <a href="{% url 'grade_submission' submission.pk %}" style="background: var(--gs-maroon); color: white; text-decoration: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                            <i class="fa-solid fa-pen-to-square"></i> {% if submission.grade %}Edit{% else %}Grade{% endif %}
+                                        </a>
+                                        <a href="{% url 'download_submission' submission.pk %}" title="Download" style="color: var(--gs-text-muted); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gs-border); border-radius: 6px;">
+                                            <i class="fa-solid fa-download"></i>
+                                        </a>
+                                    </div>
+                                </td>
                             </tr>
                             {% empty %}
                             <tr><td colspan="4" style="padding: 60px; text-align: center; color: var(--gs-text-muted); font-style: italic;">No submissions yet.</td></tr>
@@ -391,6 +406,19 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- Professor Preview Section (Hidden by default) -->
+            <div id="profPreviewSection" class="section-box" style="display: none; margin-top: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 class="section-title-modern" style="margin: 0;"><i class="fa-solid fa-code" style="color: var(--gs-maroon);"></i> Preview: <span id="previewStudentName"></span></h3>
+                    <div style="display: flex; gap: 10px;">
+                        <a id="previewGradeLink" href="#" class="btn-back" style="background: var(--gs-maroon); color: white; padding: 6px 16px; border-radius: 6px; font-size: 13px;">Grade This Submission</a>
+                        <button onclick="document.getElementById('profPreviewSection').style.display='none'" style="background: white; border: 1px solid var(--gs-border); padding: 6px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 4px; border-bottom: 1px solid #334155; padding: 4px 12px; background: #2d3748; border-radius: 8px 8px 0 0;" id="profPreviewTabs"></div>
+                <div class="editor-wrapper"><div id="monaco-editor-container-prof-preview" style="width: 100%; height: 500px;"></div></div>
             </div>
             {% endif %}
         </div>
@@ -406,8 +434,8 @@
 <script>
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
 
-    let editorInstance = null, previewEditorInstance = null;
-    let files = [], activeFileIndex = -1;
+    let editorInstance = null, previewEditorInstance = null, profEditorInstance = null;
+    let files = [], activeFileIndex = -1, profPreviewModels = [];
     let configLang = '{{ assignment.allowed_language|default:"python"|lower }}';
 
     function switchMainTab(tabId) {
@@ -516,11 +544,55 @@
             }
             switchPreview(0);
         }
+        const profPreviewContainer = document.getElementById('monaco-editor-container-prof-preview');
+        if (profPreviewContainer) {
+            profEditorInstance = monaco.editor.create(profPreviewContainer, { theme: 'vs-dark', readOnly: true, automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollbar: { alwaysConsumeMouseWheel: false } });
+        }
+        
         const urlParams = new URLSearchParams(window.location.search);
         const tab = urlParams.get('tab');
         if (tab) switchMainTab(tab);
         else if (window.location.hash === '#submission-section') switchMainTab('history');
     });
+
+    async function previewStudentSubmission(submissionId, studentName) {
+        try {
+            const resp = await fetch(`/grading/api/submission-files/${submissionId}/`);
+            const data = await resp.json();
+            if (!data.files) throw new Error('No files found');
+            
+            document.getElementById('profPreviewSection').style.display = 'block';
+            document.getElementById('previewStudentName').textContent = studentName;
+            document.getElementById('previewGradeLink').href = `/grading/grade/${submissionId}/`;
+            
+            // Dispose old models
+            profPreviewModels.forEach(m => m.model.dispose());
+            
+            profPreviewModels = data.files.map(f => ({
+                name: f.name,
+                model: monaco.editor.createModel(f.content, f.language)
+            }));
+            
+            switchProfPreview(0);
+            document.getElementById('profPreviewSection').scrollIntoView({ behavior: 'smooth' });
+        } catch (e) {
+            alert('Error loading submission: ' + e.message);
+        }
+    }
+
+    function switchProfPreview(idx) {
+        if (!profEditorInstance || idx < 0 || idx >= profPreviewModels.length) return;
+        profEditorInstance.setModel(profPreviewModels[idx].model);
+        const cont = document.getElementById('profPreviewTabs');
+        if (cont) {
+            cont.innerHTML = '';
+            profPreviewModels.forEach((m, i) => {
+                const tab = document.createElement('button'); tab.textContent = m.name;
+                tab.style.cssText = `padding: 8px 16px; border: none; background: ${i === idx ? '#1e1e1e' : 'transparent'}; border-bottom: ${i === idx ? '2px solid var(--gs-maroon)' : 'none'}; cursor: pointer; font-size: 12px; font-weight: ${i === idx ? '700' : '500'}; color: ${i === idx ? 'white' : '#94a3b8'}; transition: all 0.2s; border-radius: 6px 6px 0 0;`;
+                tab.onclick = () => switchProfPreview(i); cont.appendChild(tab);
+            });
+        }
+    }
 
     function switchOutputTab(tab) {
         const term = document.getElementById('terminalContent'), res = document.getElementById('testResultsContent');

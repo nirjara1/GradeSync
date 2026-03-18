@@ -21,6 +21,8 @@ from io import TextIOWrapper
 from typing import Optional
 from django.utils import timezone
 import re
+import zipfile
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -1977,3 +1979,43 @@ def run_public_tests_api(request):
             })
     
     return JsonResponse({'results': results})
+
+@login_required
+def submission_files_api(request, submission_id):
+    """API for fetching student submission files for preview."""
+    user = get_user_from_request(request)
+    submission = get_object_or_404(Submission, pk=submission_id)
+    
+    # Check if user is instructor or student themselves (though this is for prof preview, it should be secure)
+    if not is_course_instructor(user, submission.assignment.course, request) and submission.student.user != user:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+        
+    file_path = submission.file_path.path
+    files = []
+    
+    if file_path.endswith('.zip'):
+        try:
+            with zipfile.ZipFile(file_path, 'r') as zf:
+                for name in zf.namelist():
+                    if name.endswith('/') or name.startswith('__MACOSX'): continue
+                    with zf.open(name) as f:
+                        try:
+                            content = f.read().decode('utf-8')
+                            language = 'java' if name.lower().endswith('.java') else 'python'
+                            files.append({'name': name, 'content': content, 'language': language})
+                        except (UnicodeDecodeError, Exception):
+                            continue
+        except Exception as e:
+            return JsonResponse({'error': f'Failed to open zip: {str(e)}'}, status=500)
+    else:
+        # Single file
+        name = os.path.basename(file_path)
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+                language = 'java' if name.lower().endswith('.java') else 'python'
+                files.append({'name': name, 'content': content, 'language': language})
+        except Exception as e:
+            return JsonResponse({'error': f'Failed to read file: {str(e)}'}, status=500)
+            
+    return JsonResponse({'files': files})
