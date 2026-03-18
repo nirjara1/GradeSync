@@ -173,23 +173,12 @@
         box-shadow: 0 6px 16px rgba(132, 0, 41, 0.3);
     }
 
-    /* Flatpickr theming */
-    .flatpickr-calendar {
-        font-family: inherit;
-        border-radius: 12px !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
-        border: 1px solid #e5e7eb !important;
-    }
-    .flatpickr-months {
-        background-color: var(--maroon) !important;
-        border-radius: 12px 12px 0 0 !important;
-    }
-    .flatpickr-weekdays {
-        background-color: #991b3d !important;
-    }
-    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange, .flatpickr-day.selected:focus, .flatpickr-day.selected:hover {
-        background: var(--maroon) !important;
-        border-color: var(--maroon) !important;
+    /* Custom label styling for better contrast */
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
     }
 </style>
 
@@ -337,9 +326,6 @@
     </form>
 </div>
 
-<!-- Flatpickr (pretty date/time picker) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
 let parsedTestCases = [];
@@ -541,10 +527,9 @@ function escapeHtml(text) {
         '"': '&quot;',
         "'": '&#039;'
     };
-    return text.replace(/[&<>"']/g, m => map[m]);
 }
 
-// Ensure flatpickr also runs on create assignment
+// Premium Flatpickr with Material Red Theme
 document.addEventListener('DOMContentLoaded', function () {
     var dueInput = document.querySelector('input[name="due_date"]');
     if (!dueInput || typeof flatpickr === 'undefined') return;
@@ -553,9 +538,16 @@ document.addEventListener('DOMContentLoaded', function () {
         enableTime: true,
         dateFormat: "Y-m-d H:i",
         altInput: true,
-        altFormat: "M j, Y h:i K",
+        altFormat: "F j, Y - h:i K",
+        minDate: "today",
+        time_24hr: false
     });
 });
 </script>
+
+<!-- Premium Flatpickr (Material Red Theme) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_red.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 {% endblock %}
