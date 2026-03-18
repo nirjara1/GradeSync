@@ -59,7 +59,7 @@
     .assignment-card {
         border: 1px solid #e5e7eb;
         border-radius: 12px;
-        padding: 20px;
+        padding: 0; /* Remove padding from card to allow full-width footer */
         transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
         display: flex;
         flex-direction: column;
@@ -67,6 +67,11 @@
         background-color: #ffffff;
         position: relative;
         overflow: hidden;
+    }
+
+    .assignment-card-content {
+        padding: 20px;
+        flex: 1;
     }
     
     .assignment-card:hover {
@@ -131,17 +136,18 @@
         background: var(--maroon);
         color: white;
         text-decoration: none;
-        padding: 10px 16px;
-        border-radius: 8px;
+        padding: 14px 16px;
+        border-radius: 0; /* Let card overflow: hidden handle the corners */
         font-weight: 700;
         font-size: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        transition: background 0.2s;
+        transition: all 0.2s;
         border: none;
         width: 100%;
+        margin: 0;
     }
 
     .btn-open:hover {
@@ -150,25 +156,32 @@
     }
 
     .btn-view {
-        background: #f3f4f6;
+        background: #f9fafb;
         color: #374151;
         text-decoration: none;
-        padding: 10px 16px;
-        border-radius: 8px;
+        padding: 14px 16px;
+        border-radius: 0;
         font-weight: 700;
         font-size: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        border: 1px solid #d1d5db;
+        border: none;
+        border-top: 1px solid #e5e7eb;
         transition: all 0.2s;
         width: 100%;
+        margin: 0;
     }
 
     .btn-view:hover {
-        background: #e5e7eb;
+        background: #f3f4f6;
         color: #111827;
+    }
+
+    .assignment-card-footer {
+        width: 100%;
+        margin-top: auto;
     }
 </style>
 
@@ -198,7 +211,7 @@
         <div class="assignments-grid">
             {% for assignment in course_group.list %}
             <div class="assignment-card" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}'" style="cursor: pointer;">
-                <div>
+                <div class="assignment-card-content">
                     <div class="assignment-card-header">
                         <span class="assignment-card-title">{{ assignment.name }}</span>
                         <span class="status-badge 
