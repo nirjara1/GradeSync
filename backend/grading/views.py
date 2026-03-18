@@ -1709,6 +1709,9 @@ def student_course_report(request, course_id, student_id):
     report_data = []
     total_points_possible = 0
     total_points_earned = 0
+    total_weight_possible = 0.0
+    total_weight_earned = 0.0
+    use_weighted = assignments.filter(is_weighted=True).exists()
     
     for a in assignments:
         sub = submission_lookup.get(a.id)
@@ -1725,6 +1728,14 @@ def student_course_report(request, course_id, student_id):
             else:
                 status = 'ungraded'
         
+        # Weighted grading: compute weighted earned/possible using weight (%)
+        if use_weighted and a.is_weighted and a.weight and float(a.points or 0) > 0:
+            w = float(a.weight)
+            total_weight_possible += w
+            if score is not None:
+                pct = max(0.0, min(1.0, float(score) / float(a.points)))
+                total_weight_earned += pct * w
+
         report_data.append({
             'assignment': a,
             'submission': sub,
@@ -1733,7 +1744,10 @@ def student_course_report(request, course_id, student_id):
             'class_avg': avg_by_assignment.get(a.id),
         })
         
-    overall_percentage = (total_points_earned / total_points_possible * 100) if total_points_possible > 0 else 0
+    if use_weighted and total_weight_possible > 0:
+        overall_percentage = (total_weight_earned / total_weight_possible * 100.0)
+    else:
+        overall_percentage = (total_points_earned / total_points_possible * 100) if total_points_possible > 0 else 0
     
     # Determine base template
     if is_instructor:
@@ -1781,6 +1795,9 @@ def download_student_course_report(request, course_id, student_id):
 
     total_points_possible = 0.0
     total_points_earned = 0.0
+    total_weight_possible = 0.0
+    total_weight_earned = 0.0
+    use_weighted = assignments.filter(is_weighted=True).exists()
     rows = []
 
     for a in assignments:
@@ -1799,6 +1816,13 @@ def download_student_course_report(request, course_id, student_id):
             else:
                 status = "ungraded"
 
+        if use_weighted and a.is_weighted and a.weight and points_possible > 0:
+            w = float(a.weight)
+            total_weight_possible += w
+            if score is not None:
+                pct = max(0.0, min(1.0, float(score) / points_possible))
+                total_weight_earned += pct * w
+
         rows.append({
             "assignment": a,
             "status": status,
@@ -1806,11 +1830,14 @@ def download_student_course_report(request, course_id, student_id):
             "points_possible": points_possible,
         })
 
-    overall_percentage = (
-        (total_points_earned / total_points_possible * 100.0)
-        if total_points_possible > 0
-        else 0.0
-    )
+    if use_weighted and total_weight_possible > 0:
+        overall_percentage = (total_weight_earned / total_weight_possible * 100.0)
+    else:
+        overall_percentage = (
+            (total_points_earned / total_points_possible * 100.0)
+            if total_points_possible > 0
+            else 0.0
+        )
 
     student_name = student.user.get_full_name() or student.user.username or "student"
     course_code = getattr(course, "code", "") or "course"

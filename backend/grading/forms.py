@@ -7,12 +7,14 @@ import openpyxl
 class AssignmentForm(forms.ModelForm):
     class Meta:
         model = Assignment
-        fields = ['name', 'description', 'course', 'points', 'due_date', 'no_due_date', 'allowed_language', 'public_test_data', 'expected_outputs', 'test_cases_file', 'status']
+        fields = ['name', 'description', 'course', 'points', 'is_weighted', 'weight', 'due_date', 'no_due_date', 'allowed_language', 'public_test_data', 'expected_outputs', 'test_cases_file', 'status']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'placeholder': 'Assignment Title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Description'}),
             'course': forms.Select(attrs={'class': 'form-control'}),
             'points': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'placeholder': 'Total Points'}),
+            'is_weighted': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'weight': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01', 'placeholder': 'e.g., 10 (percent)'}),
             'due_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'no_due_date': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'allowed_language': forms.RadioSelect(attrs={'class': 'form-check-input'}),
@@ -24,6 +26,8 @@ class AssignmentForm(forms.ModelForm):
         labels = {
             'name': 'Assignment Title',
             'test_cases_file': 'Test cases json',
+            'is_weighted': 'Weighted grading',
+            'weight': 'Weight (%)',
         }
 
     def __init__(self, *args, **kwargs):
@@ -34,6 +38,29 @@ class AssignmentForm(forms.ModelForm):
         self.fields['public_test_data'].required = False
         self.fields['expected_outputs'].required = False
         self.fields['test_cases_file'].required = False
+        self.fields['is_weighted'].required = False
+        self.fields['weight'].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        is_weighted = bool(cleaned.get("is_weighted"))
+        weight = cleaned.get("weight")
+        if is_weighted:
+            if weight is None:
+                self.add_error("weight", "Weight is required when weighted grading is enabled.")
+            else:
+                try:
+                    w = float(weight)
+                except (TypeError, ValueError):
+                    self.add_error("weight", "Weight must be a number.")
+                else:
+                    if w <= 0:
+                        self.add_error("weight", "Weight must be greater than 0.")
+                    if w > 100:
+                        self.add_error("weight", "Weight should be 100 or less (percent).")
+        else:
+            cleaned["weight"] = None
+        return cleaned
 
 
 class SubmissionForm(forms.ModelForm):

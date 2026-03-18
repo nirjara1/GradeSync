@@ -23,6 +23,8 @@ class Assignment(models.Model):
     description = models.TextField(blank=True)
     course = models.ForeignKey('professor.Course', on_delete=models.CASCADE, related_name='assignments', null=True, blank=True)
     points = models.IntegerField(default=0)
+    is_weighted = models.BooleanField(default=False)
+    weight = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
     no_due_date = models.BooleanField(default=False)
     allowed_language = models.CharField(max_length=20, choices=LANGUAGE_CHOICES, default='python')
