@@ -199,6 +199,45 @@
         color: #15803d;
         text-decoration: underline;
     }
+
+    /* Rubric display */
+    .rubric-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 12px;
+    }
+
+    .rubric-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 18px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .rubric-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .rubric-table th {
+        padding: 10px 16px;
+        background: #f3f4f6;
+        font-size: 12px;
+        font-weight: 700;
+        color: #4b5563;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .rubric-table td {
+        padding: 12px 16px;
+        border-top: 1px solid #f3f4f6;
+        color: #374151;
+    }
 </style>
 
 <div class="unified-form-container">
@@ -329,6 +368,55 @@
             {% endif %}
             <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.expected_outputs.errors }}</div>
         </div>
+
+        <!-- SECTION 5: Rubric -->
+        <h3 class="section-header"><i class="fa-solid fa-list-check"></i> 5. Grading Rubric</h3>
+
+        {% if rubric and criteria_with_display %}
+        <div class="rubric-card">
+            <div class="rubric-header">
+                <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #111827;">
+                    <i class="fa-solid fa-list-check" style="color: var(--maroon); margin-right: 8px;"></i>
+                    Grading Rubric
+                    {% if rubric.is_weighted %}<span style="font-size: 12px; font-weight: 500; color: #6b7280; margin-left: 8px;">(Weighted)</span>{% endif %}
+                </h4>
+                <a href="{% url 'assignment_rubric' assignment_id=assignment.id %}" 
+                   style="font-size: 13px; font-weight: 600; color: var(--maroon); text-decoration: none;">
+                    <i class="fa-solid fa-pen-to-square" style="margin-right: 4px;"></i> Edit Rubric
+                </a>
+            </div>
+            <table class="rubric-table">
+                <thead>
+                    <tr>
+                        <th>Criterion</th>
+                        <th style="text-align: right;">Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in criteria_with_display %}
+                    <tr>
+                        <td>
+                            <strong>{{ row.criterion.name }}</strong>
+                            {% if row.criterion.description %}
+                            <p style="margin: 4px 0 0 0; font-size: 12px; color: #9ca3af; font-weight: normal;">{{ row.criterion.description }}</p>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; font-weight: 600;">{{ row.display_points }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="background: #fafafa; border: 1px dashed #d1d5db; border-radius: 10px; padding: 28px; text-align: center;">
+            <i class="fa-solid fa-list-check" style="font-size: 28px; color: #d1d5db; margin-bottom: 12px;"></i>
+            <p style="margin: 0 0 16px; color: #9ca3af; font-size: 14px;">No rubric attached to this assignment.</p>
+            <a href="{% url 'assignment_rubric' assignment_id=assignment.id %}" 
+               style="display: inline-flex; align-items: center; gap: 8px; background: var(--maroon); color: white; padding: 10px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none;">
+                <i class="fa-solid fa-plus"></i> Add Rubric
+            </a>
+        </div>
+        {% endif %}
 
         <div class="btn-action-group">
             {% if assignment.course %}
