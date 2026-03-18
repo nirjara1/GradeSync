@@ -532,9 +532,10 @@ function escapeHtml(text) {
 // Premium Flatpickr with Material Red Theme
 document.addEventListener('DOMContentLoaded', function () {
     var dueInput = document.querySelector('input[name="due_date"]');
+    var noDueCheckbox = document.querySelector('input[name="no_due_date"]');
     if (!dueInput || typeof flatpickr === 'undefined') return;
 
-    flatpickr(dueInput, {
+    var fp = flatpickr(dueInput, {
         enableTime: true,
         dateFormat: "Y-m-d H:i",
         altInput: true,
@@ -542,6 +543,27 @@ document.addEventListener('DOMContentLoaded', function () {
         minDate: "today",
         time_24hr: false
     });
+
+    if (noDueCheckbox) {
+        // Initial state
+        if (noDueCheckbox.checked) {
+            fp.clear();
+            fp._input.disabled = true;
+            if (fp.altInput) fp.altInput.disabled = true;
+        }
+
+        // Toggle state
+        noDueCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                fp.clear();
+                fp._input.disabled = true;
+                if (fp.altInput) fp.altInput.disabled = true;
+            } else {
+                fp._input.disabled = false;
+                if (fp.altInput) fp.altInput.disabled = false;
+            }
+        });
+    }
 });
 </script>
 
