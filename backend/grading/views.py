@@ -6,7 +6,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
-from .services import grade_submission, extract_code_from_file
+from .services import grade_submission, extract_code_from_file, run_submission_analysis
 from .sandbox import execute_code
 from .tasks import bulk_grade_assignment
 from professor.models import Course, UserProfile, CourseMember
@@ -739,13 +739,32 @@ def grade_submission_view(request, pk):
                 grade.save()
             else:
                 Grade.objects.create(submission=submission, score=total, feedback=feedback)
+            
+            # Ensure status is updated
+            submission.status = 'graded'
+            submission.save(update_fields=['status'])
+            
             messages.success(request, "Grade saved. Total: %s / %s" % (total, assignment.points))
             if next_submission:
                 return redirect('grade_submission', pk=next_submission.pk)
             return redirect('gradebook', pk=assignment.pk)
         # Single score (no rubric)
-        score = request.POST.get('score')
-        if score:
+        score = request.POST.get('score', '').strip()
+        if score == '':
+            # Empty score = UNGRADE: delete the Grade record and reset submission status
+            if grade:
+                grade.delete()
+                CriterionGrade.objects.filter(submission=submission).delete()
+                messages.success(request, "Grade removed. Submission is now ungraded.")
+            else:
+                messages.info(request, "No grade to remove.")
+                
+            # Always ensure the status gets reset
+            submission.status = 'submitted'
+            submission.save(update_fields=['status'])
+            return redirect('gradebook', pk=assignment.pk)
+        else:
+            # Non-empty score = save/update the grade
             try:
                 score_val = float(score)
                 if grade:
@@ -754,17 +773,13 @@ def grade_submission_view(request, pk):
                     grade.save()
                     messages.success(request, "Grade updated successfully.")
                 else:
-                    Grade.objects.create(
-                        submission=submission,
-                        score=score_val,
-                        feedback=feedback
-                    )
-                messages.success(request, "Grade submitted successfully.")
-                return redirect('assignment_detail', pk=assignment.pk)
+                    Grade.objects.create(submission=submission, score=score_val, feedback=feedback)
+                    messages.success(request, "Grade submitted successfully.")
+                submission.status = 'graded'
+                submission.save(update_fields=['status'])
+                return redirect('gradebook', pk=assignment.pk)
             except ValueError:
                 messages.error(request, "Invalid score submitted.")
-        else:
-            messages.error(request, "Score is required.")
             
     course_role = get_user_course_role(user, assignment.course, request)
     is_instructor = (course_role == 'INSTRUCTOR')
@@ -1278,6 +1293,120 @@ def grade_submission_api(request, submission_id):
             'status': 'error',
             'error': str(e)
         }, status=500)
+
+
+@login_required
+@require_POST
+def autograde_submission_api(request, submission_id):
+    """
+    Runs the full autograder pipeline on a submission:
+      1. Execute all test cases (grade_submission)
+      2. AI likelihood + plagiarism analysis (run_submission_analysis)
+      3. Return combined results as JSON for the Autograding tab.
+    """
+    submission = get_object_or_404(Submission, id=submission_id)
+    assignment = submission.assignment
+    user = get_user_from_request(request)
+
+    # Only course instructors / GAs may trigger autograding
+    if not is_course_instructor(user, assignment.course, request):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    try:
+        # ── 1. Run test cases ──────────────────────────────────────────
+        grade_result = grade_submission(submission_id)
+
+        if grade_result.get('status') == 'error':
+            return JsonResponse({
+                'status': 'error',
+                'error': grade_result.get('error', 'Grading failed'),
+            }, status=500)
+
+        test_results = grade_result.get('test_results', [])
+        total_score  = grade_result.get('total_score', 0)
+        max_score    = grade_result.get('max_score', 0)
+
+        # ── Scale test case points to assignment total points ──────────
+        assignment_points = getattr(assignment, 'points', 0)
+        if assignment_points > 0:
+            if max_score > 0:
+                # Proportional scaling (e.g., got 10/20 on tests = 50/100 for assignment)
+                total_score = round((total_score / max_score) * assignment_points)
+            else:
+                # No tests available or tests total to 0, autograder yields 0 points
+                total_score = 0
+            max_score = assignment_points
+
+        # ── 2. AI + Plagiarism analysis ────────────────────────────────
+        analysis = run_submission_analysis(submission_id)
+
+        # ── 3. Build feedback text from test results ───────────────────
+        passed_count  = sum(1 for t in test_results if t.get('passed'))
+        failed_count  = len(test_results) - passed_count
+
+        feedback_lines = []
+        if not test_results:
+            feedback_lines.append("⚠️ No test cases found for this assignment. Add test cases to enable autograding.")
+        else:
+            feedback_lines.append(f"✅ {passed_count} / {len(test_results)} test cases passed.")
+            for t in test_results:
+                icon = "✅" if t.get('passed') else "❌"
+                pts  = t.get('points_earned', 0)
+                feedback_lines.append(f"  {icon} {t.get('name', 'Test')}  (+{pts} pts)")
+
+        rule_violations = grade_result.get('rule_violations', [])
+        if rule_violations:
+            feedback_lines.append(f"\n⛔ {len(rule_violations)} static-analysis violation(s):")
+            for v in rule_violations[:5]:
+                feedback_lines.append(f"  • {v.get('message', '')}")
+
+        if analysis.get('status') == 'ok':
+            ai_pct = analysis.get('ai_likelihood_score')
+            if ai_pct is not None:
+                flag = " ⚠️" if ai_pct > 70 else ""
+                feedback_lines.append(f"\n🤖 AI-generated likelihood: {ai_pct:.1f}%{flag}")
+            plag_score = analysis.get('plagiarism_score')
+            if plag_score is not None:
+                flag = " ⚠️" if plag_score > 60 else ""
+                feedback_lines.append(f"🔍 Plagiarism similarity: {plag_score:.1f}%{flag}")
+                match_info = analysis.get('plagiarism_match_info', '')
+                if match_info:
+                    feedback_lines.append(f"   {match_info}")
+
+        feedback_text = "\n".join(feedback_lines)
+
+        # ── 4. Breakdown dict for the UI score card ────────────────────
+        breakdown = {}
+        for i, t in enumerate(test_results):
+            name = t.get('name', f'Test {i+1}')
+            earned = t.get('points_earned', 0)
+            # Reconstruct max per test: if passed, earned==max; if failed, check test_case DB
+            try:
+                tc = TestCase.objects.get(id=t.get('test_case_id'))
+                max_pts = tc.points_awarded
+            except Exception:
+                max_pts = earned if t.get('passed') else 0
+            icon = '✅' if t.get('passed') else '❌'
+            breakdown[name] = f'{icon} {earned} / {max_pts} pts'
+
+        return JsonResponse({
+            'status':               'ok',
+            'score':                total_score,
+            'max_score':            max_score,
+            'breakdown':            breakdown,
+            'feedback':             feedback_text,
+            'ai_likelihood':        analysis.get('ai_likelihood_score'),
+            'ai_confidence':        analysis.get('ai_confidence_score'),
+            'ai_explanation':       analysis.get('ai_explanation', ''),
+            'plagiarism_score':     analysis.get('plagiarism_score'),
+            'plagiarism_match_info': analysis.get('plagiarism_match_info', ''),
+            'rule_violations':      rule_violations,
+            'test_results':         test_results,
+        })
+
+    except Exception as e:
+        logger.exception(f"Autograder failed for submission {submission_id}")
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
 
 
 @login_required

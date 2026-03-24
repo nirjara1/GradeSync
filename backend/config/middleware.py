@@ -46,6 +46,7 @@ class RoleBasedRoutingMiddleware(MiddlewareMixin):
         if (path.startswith('/accounts/')
                 or path.startswith('/admin/')
                 or path == '/'
+                or '/todo/' in path
                 or path.startswith('/api/')):
             return None
 

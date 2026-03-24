@@ -624,6 +624,10 @@
                             aria-controls="tab-console">
                             <i class="fa-solid fa-terminal" style="margin-right:6px;"></i> Console
                         </button>
+                        <button type="button" class="tab-btn" data-tab="autograding" role="tab" aria-selected="false"
+                            aria-controls="tab-autograding">
+                            <i class="fa-solid fa-robot" style="margin-right:6px;"></i> Autograding
+                        </button>
                     </div>
 
                     <form method="post" action="" id="gradingForm">
@@ -673,8 +677,19 @@
 
                         <!-- Overall numeric grade (always visible) -->
                         <div class="feedback-section" style="margin-top: 18px;">
-                            <label for="overall-score-input"><i class="fa-solid fa-star-half-stroke" style="margin-right: 6px; color: #6b7280;"></i> Overall Grade</label>
-                            <div style="display: flex; align-items: center; gap: 6px;">
+                            <label for="overall-score-input" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span><i class="fa-solid fa-star-half-stroke" style="margin-right: 6px; color: #6b7280;"></i> Overall Grade</span>
+                                {% if grade %}
+                                <span style="font-size:11px; font-weight:600; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:12px; letter-spacing:.3px;">
+                                    <i class="fa-solid fa-circle-check" style="margin-right:3px;"></i>Graded
+                                </span>
+                                {% else %}
+                                <span style="font-size:11px; font-weight:600; background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:12px; letter-spacing:.3px;">
+                                    <i class="fa-solid fa-circle" style="margin-right:3px; font-size:8px;"></i>Ungraded
+                                </span>
+                                {% endif %}
+                            </label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
                                 <input
                                     type="number"
                                     id="overall-score-input"
@@ -682,10 +697,20 @@
                                     step="0.5"
                                     min="0"
                                     max="{{ assignment.points }}"
-                                    value="{{ grade.score|default:'0' }}"
+                                    value="{{ grade.score|default:'' }}"
                                     {% if rubric and criteria %}readonly{% endif %}
                                     style="width: 90px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; text-align: center;">
                                 <span style="font-size: 14px; color: #6b7280;">/ {{ assignment.points }}</span>
+                                {% if not rubric or not criteria %}
+                                <button type="button" id="clearScoreBtn" title="Clear grade (ungrade)"
+                                    style="background:none; border:none; cursor:pointer; color:#9ca3af; font-size:16px; padding:4px; line-height:1; transition:color .15s;"
+                                    onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#9ca3af'">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                            <div style="font-size:12px; color:#9ca3af; margin-top:4px;">
+                                Clear the grade field and save to <strong>remove</strong> this student's grade.
                             </div>
                         </div>
                         <div class="feedback-section" style="margin-top: 20px;">
@@ -693,15 +718,16 @@
                             <textarea id="feedback" name="feedback" placeholder="Provide constructive feedback for the student here...">{{ grade.feedback|default:'' }}</textarea>
                         </div>
 
-                        <!-- Submit Button -->
-                        <button type="submit" class="btn-submit-grade">
-                            <i class="fa-solid fa-check"></i> Save Evaluation
-                        </button>
+                        <!-- Submit / Remove Grade buttons -->
+                        <div style="display:flex; gap:10px; margin-top:4px;">
+                            <button type="submit" class="btn-submit-grade" style="flex:1;">
+                                <i class="fa-solid fa-check"></i> Save Evaluation
+                            </button>
+                        </div>
 
                         </div> <!-- end tab-grading -->
 
                     </form>
-                </div>
 
                 <!-- Test Runner Tab -->
                 <div id="tab-test-runner" class="evaluation-pane-tab-content" role="tabpanel">
@@ -744,6 +770,76 @@
                             <span class="console-prompt">&gt;</span>
                             <textarea id="consoleInput" placeholder="Type all inputs here, one per line." autocomplete="off"></textarea>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Autograding Tab -->
+                <div id="tab-autograding" class="evaluation-pane-tab-content" role="tabpanel"
+                    style="flex-direction:column; gap:10px; flex:0 0 auto; min-height:0;">
+
+                    <!-- Action Bar -->
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <button type="button" id="runAutograderBtn" class="btn-run-all-tests"
+                            title="Run autograder on this submission"
+                            data-submission-id="{{ submission.pk }}"
+                            style="margin-bottom:0;">
+                            <i class="fa-solid fa-robot"></i> Run Autograder
+                        </button>
+                        <span id="autograderStatus" style="font-size:13px; color:#6b7280;"></span>
+                    </div>
+
+                    <!-- Empty state (compact) -->
+                    <div id="autograderResultsEmpty" style="font-size:13px; color:#9ca3af; background:#f9fafb; border:1px dashed #e5e7eb; border-radius:8px; padding:10px 14px; text-align:center;">
+                        Click <strong>Run Autograder</strong> to evaluate this submission automatically.
+                    </div>
+
+                    <!-- Results -->
+                    <div id="autograderResults" style="display:none; flex-direction:column; gap:10px;">
+
+                        <!-- Score Card -->
+                        <div style="background:linear-gradient(135deg,#7a0024 0%,#840029 100%); border-radius:10px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-size:11px; font-weight:600; color:rgba(255,255,255,0.65); text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px;">Autograder Score</div>
+                                <div id="autograderScore" style="font-size:26px; font-weight:800; color:#fff; line-height:1;">—</div>
+                            </div>
+                            <i class="fa-solid fa-robot" style="font-size:28px; color:rgba(255,255,255,0.15);"></i>
+                        </div>
+
+                        <!-- Breakdown list -->
+                        <div id="autograderBreakdownWrap" style="display:none;">
+                            <div style="font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px;">Test Breakdown</div>
+                            <div id="autograderBreakdown" style="display:flex; flex-direction:column; gap:5px;"></div>
+                        </div>
+
+                        <!-- AI & Plagiarism panel -->
+                        <div id="autograderAiPanel" style="display:none; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:12px; font-size:13px; color:#374151;">
+                            <div style="font-weight:700; margin-bottom:8px; font-size:11px; color:#111827; text-transform:uppercase; letter-spacing:.5px;">
+                                <i class="fa-solid fa-magnifying-glass-chart" style="margin-right:5px; color:#840029;"></i>Analysis
+                            </div>
+                            <div id="autograderAiLikelihood" style="display:none; margin-bottom:8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#6b7280; font-size:12px;">🤖 AI-Generated Likelihood</span>
+                                    <span id="autograderAiPct" style="font-weight:700; color:#374151; font-size:12px;"></span>
+                                </div>
+                                <div style="background:#e5e7eb; border-radius:4px; height:5px; margin-top:4px; overflow:hidden;">
+                                    <div id="autograderAiBar" style="height:100%; background:#840029; border-radius:4px; width:0%; transition:width .5s;"></div>
+                                </div>
+                            </div>
+                            <div id="autograderPlagPanel" style="display:none;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#6b7280; font-size:12px;">🔍 Plagiarism Similarity</span>
+                                    <span id="autograderPlagPct" style="font-weight:700; color:#374151; font-size:12px;"></span>
+                                </div>
+                                <div id="autograderPlagMatch" style="font-size:11px; color:#9ca3af; margin-top:2px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Feedback text -->
+                        <div id="autograderFeedbackBox" style="display:none; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:12px; font-size:12px; color:#374151;">
+                            <div style="font-weight:700; margin-bottom:6px; color:#111827; font-size:11px; text-transform:uppercase; letter-spacing:.5px;">
+                                <i class="fa-regular fa-comment-dots" style="margin-right:5px; color:#6b7280;"></i>Autograder Feedback
+                            </div>
+                            <div id="autograderFeedbackText" style="white-space:pre-wrap; line-height:1.6; color:#4b5563;"></div>
                     </div>
                 </div>
             </div>
@@ -887,6 +983,131 @@
                     runWithInput(val);
                 });
             }
+
+            // Autograder: run autograder on this submission
+            var runAutograderBtn = document.getElementById('runAutograderBtn');
+            var autograderStatus = document.getElementById('autograderStatus');
+            var autograderResultsEmpty = document.getElementById('autograderResultsEmpty');
+            var autograderResults = document.getElementById('autograderResults');
+            if (runAutograderBtn) {
+                runAutograderBtn.addEventListener('click', function () {
+                    var submissionId = runAutograderBtn.getAttribute('data-submission-id');
+                    var csrfToken = (document.querySelector('[name=csrfmiddlewaretoken]') && document.querySelector('[name=csrfmiddlewaretoken]').value) ||
+                                    (document.cookie.match(/csrftoken=([^;]+)/) && document.cookie.match(/csrftoken=([^;]+)/)[1]);
+                    runAutograderBtn.disabled = true;
+                    autograderStatus.textContent = '⏳ Running…';
+                    autograderStatus.style.color = '#6b7280';
+
+                    fetch('/grading/submissions/' + submissionId + '/autograde/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken || '',
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    }).then(function (r) { return r.json(); }).then(function (data) {
+                        runAutograderBtn.disabled = false;
+                        if (data.status === 'ok') {
+                            autograderStatus.textContent = '✅ Done';
+                            autograderStatus.style.color = '#059669';
+
+                            // Show results container
+                            if (autograderResultsEmpty) autograderResultsEmpty.style.display = 'none';
+                            autograderResults.style.display = 'flex';
+
+                            // Score card
+                            var scoreEl = document.getElementById('autograderScore');
+                            if (scoreEl) scoreEl.textContent =
+                                (data.score !== undefined ? data.score : '—') + ' / ' +
+                                (data.max_score !== undefined ? data.max_score : '?');
+
+                            // Auto-fill the actual assignment grade field
+                            var overallInput = document.getElementById('overall-score-input');
+                            if (overallInput && data.score !== undefined && !overallInput.readOnly) {
+                                overallInput.value = data.score;
+                                // Add a brief green flash animation to highlight it changed
+                                overallInput.style.backgroundColor = '#dcfce7';
+                                overallInput.style.transition = 'background-color 0.5s ease';
+                                setTimeout(function() { overallInput.style.backgroundColor = ''; }, 1000);
+                            }
+
+                            // Breakdown rows
+                            var bdWrap = document.getElementById('autograderBreakdownWrap');
+                            var bdEl = document.getElementById('autograderBreakdown');
+                            if (bdEl && data.breakdown && Object.keys(data.breakdown).length) {
+                                var bdHtml = '';
+                                Object.keys(data.breakdown).forEach(function (k) {
+                                    var v = String(data.breakdown[k]);
+                                    var passed = v.indexOf('✅') !== -1;
+                                    bdHtml += '<div style="display:flex;justify-content:space-between;align-items:center;' +
+                                        'background:' + (passed ? '#f0fdf4' : '#fef2f2') + ';' +
+                                        'border:1px solid ' + (passed ? '#bbf7d0' : '#fecaca') + ';' +
+                                        'border-radius:6px;padding:7px 10px;">' +
+                                        '<span style="font-size:13px;color:#374151;">' + escapeHtml(k) + '</span>' +
+                                        '<span style="font-size:13px;font-weight:600;color:' + (passed ? '#15803d' : '#dc2626') + ';">' + escapeHtml(v) + '</span>' +
+                                        '</div>';
+                                });
+                                bdEl.innerHTML = bdHtml;
+                                if (bdWrap) bdWrap.style.display = 'block';
+                            }
+
+                            // AI & Plagiarism panel
+                            var aiPanel = document.getElementById('autograderAiPanel');
+                            var showAi = false;
+                            if (data.ai_likelihood !== null && data.ai_likelihood !== undefined) {
+                                showAi = true;
+                                var aiLik = document.getElementById('autograderAiLikelihood');
+                                var aiPct = document.getElementById('autograderAiPct');
+                                var aiBar = document.getElementById('autograderAiBar');
+                                if (aiLik) aiLik.style.display = 'block';
+                                if (aiPct) aiPct.textContent = data.ai_likelihood.toFixed(1) + '%';
+                                if (aiBar) aiBar.style.width = Math.min(data.ai_likelihood, 100) + '%';
+                            }
+                            if (data.plagiarism_score !== null && data.plagiarism_score !== undefined) {
+                                showAi = true;
+                                var plagPanel = document.getElementById('autograderPlagPanel');
+                                var plagPct = document.getElementById('autograderPlagPct');
+                                var plagMatch = document.getElementById('autograderPlagMatch');
+                                if (plagPanel) plagPanel.style.display = 'block';
+                                if (plagPct) plagPct.textContent = data.plagiarism_score.toFixed(1) + '%';
+                                if (plagMatch) plagMatch.textContent = data.plagiarism_match_info || '';
+                            }
+                            if (showAi && aiPanel) aiPanel.style.display = 'block';
+
+                            // Feedback text
+                            if (data.feedback) {
+                                var fbBox = document.getElementById('autograderFeedbackBox');
+                                var fbText = document.getElementById('autograderFeedbackText');
+                                if (fbBox) fbBox.style.display = 'block';
+                                if (fbText) fbText.textContent = data.feedback;
+                            }
+                        } else {
+                            var errMsg = (data && data.error) ? data.error : 'Autograder failed.';
+                            autograderStatus.textContent = '❌ ' + errMsg;
+                            autograderStatus.style.color = '#dc2626';
+                        }
+                    }).catch(function (err) {
+                        runAutograderBtn.disabled = false;
+                        autograderStatus.textContent = '❌ Request failed.';
+                        autograderStatus.style.color = '#dc2626';
+                        console.error('Autograder error:', err);
+                    });
+                });
+            }
+
+            // Clear (ungrade) button
+            var clearScoreBtn = document.getElementById('clearScoreBtn');
+            if (clearScoreBtn) {
+                clearScoreBtn.addEventListener('click', function () {
+                    var inp = document.getElementById('overall-score-input');
+                    if (inp) {
+                        inp.value = '';
+                        inp.focus();
+                    }
+                });
+            }
+
             function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
         })();
 

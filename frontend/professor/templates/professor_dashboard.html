@@ -138,6 +138,24 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+    
+    /* Make the scrollbar sleek for the todo list */
+    .todo-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    .todo-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .todo-list::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+    .todo-list::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
     }
 
     .todo-item {
@@ -337,6 +355,20 @@
         <div class="widget-panel">
             <h3 class="widget-title"><i class="fa-solid fa-list-check" style="font-size: 18px;"></i> Pending Tasks</h3>
             <ul class="todo-list" style="margin-bottom: 15px;">
+                <!-- System-generated grading tasks -->
+                {% for sub in pending_grading %}
+                <li class="todo-item" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-file-signature" style="color: var(--maroon); width: 16px; margin-top: 2px; text-align: center;"></i>
+                        <a href="{% url 'grade_submission' pk=sub.id %}" class="todo-label" style="text-decoration: none; font-weight: 600;">
+                            Grade: {{ sub.assignment.name }} ({{ sub.student.user.last_name|default:sub.student.user.username }})
+                        </a>
+                    </div>
+                    <span style="font-size: 11px; color: #9ca3af; background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">{{ sub.assignment.course.code }}</span>
+                </li>
+                {% endfor %}
+
+                <!-- Manually added to-do items -->
                 {% for item in todo_items %}
                 <li class="todo-item" style="display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -355,9 +387,11 @@
                         </label>
                     </div>
                 </li>
-                {% empty %}
-                <li style="color: var(--text-muted); font-size: 14px;">No pending tasks. Add one below!</li>
                 {% endfor %}
+
+                {% if not todo_items and not pending_grading %}
+                <li style="color: var(--text-muted); font-size: 14px;">No pending tasks. Add one below!</li>
+                {% endif %}
             </ul>
             <form method="post" action="{% url 'add_todo' %}" style="display: flex; gap: 8px;">
                 {% csrf_token %}
