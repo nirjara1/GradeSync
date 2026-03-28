@@ -18,6 +18,9 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
     All Assignments
     {% endif %}
 </h2>
+{% if is_student and course %}
+<p style="margin: -8px 0 0 0; font-size: 14px; color: #6b7280;">Submission status, grades, and instructor feedback (when provided) for each assignment.</p>
+{% endif %}
 <hr class="divider">
 
 <style>
@@ -152,6 +155,47 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
     .action-icon.delete:hover {
         color: #ef4444;
     }
+
+    /* Student gradebook */
+    .assignment-card--graded { border-left: 4px solid #10b981; }
+    .assignment-card--submitted { border-left: 4px solid #3b82f6; }
+    .assignment-card--missing { border-left: 4px solid #ef4444; }
+    .assignment-card--upcoming { border-left: 4px solid #d1d5db; }
+
+    .student-gradebook-badge {
+        flex-shrink: 0;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .sgb-graded { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .sgb-submitted { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .sgb-missing { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .sgb-upcoming { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+
+    .student-feedback-box {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #334155;
+        line-height: 1.45;
+        max-height: 88px;
+        overflow-y: auto;
+    }
+    .student-feedback-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }
 </style>
 
 <div class="assignments-container">
@@ -174,21 +218,39 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
         
         <div class="assignments-grid">
             {% for assignment in course_group.list %}
-            <div class="assignment-card" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}'" style="cursor: pointer;">
+            <div class="assignment-card {% if is_student %}{% if assignment.student_status == 'GRADED' %}assignment-card--graded{% elif assignment.student_status == 'SUBMITTED' %}assignment-card--submitted{% elif assignment.student_status == 'MISSING' %}assignment-card--missing{% else %}assignment-card--upcoming{% endif %}{% endif %}" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}'" style="cursor: pointer;">
                 <div>
                     <div class="assignment-card-header">
                         <span class="assignment-card-title">{{ assignment.name }}</span>
+                        {% if is_student %}
+                        <span class="student-gradebook-badge {% if assignment.student_status == 'GRADED' %}sgb-graded{% elif assignment.student_status == 'SUBMITTED' %}sgb-submitted{% elif assignment.student_status == 'MISSING' %}sgb-missing{% else %}sgb-upcoming{% endif %}">
+                            {% if assignment.student_status == 'GRADED' %}Graded{% elif assignment.student_status == 'SUBMITTED' %}Submitted{% elif assignment.student_status == 'MISSING' %}Missing{% else %}Not submitted{% endif %}
+                        </span>
+                        {% endif %}
                     </div>
                     
                     <ul class="assignment-details-list">
                         <li>
                             <i class="fa-solid fa-star"></i>
                             Points: {{ assignment.points|default:"0" }}
+                            {% if is_student and assignment.student_status == 'GRADED' %}
+                            <span style="font-weight: 700; color: #059669; margin-left: 6px;">· {{ assignment.student_grade|floatformat:1 }} / {{ assignment.points }}</span>
+                            {% endif %}
                         </li>
                         <li>
                             <i class="fa-regular fa-clock"></i>
-                            Due: {% if assignment.due_date %}{{ assignment.due_date|date:"M j \a\t g:ia" }}{% else %}No Due Date{% endif %}
+                            Due: {% if assignment.no_due_date %}No Due Date{% elif assignment.due_date %}{{ assignment.due_date|date:"M j \a\t g:ia" }}{% else %}No Due Date{% endif %}
                         </li>
+                        {% if is_student %}
+                        {% if assignment.student_status == 'GRADED' and assignment.student_feedback %}
+                        <li style="display: block; margin-top: 8px;">
+                            <div class="student-feedback-box" onclick="event.stopPropagation();">
+                                <div class="student-feedback-label">Instructor feedback</div>
+                                {{ assignment.student_feedback|linebreaksbr }}
+                            </div>
+                        </li>
+                        {% endif %}
+                        {% endif %}
                     </ul>
                 </div>
 

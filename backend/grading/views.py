@@ -131,7 +131,34 @@ def student_course_view(request, course_id):
     if course_role != 'STUDENT':
         return HttpResponseForbidden("Access Denied")
         
-    assignments = Assignment.objects.filter(course=course).order_by('due_date')
+    assignments = list(Assignment.objects.filter(course=course).order_by('due_date', 'id'))
+    student_profile, _ = Student.objects.get_or_create(user=request.user)
+    submissions = (
+        Submission.objects.filter(student=student_profile, assignment__in=assignments)
+        .select_related('grade')
+    )
+    submission_dict = {s.assignment_id: s for s in submissions}
+    now = timezone.now()
+
+    for assignment in assignments:
+        assignment.student_feedback = ''
+        submission = submission_dict.get(assignment.id)
+        if submission:
+            g = getattr(submission, 'grade', None)
+            if g:
+                assignment.student_status = 'GRADED'
+                assignment.student_grade = g.score
+                assignment.student_feedback = (g.feedback or '').strip()
+            else:
+                assignment.student_status = 'SUBMITTED'
+                assignment.student_grade = None
+        else:
+            assignment.student_grade = None
+            if not assignment.no_due_date and assignment.due_date and assignment.due_date < now:
+                assignment.student_status = 'MISSING'
+            else:
+                assignment.student_status = 'UPCOMING'
+
     return render(request, 'assignments_dashboard.html', {
         'assignments': assignments, 'course': course,
         'is_instructor': False, 'is_student': True, 'base_template': 'portal/base_portal.html'

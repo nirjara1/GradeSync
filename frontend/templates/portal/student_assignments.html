@@ -183,6 +183,32 @@
         width: 100%;
         margin-top: auto;
     }
+
+    .assignment-card--graded { border-left: 4px solid #10b981; }
+    .assignment-card--submitted { border-left: 4px solid #3b82f6; }
+    .assignment-card--missing { border-left: 4px solid #ef4444; }
+    .assignment-card--upcoming { border-left: 4px solid #d1d5db; }
+
+    .student-feedback-box {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #334155;
+        line-height: 1.45;
+        max-height: 88px;
+        overflow-y: auto;
+    }
+    .student-feedback-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }
 </style>
 
 <div class="assignments-header" style="margin-bottom: 30px;">
@@ -210,7 +236,7 @@
         
         <div class="assignments-grid">
             {% for assignment in course_group.list %}
-            <div class="assignment-card" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}#assignment-header'" style="cursor: pointer;">
+            <div class="assignment-card {% if assignment.student_status == 'GRADED' %}assignment-card--graded{% elif assignment.student_status == 'SUBMITTED' %}assignment-card--submitted{% elif assignment.student_status == 'MISSING' %}assignment-card--missing{% else %}assignment-card--upcoming{% endif %}" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}#assignment-header'" style="cursor: pointer;">
                 <div class="assignment-card-content">
                     <div class="assignment-card-header">
                         <span class="assignment-card-title">{{ assignment.name }}</span>
@@ -219,7 +245,7 @@
                             {% elif assignment.student_status == 'SUBMITTED' %}status-submitted
                             {% elif assignment.student_status == 'MISSING' %}status-missing
                             {% else %}status-upcoming{% endif %}">
-                            {{ assignment.student_status }}
+                            {% if assignment.student_status == 'GRADED' %}Graded{% elif assignment.student_status == 'SUBMITTED' %}Submitted{% elif assignment.student_status == 'MISSING' %}Missing{% else %}Not submitted{% endif %}
                         </span>
                     </div>
                     
@@ -228,13 +254,21 @@
                             <i class="fa-solid fa-star"></i>
                             Points: {{ assignment.points|default:"0" }}
                             {% if assignment.student_status == 'GRADED' %}
-                                <span style="font-weight: bold; color: #10b981; margin-left: 8px;">(Score: {{ assignment.student_grade }})</span>
+                                <span style="font-weight: bold; color: #10b981; margin-left: 8px;">{{ assignment.student_grade|floatformat:1 }} / {{ assignment.points }}</span>
                             {% endif %}
                         </li>
                         <li>
                             <i class="fa-regular fa-clock"></i>
                             Due: {% if assignment.no_due_date %}No Due Date{% elif assignment.due_date %}{{ assignment.due_date|date:"M j \a\t g:ia" }}{% else %}No Due Date{% endif %}
                         </li>
+                        {% if assignment.student_status == 'GRADED' and assignment.student_feedback %}
+                        <li style="display: block; margin-top: 8px;">
+                            <div class="student-feedback-box" onclick="event.stopPropagation();">
+                                <div class="student-feedback-label">Instructor feedback</div>
+                                {{ assignment.student_feedback|linebreaksbr }}
+                            </div>
+                        </li>
+                        {% endif %}
                     </ul>
                 </div>
 
