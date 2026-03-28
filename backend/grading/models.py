@@ -34,12 +34,15 @@ class Assignment(models.Model):
     weight = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
     no_due_date = models.BooleanField(default=False)
-    allowed_language = models.CharField(max_length=20, choices=LANGUAGE_CHOICES, default='python')
+    is_group_assignment = models.BooleanField(default=False)
+    max_group_size = models.PositiveIntegerField(default=5, help_text="Maximum students allowed in a group if this is a group assignment.")
+    allowed_language = models.CharField(max_length=10, choices=[('python', 'Python'), ('java', 'Java')], default='python')
     starter_code = models.FileField(upload_to='starter_code/', null=True, blank=True, help_text="Optional starter code file for students")
     test_cases_file = models.FileField(upload_to='test_cases/', null=True, blank=True, help_text="JSON file containing test cases with public/private split")
     public_test_data = models.FileField(upload_to='test_data/', null=True, blank=True)
     expected_outputs = models.FileField(upload_to='expected_outputs/', null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='published')
+    is_group_assignment = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -143,6 +146,26 @@ class RuleSet(models.Model):
     def __str__(self):
         return f"RuleSet for {self.assignment.name if self.assignment else 'Unlinked'}"
 
+class AssignmentGroup(models.Model):
+    """A group of students for a specific assignment"""
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='assignment_groups')
+    name = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Group {self.name or self.id} for {self.assignment.name}"
+
+class AssignmentGroupMember(models.Model):
+    """Membership of a student in an assignment group"""
+    group = models.ForeignKey(AssignmentGroup, on_delete=models.CASCADE, related_name='members')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='group_memberships')
+
+    class Meta:
+        unique_together = ('group', 'student')
+
+    def __str__(self):
+        return f"{self.student} in {self.group}"
+
 class Submission(models.Model):
     """Student code submission for an assignment"""
     STATUS_CHOICES = [
@@ -152,7 +175,8 @@ class Submission(models.Model):
         ('failed', 'Failed'),
     ]
     
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='submissions')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='submissions', null=True, blank=True)
+    group = models.ForeignKey(AssignmentGroup, on_delete=models.CASCADE, related_name='submissions', null=True, blank=True)
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='submissions')
     file_path = models.FileField(upload_to='submissions/')
     submission_time = models.DateTimeField(auto_now_add=True)
@@ -178,7 +202,8 @@ class Submission(models.Model):
     rule_violations = models.TextField(blank=True, help_text="JSON list of rule violations found")
 
     class Meta:
-        unique_together = ('student', 'assignment')
+        # We handle uniqueness in the save() or view layer to support both individual and group assignments
+        pass
 
     def __str__(self):
         return f"{self.student} -> {self.assignment}"

@@ -564,7 +564,13 @@
                 {{ submission.assignment.course.code }} - {{ submission.assignment.name }}
             </div>
             <div class="header-right">
+                {% if submission.group and group_members %}
+                <span style="font-weight: 500;" title="{% for m in group_members %}{{ m.student.user.get_full_name|default:m.student.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                    <i class="fa-solid fa-users" style="margin-right: 5px;"></i> {{ group_members|length }} Members
+                </span>
+                {% else %}
                 <span style="font-weight: 500;"><i class="fa-solid fa-user-graduate" style="margin-right: 5px;"></i> {{ submission.student }}</span>
+                {% endif %}
                 <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.3); margin: 0 8px;"></div>
                 {% if previous_submission %}
                 <a href="{% url 'grade_submission' previous_submission.pk %}" class="nav-arrow"
@@ -608,6 +614,17 @@
                     <h3>Evaluation Pane</h3>
                     <p>Review and assign grades based on the rubric.</p>
                 </div>
+
+                {% if submission.group and group_members %}
+                <div style="padding: 12px 24px; background: #eff6ff; border-bottom: 1px solid #bfdbfe; font-size: 13px; color: #1e40af;">
+                    <div style="font-weight: 700; margin-bottom: 4px;"><i class="fa-solid fa-users"></i> Grading Group</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                        {% for m in group_members %}
+                        <span style="background: white; padding: 2px 8px; border-radius: 4px; border: 1px solid #bfdbfe;">{{ m.student.user.get_full_name|default:m.student.user.username }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
 
                 <div class="sidebar-content">
                     <!-- Evaluation pane tabs -->
