@@ -31,7 +31,7 @@
                 {% for contact in contacts %}
                 <a href="?user_id={{ contact.id }}" class="contact-item {% if active_user and active_user.id == contact.id %}active{% endif %}" style="display: block; text-decoration: none; color: inherit; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; {% if active_user and active_user.id == contact.id %}background: rgba(132, 0, 41, 0.05); border-left: 4px solid var(--maroon);{% endif %}">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <strong style="{% if active_user and active_user.id == contact.id %}color: var(--maroon);{% endif %}">{{ contact.first_name|default:contact.username }} {{ contact.last_name }}</strong>
+                        <strong style="{% if active_user and active_user.id == contact.id %}color: var(--maroon);{% endif %}">{{ contact.get_full_name|default:contact.username }}</strong>
                         <span style="font-size: 11px; color: #888;">{{ contact.profile.get_role_display }}</span>
                     </div>
                 </a>
@@ -62,7 +62,7 @@
                     {% else %}
                         <!-- Received -->
                         <div style="align-self: flex-start; background: white; padding: 15px; border-radius: 8px 8px 8px 0; max-width: 70%; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #eee;">
-                            <span style="display: block; font-size: 11px; color: #888; margin-bottom: 5px;">{{ msg.sender.first_name|default:msg.sender.username }} • {{ msg.timestamp|date:"M d, g:i A" }}</span>
+                            <span style="display: block; font-size: 11px; color: #888; margin-bottom: 5px;">{{ msg.sender.get_full_name|default:msg.sender.username }} • {{ msg.timestamp|date:"M d, g:i A" }}</span>
                             <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #333;">{{ msg.body|linebreaksbr }}</p>
                         </div>
                     {% endif %}

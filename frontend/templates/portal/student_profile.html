@@ -41,7 +41,7 @@
             <div class="form-grid view-grid">
                 <div class="view-group">
                     <label>Full Name</label>
-                    <div class="view-value">{{ user.first_name }} {{ user.last_name }}</div>
+                    <div class="view-value">{{ user.get_full_name|default:user.email }}</div>
                 </div>
                 
                 <div class="view-group">
@@ -99,7 +99,8 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label for="full_name">Full Name</label>
-                    <input type="text" id="full_name" name="full_name" class="form-input" value="{{ user.first_name }} {{ user.last_name }}" placeholder="Your Name">
+                    <input type="text" id="full_name" name="full_name" class="form-input" value="{{ user.get_full_name }}" placeholder="Your full name">
+                    <small class="field-hint">Set when you created your account; you can update it here anytime.</small>
                 </div>
                 
                 <div class="form-group">

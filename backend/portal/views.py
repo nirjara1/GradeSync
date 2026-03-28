@@ -328,7 +328,7 @@ def student_inbox(request):
             try:
                 recipient = User.objects.get(id=recipient_id)
                 Message.objects.create(sender=user, recipient=recipient, body=body.strip())
-                messages.success(request, f"Message sent to {recipient.first_name or recipient.username}!")
+                messages.success(request, f"Message sent to {(recipient.get_full_name() or '').strip() or recipient.username}!")
             except User.DoesNotExist:
                 messages.error(request, "Recipient not found.")
         return redirect(f"{request.path}?user_id={recipient_id}" if recipient_id else request.path)

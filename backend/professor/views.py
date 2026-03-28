@@ -149,7 +149,7 @@ def inbox(request):
             try:
                 recipient = User.objects.get(id=recipient_id)
                 Message.objects.create(sender=user, recipient=recipient, body=body.strip())
-                messages.success(request, f"Message sent to {recipient.first_name or recipient.username}!")
+                messages.success(request, f"Message sent to {(recipient.get_full_name() or '').strip() or recipient.username}!")
             except User.DoesNotExist:
                 messages.error(request, "Recipient not found.")
         return redirect(f"{request.path}?user_id={recipient_id}" if recipient_id else request.path)
@@ -260,9 +260,16 @@ def register_view(request):
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
             role = form.cleaned_data['role']
+            first_name, last_name = form.first_and_last_name()
 
-            # Create the Django User
-            user = User.objects.create_user(username=email, email=email, password=password)
+            # Create the Django User (full name stored on User for display across the app)
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+            )
             
             # Create the UserProfile
             UserProfile.objects.create(user=user, role=role)
@@ -280,7 +287,11 @@ def register_view(request):
                 )
                 pe.delete()
 
-            messages.success(request, f"Welcome to GradeSync! Your {role.lower().replace('_', ' ')} account has been created.")
+            display = (user.get_full_name() or '').strip() or user.email
+            messages.success(
+                request,
+                f"Welcome to GradeSync, {display}! Your {role.lower().replace('_', ' ')} account has been created.",
+            )
             
             if role == 'STUDENT':
                 return redirect('student_dashboard')
