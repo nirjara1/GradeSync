@@ -128,7 +128,15 @@ For students / GAs we keep the simple single-column layout.
                         </a>
                     </td>
                     <td style="padding: 16px;">
-                        <span style="font-size: 12px; font-weight: 500; color: #6b7280; font-style: italic;">Ready to grade</span>
+                        {% if submission.grade %}
+                        <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; background:#dcfce7; color:#15803d; padding:3px 10px; border-radius:12px;">
+                            <i class="fa-solid fa-circle-check" style="font-size:10px;"></i> Graded
+                        </span>
+                        {% else %}
+                        <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; background:#fef3c7; color:#92400e; padding:3px 10px; border-radius:12px;">
+                            <i class="fa-regular fa-clock" style="font-size:10px;"></i> Ungraded
+                        </span>
+                        {% endif %}
                     </td>
                     <td style="padding: 16px; font-weight: 800; font-size: 16px; color: {% if submission.grade %}#059669{% else %}#9ca3af{% endif %};">
                         {% if submission.grade %}

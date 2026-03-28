@@ -1400,6 +1400,7 @@ def autograde_submission_api(request, submission_id):
             'ai_explanation':       analysis.get('ai_explanation', ''),
             'plagiarism_score':     analysis.get('plagiarism_score'),
             'plagiarism_match_info': analysis.get('plagiarism_match_info', ''),
+            'plagiarism_match_id':  analysis.get('plagiarism_match_id'),
             'rule_violations':      rule_violations,
             'test_results':         test_results,
         })
@@ -1533,6 +1534,15 @@ def student_submit_and_test(request, assignment_id):
             
             submission.file_path = form.cleaned_data['file_path']
             submission.save()
+            
+            # --- Trigger Background Integrity Analysis ---
+            try:
+                from grading.tasks import run_submission_analysis_async
+                run_submission_analysis_async.delay(submission.id)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to queue background integrity analysis for submission {submission.id}: {e}")
             
             messages.success(request, 'Code submitted successfully!')
             return redirect('student_submit_and_test', assignment_id=assignment_id)
@@ -2164,3 +2174,68 @@ def submission_files_api(request, submission_id):
             return JsonResponse({'error': f'Failed to read file: {str(e)}'}, status=500)
             
     return JsonResponse({'files': files})
+
+import zipfile
+import io
+import os
+from django.http import HttpResponseForbidden, Http404
+
+@login_required
+def compare_submissions_view(request, submission_id):
+    submission = get_object_or_404(Submission, id=submission_id)
+    course = submission.assignment.course
+    
+    user = get_user_from_request(request)
+    if not is_course_instructor(user, course, request):
+        return HttpResponseForbidden("Not authorized to view plagiarism comparisons.")
+        
+    matched_sub = submission.plagiarism_match
+    if not matched_sub:
+        raise Http404("No plagiarism match found for this submission.")
+        
+    def get_source_files(sub):
+        files = []
+        if not sub.file_path or not hasattr(sub.file_path, 'name'):
+            return files
+            
+        file_name = sub.file_path.name.lower()
+        sub.file_path.open('rb')
+        content = sub.file_path.read()
+        sub.file_path.close()
+        
+        if file_name.endswith('.zip'):
+            try:
+                with zipfile.ZipFile(io.BytesIO(content), 'r') as zf:
+                    for zip_info in zf.infolist():
+                        if zip_info.is_dir() or zip_info.filename.startswith('__MACOSX'):
+                            continue
+                        name = zip_info.filename
+                        lower_name = name.lower()
+                        if lower_name.endswith('.py') or lower_name.endswith('.java'):
+                            try:
+                                text = zf.read(name).decode('utf-8', errors='ignore')
+                                files.append({'name': name, 'content': text})
+                            except Exception:
+                                pass
+            except Exception:
+                pass
+        elif file_name.endswith('.py') or file_name.endswith('.java'):
+            text = content.decode('utf-8', errors='ignore')
+            # Extract just the filename for single uploads
+            base_name = os.path.basename(sub.file_path.name)
+            files.append({'name': base_name, 'content': text})
+        return files
+
+    sub_files = get_source_files(submission)
+    match_files = get_source_files(matched_sub)
+    
+    context = {
+        'submission': submission,
+        'matched_sub': matched_sub,
+        'sub_files': sub_files,
+        'match_files': match_files,
+        'assignment': submission.assignment,
+        'course': course
+    }
+    
+    return render(request, 'compare_submissions.html', context)

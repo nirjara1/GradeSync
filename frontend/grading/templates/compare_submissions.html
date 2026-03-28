@@ -1,0 +1,404 @@
+{% extends "base_professor.html" %}
+
+{% block title %}Comparism | GradeSync{% endblock %}
+
+{% block extra_css %}
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Monaco Editor -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+
+<style>
+    body {
+        margin: 0;
+        background-color: #f3f4f6;
+        font-family: 'Inter', -apple-system, sans-serif;
+    }
+    .compare-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 60px); /* Adjust based on navbar height */
+        margin: 0;
+        padding: 0;
+    }
+    .compare-header {
+        background: white;
+        padding: 15px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .back-btn {
+        padding: 6px 12px;
+        background: #f3f4f6;
+        color: #4b5563;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        transition: 0.2s;
+    }
+    .back-btn:hover {
+        background: #e5e7eb;
+        color: #111827;
+    }
+    .page-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+    .analysis-summary {
+        background: #fffbe8;
+        border: 1px solid #fef08a;
+        padding: 10px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #854d0e;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .compare-body {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+    
+    .editor-pane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #e5e7eb;
+        background: #1e1e1e;
+    }
+    .editor-pane:last-child {
+        border-right: none;
+    }
+    
+    .pane-header {
+        background: #252526;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border-bottom: 1px solid #444;
+    }
+    .student-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,0.1);
+        padding: 4px 10px;
+        border-radius: 4px;
+        color: #e5e7eb;
+        font-size: 13px;
+        font-weight: 600;
+        width: fit-content;
+    }
+    
+    /* Tabs styling for Monaco */
+    .tabs-container {
+        display: flex;
+        overflow-x: auto;
+        background: #2d2d2d;
+        flex-shrink: 0;
+        min-height: 42px;
+    }
+    .tabs-container::-webkit-scrollbar {
+        height: 4px;
+    }
+    .tabs-container::-webkit-scrollbar-thumb {
+        background: #555;
+    }
+    .file-tab {
+        padding: 8px 16px;
+        background: transparent;
+        border: none;
+        border-right: 1px solid #444;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 13px;
+        font-family: inherit;
+        white-space: nowrap;
+        transition: 0.2s;
+    }
+    .file-tab:hover {
+        background: #333;
+        color: #d1d5db;
+    }
+    .file-tab.active {
+        background: #1e1e1e;
+        color: #fff;
+        border-bottom: 2px solid #3b82f6; /* highlight color */
+    }
+    
+    .editor-container {
+        flex: 1;
+        position: relative;
+    }
+    
+    /* Custom Red Highlighter for Plagiarism */
+    .plagiarism-highlight {
+        background: rgba(220, 38, 38, 0.25) !important;
+    }
+    .plagiarism-highlight-margin {
+        background: rgba(220, 38, 38, 0.5) !important;
+        border-left: 3px solid #dc2626 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="compare-container">
+    <div class="compare-header">
+        <div class="header-title-wrapper">
+            <a href="{% url 'grade_submission' submission.id %}" class="back-btn">
+                <i class="fa-solid fa-arrow-left" style="margin-right: 4px;"></i> Back to Grading
+            </a>
+            <h1 class="page-title">Comparism</h1>
+        </div>
+        <div class="analysis-summary">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div>
+                <strong>{{ submission.plagiarism_score|default:"0.0" }}% Similarity</strong> — These submissions share significant overlapping code patterns. This result is advisory and should be reviewed in context.
+            </div>
+        </div>
+    </div>
+    
+    <div class="compare-body">
+        <!-- LEFT: Current Submission -->
+        <div class="editor-pane">
+            <div class="pane-header">
+                <div class="student-badge">
+                    <i class="fa-solid fa-user"></i>
+                    Current: {{ submission.student.user.last_name|default:submission.student.user.username }} ({{ submission.student.user.email }})
+                </div>
+                <div style="font-size: 12px; color: #a1a1aa; margin-top: 4px;">
+                    <i class="fa-solid fa-book" style="margin-right: 4px;"></i> {{ submission.assignment.course.code }} &mdash; {{ submission.assignment.name }}
+                </div>
+            </div>
+            
+            <div class="tabs-container" id="leftTabs"></div>
+            
+            <div id="leftEditor" class="editor-container"></div>
+        </div>
+        
+        <!-- RIGHT: Matched Submission -->
+        <div class="editor-pane">
+            <div class="pane-header">
+                <div class="student-badge" style="background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220,38,38,0.3); color: #fca5a5;">
+                    <i class="fa-solid fa-user-shield"></i>
+                    Matched: {{ matched_sub.student.user.last_name|default:matched_sub.student.user.username }} ({{ matched_sub.student.user.email }})
+                </div>
+                <div style="font-size: 12px; color: #fca5a5; opacity: 0.8; margin-top: 4px;">
+                    <i class="fa-solid fa-book" style="margin-right: 4px;"></i> {{ matched_sub.assignment.course.code }} &mdash; {{ matched_sub.assignment.name }}
+                </div>
+            </div>
+            
+            <div class="tabs-container" id="rightTabs"></div>
+            
+            <div id="rightEditor" class="editor-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Safely pass the file data to JS using json_script -->
+{{ sub_files|json_script:"subFilesData" }}
+{{ match_files|json_script:"matchFilesData" }}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const subFiles = JSON.parse(document.getElementById('subFilesData').textContent);
+        const matchFiles = JSON.parse(document.getElementById('matchFilesData').textContent);
+        
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+        require(['vs/editor/editor.main'], function () {
+            
+            function getIcon(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                if (ext === 'py') return '<i class="fa-brands fa-python" style="color: #4B8BBE;"></i>';
+                if (ext === 'java') return '<i class="fa-brands fa-java" style="color: #f89820;"></i>';
+                if (ext === 'js') return '<i class="fa-brands fa-js" style="color: #f7df1e;"></i>';
+                if (ext === 'html') return '<i class="fa-brands fa-html5" style="color: #e34c26;"></i>';
+                if (ext === 'css') return '<i class="fa-brands fa-css3-alt" style="color: #264de4;"></i>';
+                return '<i class="fa-regular fa-file-code" style="color: #888;"></i>';
+            }
+            
+            function determineLang(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                const map = {
+                    'py': 'python',
+                    'java': 'java',
+                    'js': 'javascript',
+                    'html': 'html',
+                    'css': 'css',
+                    'json': 'json',
+                    'md': 'markdown'
+                };
+                return map[ext] || 'plaintext';
+            }
+
+            // --- Setup Left Editor ---
+            let leftModels = [];
+            let leftEditor = null;
+            if (subFiles.length > 0) {
+                subFiles.forEach(f => {
+                    leftModels.push(monaco.editor.createModel(f.content, determineLang(f.name)));
+                });
+                
+                leftEditor = monaco.editor.create(document.getElementById('leftEditor'), {
+                    model: leftModels[0],
+                    theme: 'vs-dark',
+                    automaticLayout: true,
+                    readOnly: true,
+                    fontSize: 14,
+                    minimap: { enabled: true },
+                    padding: { top: 16 }
+                });
+                
+                const leftTabsCont = document.getElementById('leftTabs');
+                if (leftTabsCont && subFiles.length > 0) {
+                    subFiles.forEach((file, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = `file-tab ${index === 0 ? 'active' : ''}`;
+                        btn.innerHTML = `${getIcon(file.name)} &nbsp; ${file.name}`;
+                        btn.onclick = () => {
+                            Array.from(leftTabsCont.children).forEach(c => c.classList.remove('active'));
+                            btn.classList.add('active');
+                            leftEditor.setModel(leftModels[index]);
+                            if (leftEditor && rightEditor) {
+                                setTimeout(() => highlightCommonLines(leftEditor, rightEditor), 50);
+                            }
+                        };
+                        leftTabsCont.appendChild(btn);
+                    });
+                }
+            } else {
+                document.getElementById('leftEditor').innerHTML = "<div style='color:#666; padding:20px; font-style:italic;'>No source files extracted.</div>";
+            }
+            
+            // --- Setup Right Editor ---
+            let rightModels = [];
+            let rightEditor = null;
+            if (matchFiles.length > 0) {
+                matchFiles.forEach(f => {
+                    rightModels.push(monaco.editor.createModel(f.content, determineLang(f.name)));
+                });
+                
+                rightEditor = monaco.editor.create(document.getElementById('rightEditor'), {
+                    model: rightModels[0],
+                    theme: 'vs-dark',
+                    automaticLayout: true,
+                    readOnly: true,
+                    fontSize: 14,
+                    minimap: { enabled: true },
+                    padding: { top: 16 }
+                });
+                
+                const rightTabsCont = document.getElementById('rightTabs');
+                if (rightTabsCont && matchFiles.length > 0) {
+                    matchFiles.forEach((file, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = `file-tab ${index === 0 ? 'active' : ''}`;
+                        btn.innerHTML = `${getIcon(file.name)} &nbsp; ${file.name}`;
+                        btn.onclick = () => {
+                            Array.from(rightTabsCont.children).forEach(c => c.classList.remove('active'));
+                            btn.classList.add('active');
+                            rightEditor.setModel(rightModels[index]);
+                            if (leftEditor && rightEditor) {
+                                setTimeout(() => highlightCommonLines(leftEditor, rightEditor), 50);
+                            }
+                        };
+                        rightTabsCont.appendChild(btn);
+                    });
+                }
+            } else {
+                document.getElementById('rightEditor').innerHTML = "<div style='color:#666; padding:20px; font-style:italic;'>No source files extracted.</div>";
+            }
+            
+            // Initial highlight trigger
+            if (leftEditor && rightEditor) {
+                setTimeout(() => {
+                    highlightCommonLines(leftEditor, rightEditor);
+                }, 500);
+            }
+            
+            // --- Plagiarism Highlighter (Global Corpus Matching) ---
+            let leftDecorations = {};
+            let rightDecorations = {};
+            
+            const minLength = 10;
+            const subLinesSet = new Set();
+            subFiles.forEach(f => {
+                f.content.split(/\r?\n/).forEach(line => {
+                    let trimmed = line.trim();
+                    if (trimmed.length >= minLength) subLinesSet.add(trimmed);
+                });
+            });
+            
+            const matchLinesSet = new Set();
+            matchFiles.forEach(f => {
+                f.content.split(/\r?\n/).forEach(line => {
+                    let trimmed = line.trim();
+                    if (trimmed.length >= minLength) matchLinesSet.add(trimmed);
+                });
+            });
+            
+            function highlightCommonLines(editorL, editorR) {
+                function createDecorations(lineNumbers) {
+                    return lineNumbers.map(ln => {
+                        return {
+                            range: new monaco.Range(ln, 1, ln, 1),
+                            options: {
+                                isWholeLine: true,
+                                className: 'plagiarism-highlight',
+                                marginClassName: 'plagiarism-highlight-margin' // highlight the line number gutter
+                            }
+                        };
+                    });
+                }
+                
+                if (editorL) {
+                    let matchL = [];
+                    let linesL = editorL.getValue().split(/\r?\n/);
+                    for (let i = 0; i < linesL.length; i++) {
+                        if (matchLinesSet.has(linesL[i].trim())) {
+                            matchL.push(i + 1);
+                        }
+                    }
+                    let lUri = editorL.getModel().uri.toString();
+                    leftDecorations[lUri] = editorL.deltaDecorations(leftDecorations[lUri] || [], createDecorations(matchL));
+                }
+                
+                if (editorR) {
+                    let matchR = [];
+                    let linesR = editorR.getValue().split(/\r?\n/);
+                    for (let i = 0; i < linesR.length; i++) {
+                        if (subLinesSet.has(linesR[i].trim())) {
+                            matchR.push(i + 1);
+                        }
+                    }
+                    let rUri = editorR.getModel().uri.toString();
+                    rightDecorations[rUri] = editorR.deltaDecorations(rightDecorations[rUri] || [], createDecorations(matchR));
+                }
+            }
+            
+            if (leftEditor && rightEditor) {
+                // Yield to allow rendering before heavy computation
+                setTimeout(() => highlightCommonLines(leftEditor, rightEditor), 200);
+            }
+
+            
+        });
+    });
+</script>
+{% endblock %}

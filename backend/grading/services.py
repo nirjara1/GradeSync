@@ -123,33 +123,59 @@ def run_submission_analysis(submission_id) -> dict:
         # 2. Plagiarism Detection
         try:
             if HAS_AI_MODULES:
-                 # Build corpus from other submissions to the same assignment
-                other_submissions = Submission.objects.filter(
-                    assignment=submission.assignment
-                ).exclude(id=submission.id)
+                 # Build corpus from ALL submissions to allow cross-class detection
+                other_submissions = Submission.objects.exclude(id=submission.id)
                 
                 corpus_texts = {}
                 for other_sub in other_submissions:
                     other_code, _ = extract_code_from_file(other_sub.file_path)
                     if other_code.strip():
-                        identifier = f"Student: {other_sub.student.user.username}"
+                        identifier = str(other_sub.id)
                         corpus_texts[identifier] = other_code
                         
                 sim_engine = SimilarityEngine(n=3)
                 sim_results = sim_engine.check_similarity_from_texts(code_str, corpus_texts)
                 
                 if sim_results:
-                    top_match_file, sim_score = sim_results[0]
+                    top_match_id, sim_score = sim_results[0]
                     submission.plagiarism_score = round(sim_score * 100, 1)
                     
                     # Heuristic deterministic confidence since engine doesn't provide real confidence
                     confidence = round(80.0 + (sim_score * 15.0), 1)
                     submission.plagiarism_confidence_score = min(confidence, 100.0) 
                     
-                    submission.plagiarism_match_info = f"Closest Match: {top_match_file}"
+                    try:
+                        matched_sub = Submission.objects.get(id=int(top_match_id))
+                        submission.plagiarism_match = matched_sub
+                        
+                        email = matched_sub.student.user.email
+                        if not email:
+                            email = matched_sub.student.user.username
+                        submission.plagiarism_match_info = f"Closest Match: {email}"
+                        
+                        # Bidirectional update: update the matched submission if this new match is higher
+                        current_matched_score = matched_sub.plagiarism_score or 0.0
+                        if submission.plagiarism_score > current_matched_score:
+                            matched_sub.plagiarism_score = submission.plagiarism_score
+                            matched_sub.plagiarism_confidence_score = submission.plagiarism_confidence_score
+                            matched_sub.plagiarism_match = submission
+                            
+                            sub_email = submission.student.user.email
+                            if not sub_email:
+                                sub_email = submission.student.user.username
+                            matched_sub.plagiarism_match_info = f"Closest Match: {sub_email}"
+                            
+                            matched_sub.save(update_fields=[
+                                'plagiarism_score', 'plagiarism_confidence_score',
+                                'plagiarism_match_info', 'plagiarism_match'
+                            ])
+                    except (Submission.DoesNotExist, ValueError):
+                        submission.plagiarism_match = None
+                        submission.plagiarism_match_info = "Closest Match: Unknown"
                 else:
                     submission.plagiarism_score = 0.0
                     submission.plagiarism_confidence_score = 95.0
+                    submission.plagiarism_match = None
                     submission.plagiarism_match_info = "No significant similarities found."
             else:
                 submission.plagiarism_score = None
@@ -165,7 +191,8 @@ def run_submission_analysis(submission_id) -> dict:
             
         submission.save(update_fields=[
             'ai_likelihood_score', 'ai_confidence_score', 'ai_explanation',
-            'plagiarism_score', 'plagiarism_confidence_score', 'plagiarism_match_info'
+            'plagiarism_score', 'plagiarism_confidence_score', 'plagiarism_match_info',
+            'plagiarism_match'
         ])
         
         logger.info(f"Analysis completed for submission {submission_id}")
@@ -178,6 +205,7 @@ def run_submission_analysis(submission_id) -> dict:
             "plagiarism_score": submission.plagiarism_score,
             "plagiarism_confidence_score": submission.plagiarism_confidence_score,
             "plagiarism_match_info": submission.plagiarism_match_info,
+            "plagiarism_match_id": submission.plagiarism_match_id,
             "num_files_analyzed": file_count
         }
     except Exception as e:
