@@ -278,17 +278,29 @@ def create_assignment(request, course_id=None):
                     if test_cases_json:
                         import json
                         test_cases_data = json.loads(test_cases_json)
-                        for idx, tc_data in enumerate(test_cases_data, 1):
+                        seen_tcs = set()
+                        order_idx = 1
+                        for tc_data in test_cases_data:
+                            key = (
+                                tc_data.get('input_data', '').strip(),
+                                tc_data.get('expected_output', '').strip(),
+                                _coerce_bool(tc_data.get('is_private'), False)
+                            )
+                            if key in seen_tcs:
+                                continue
+                            seen_tcs.add(key)
+                            
                             TestCase.objects.create(
                                 assignment=assignment,
-                                name=f"Test Case {idx}",
+                                name=f"Test Case {order_idx}",
                                 input_data=tc_data.get('input_data', ''),
                                 expected_output=tc_data.get('expected_output', ''),
-                                is_private=_coerce_bool(tc_data.get('is_private'), False),
+                                is_private=key[2],
                                 points_awarded=tc_data.get('points', 5),
-                                order=idx
+                                order=order_idx
                             )
-                        logger.info(f"Created {len(test_cases_data)} test cases for assignment {assignment.id}")
+                            order_idx += 1
+                        logger.info(f"Created {order_idx - 1} test cases for assignment {assignment.id}")
 
                     messages.success(request, f"Assignment '{assignment.name}' successfully {assignment.status}!")
             except Exception as e:
@@ -479,16 +491,28 @@ def edit_assignment(request, pk):
                         import json
                         test_cases_data = json.loads(test_cases_json)
                         TestCase.objects.filter(assignment=assignment).delete()
-                        for idx, tc_data in enumerate(test_cases_data, 1):
+                        seen_tcs = set()
+                        order_idx = 1
+                        for tc_data in test_cases_data:
+                            key = (
+                                tc_data.get('input_data', '').strip(),
+                                tc_data.get('expected_output', '').strip(),
+                                _coerce_bool(tc_data.get('is_private'), False)
+                            )
+                            if key in seen_tcs:
+                                continue
+                            seen_tcs.add(key)
+                            
                             TestCase.objects.create(
                                 assignment=assignment,
-                                name=f"Test Case {idx}",
+                                name=f"Test Case {order_idx}",
                                 input_data=tc_data.get('input_data', ''),
                                 expected_output=tc_data.get('expected_output', ''),
-                                is_private=_coerce_bool(tc_data.get('is_private'), False),
+                                is_private=key[2],
                                 points_awarded=tc_data.get('points', 5),
-                                order=idx
+                                order=order_idx
                             )
+                            order_idx += 1
             except Exception as e:
                 logger.error(f"Error updating assignment: {e}")
                 messages.error(request, f"An error occurred while updating the assignment: {str(e)}")
@@ -517,7 +541,9 @@ def edit_assignment(request, pk):
                     TestCase.objects.filter(assignment=assignment).delete()
 
                     count = 0
-                    for idx, raw in enumerate(reader, 1):
+                    seen_tcs = set()
+                    order_idx = 1
+                    for raw in reader:
                         row = {
                             (k or '').strip().lstrip('\ufeff').lower(): (v if v is not None else '').strip()
                             for k, v in raw.items()
@@ -526,6 +552,12 @@ def edit_assignment(request, pk):
                         expected_output = row.get('expected_output', '')
                         is_private_str = str(row.get('is_private', 'false')).strip().lower()
                         is_private = is_private_str in ('true', '1', 'yes')
+                        
+                        key = (input_data.strip(), expected_output.strip(), is_private)
+                        if key in seen_tcs:
+                            continue
+                        seen_tcs.add(key)
+
                         points_val = row.get('points', '') or '5'
                         try:
                             points = int(float(points_val))
@@ -534,14 +566,15 @@ def edit_assignment(request, pk):
 
                         TestCase.objects.create(
                             assignment=assignment,
-                            name=f"Test Case {idx}",
+                            name=f"Test Case {order_idx}",
                             input_data=input_data,
                             expected_output=expected_output,
                             is_private=is_private,
                             is_hidden=False,
                             points_awarded=points,
-                            order=idx,
+                            order=order_idx,
                         )
+                        order_idx += 1
                         count += 1
 
                     logger.info(f"Re-imported {count} test cases for assignment {assignment.id} from CSV")
@@ -1202,8 +1235,8 @@ def upload_test_cases(request, assignment_id):
 
                     obj, created = TestCase.objects.update_or_create(
                         assignment=assignment,
-                        input_data=input_data,
-                        expected_output=expected_output,
+                        input_data=input_data.strip(),
+                        expected_output=expected_output.strip(),
                         is_private=is_private,
                         is_hidden=is_hidden,
                         defaults={
