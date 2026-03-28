@@ -29,6 +29,22 @@ logger = logging.getLogger(__name__)
 def get_user_from_request(request):
     return request.user
 
+
+def _coerce_bool(val, default=False):
+    """Normalize JSON/form booleans; avoids Python truthiness bugs on strings like 'false'."""
+    if val is None:
+        return default
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, (int, float)):
+        return bool(val) and val != 0
+    s = str(val).strip().lower()
+    if s in ("true", "1", "yes", "on"):
+        return True
+    if s in ("false", "0", "no", "off", ""):
+        return False
+    return default
+
 @login_required
 def assignments_dashboard(request):
     """Shows all assignments for all courses the user is enrolled or teaching in."""
@@ -164,7 +180,7 @@ def create_assignment(request, course_id=None):
                             name=f"Test Case {idx}",
                             input_data=tc_data.get('input_data', ''),
                             expected_output=tc_data.get('expected_output', ''),
-                            is_private=tc_data.get('is_private', False),
+                            is_private=_coerce_bool(tc_data.get('is_private'), False),
                             points_awarded=tc_data.get('points', 5),
                             order=idx
                         )
@@ -311,7 +327,7 @@ def edit_assignment(request, pk):
                             name=f"Test Case {idx}",
                             input_data=tc_data.get('input_data', ''),
                             expected_output=tc_data.get('expected_output', ''),
-                            is_private=tc_data.get('is_private', False),
+                            is_private=_coerce_bool(tc_data.get('is_private'), False),
                             points_awarded=tc_data.get('points', 5),
                             order=idx
                         )
@@ -319,7 +335,8 @@ def edit_assignment(request, pk):
                 except Exception as e:
                     logger.error(f"Error updating test cases for assignment {assignment.id}: {e}")
 
-            # If a new public_test_data CSV file was uploaded, re-import PUBLIC (student-visible) tests from it.
+            # If a new public_test_data CSV file was uploaded, replace all DB test cases for this assignment
+            # with rows from the file (honors is_private per row — students only run is_private=False).
             public_test_file = form.cleaned_data.get('public_test_data')
             if public_test_file:
                 try:
@@ -330,40 +347,40 @@ def edit_assignment(request, pk):
                     public_test_file.close()
                     if isinstance(content, bytes):
                         content = content.decode('utf-8')
+                    content = content.lstrip('\ufeff')
 
                     reader = csv.DictReader(content.splitlines())
-
-                    # Remove any existing PUBLIC tests (we treat all rows from this CSV as public)
-                    TestCase.objects.filter(assignment=assignment, is_private=False).delete()
+                    TestCase.objects.filter(assignment=assignment).delete()
 
                     count = 0
-                    for idx, row in enumerate(reader, 1):
+                    for idx, raw in enumerate(reader, 1):
+                        row = {
+                            (k or '').strip().lstrip('\ufeff').lower(): (v if v is not None else '').strip()
+                            for k, v in raw.items()
+                        }
                         input_data = row.get('input_data', '')
                         expected_output = row.get('expected_output', '')
-                        # Force these to be PUBLIC tests (students can run); private tests should come from the JSON/manager flows
-                        is_private = False
+                        is_private_str = str(row.get('is_private', 'false')).strip().lower()
+                        is_private = is_private_str in ('true', '1', 'yes')
                         points_val = row.get('points', '') or '5'
                         try:
-                            points = int(points_val)
+                            points = int(float(points_val))
                         except ValueError:
                             points = 5
 
-                        # Avoid duplicates on re-import by upserting on core fields
-                        TestCase.objects.update_or_create(
+                        TestCase.objects.create(
                             assignment=assignment,
+                            name=f"Test Case {idx}",
                             input_data=input_data,
                             expected_output=expected_output,
                             is_private=is_private,
-                            defaults={
-                                'name': f"Test Case {idx}",
-                                'is_hidden': False,
-                                'points_awarded': points,
-                                'order': idx,
-                            },
+                            is_hidden=False,
+                            points_awarded=points,
+                            order=idx,
                         )
                         count += 1
 
-                    logger.info(f"Re-imported {count} public test cases for assignment {assignment.id} from CSV")
+                    logger.info(f"Re-imported {count} test cases for assignment {assignment.id} from CSV")
                 except Exception as e:
                     logger.error(f"Error parsing public_test_data CSV for assignment {assignment.id}: {e}")
 
@@ -2076,11 +2093,16 @@ def run_public_tests_api(request):
         assignment = Assignment.objects.get(id=assignment_id)
     except Assignment.DoesNotExist:
         return JsonResponse({'error': 'Assignment not found'}, status=404)
+
+    user = get_user_from_request(request)
+    if assignment.course and not user.is_staff:
+        if not is_enrolled(user, assignment.course, request):
+            return JsonResponse({'error': 'Forbidden'}, status=403)
     
-    # Get only public test cases (is_private=False)
+    # Students may only execute tests marked non-private (faculty "Test" button uses same rule).
     public_test_cases = TestCase.objects.filter(
         assignment=assignment,
-        is_private=False
+        is_private=False,
     ).order_by('order')
     
     if not public_test_cases.exists():

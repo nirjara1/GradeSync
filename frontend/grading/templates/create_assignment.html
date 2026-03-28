@@ -390,7 +390,8 @@ function handleCsvFileSelect(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const csv = e.target.result;
+            // Strip UTF-8 BOM so first header matches "input_data" (Excel often adds BOM)
+            const csv = (e.target.result || '').replace(/^\uFEFF/, '');
             parsedTestCases = parseCSV(csv);
             
             if (parsedTestCases.length === 0) {
@@ -481,7 +482,8 @@ function parseCSV(csvText) {
         });
         
         const pt = parseInt(obj.points) || 5;
-        const isPriv = obj.is_private.toLowerCase() === 'true';
+        const privRaw = (obj.is_private !== undefined && obj.is_private !== null) ? String(obj.is_private).trim().toLowerCase() : 'false';
+        const isPriv = privRaw === 'true' || privRaw === '1' || privRaw === 'yes';
         
         testCases.push({
             input_data: obj.input_data,      // Render preserving actual layout
@@ -542,6 +544,8 @@ function showPreviewError(message) {
 }
 
 function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const s = String(text);
     const map = {
         '&': '&amp;',
         '<': '&lt;',
@@ -549,6 +553,7 @@ function escapeHtml(text) {
         '"': '&quot;',
         "'": '&#039;'
     };
+    return s.replace(/[&<>"']/g, function (ch) { return map[ch]; });
 }
 
 // Premium Flatpickr with Material Red Theme

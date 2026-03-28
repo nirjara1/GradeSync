@@ -317,9 +317,7 @@
                 {% for radio in form.allowed_language %}
                 <div class="custom-radio">
                     {{ radio.tag }}
-                    <label for="{{ radio.id_for_label }}"
-                        style="margin: 0; font-weight: 500; color: #374151; cursor: pointer;">{{ radio.choice_label
-                        }}</label>
+                    <label for="{{ radio.id_for_label }}" style="margin: 0; font-weight: 500; color: #374151; cursor: pointer;">{{ radio.choice_label }}</label>
                 </div>
                 {% endfor %}
             </div>
@@ -337,42 +335,10 @@
             {{ form.public_test_data }}
             {% if form.instance.public_test_data %}
             <div class="current-file-badge">
-                <i class="fa-solid fa-file-csv"></i> Currently uploaded: <a
-                    href="{{ form.instance.public_test_data.url }}" target="_blank">{{
-                    form.instance.public_test_data.name|slice:"15:" }}</a>
+                <i class="fa-solid fa-file-csv"></i> Currently uploaded: <a href="{{ form.instance.public_test_data.url }}" target="_blank">{{ form.instance.public_test_data.name|slice:"15:" }}</a>
             </div>
             {% endif %}
             <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.public_test_data.errors }}</div>
-        </div>
-
-        <div class="form-group"
-            style="background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 20px;">
-            <label for="{{ form.test_cases_file.id_for_label }}" class="form-label" style="font-size: 15px;">Hidden Test
-                Cases <span style="font-weight:normal; color:#6b7280;">(.json format)</span></label>
-            {{ form.test_cases_file }}
-            {% if form.instance.test_cases_file %}
-            <div class="current-file-badge">
-                <i class="fa-solid fa-file-code"></i> Currently uploaded: <a
-                    href="{{ form.instance.test_cases_file.url }}" target="_blank">{{
-                    form.instance.test_cases_file.name|slice:"15:" }}</a>
-            </div>
-            {% endif %}
-            <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.test_cases_file.errors }}</div>
-        </div>
-
-        <div class="form-group"
-            style="background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 20px;">
-            <label for="{{ form.expected_outputs.id_for_label }}" class="form-label" style="font-size: 15px;">Expected
-                Outputs Archive <span style="font-weight:normal; color:#6b7280;">(.txt or .zip)</span></label>
-            {{ form.expected_outputs }}
-            {% if form.instance.expected_outputs %}
-            <div class="current-file-badge">
-                <i class="fa-solid fa-file-zipper"></i> Currently uploaded: <a
-                    href="{{ form.instance.expected_outputs.url }}" target="_blank">{{
-                    form.instance.expected_outputs.name|slice:"15:" }}</a>
-            </div>
-            {% endif %}
-            <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.expected_outputs.errors }}</div>
         </div>
 
         <div class="btn-action-group">

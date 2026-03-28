@@ -7,7 +7,7 @@ import openpyxl
 class AssignmentForm(forms.ModelForm):
     class Meta:
         model = Assignment
-        fields = ['name', 'description', 'course', 'points', 'is_weighted', 'weight', 'due_date', 'no_due_date', 'allowed_language', 'public_test_data', 'expected_outputs', 'test_cases_file', 'status']
+        fields = ['name', 'description', 'course', 'points', 'is_weighted', 'weight', 'due_date', 'no_due_date', 'allowed_language', 'public_test_data', 'status']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'placeholder': 'Assignment Title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Description'}),
@@ -19,13 +19,10 @@ class AssignmentForm(forms.ModelForm):
             'no_due_date': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'allowed_language': forms.RadioSelect(attrs={'class': 'form-check-input'}),
             'public_test_data': forms.FileInput(attrs={'class': 'form-control-file'}),
-            'expected_outputs': forms.FileInput(attrs={'class': 'form-control-file'}),
-            'test_cases_file': forms.FileInput(attrs={'class': 'form-control-file'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
             'name': 'Assignment Title',
-            'test_cases_file': 'Test cases json',
             'is_weighted': 'Weighted grading',
             'weight': 'Weight (%)',
         }
@@ -36,8 +33,6 @@ class AssignmentForm(forms.ModelForm):
         self.fields['status'].required = False
         self.fields['course'].required = False
         self.fields['public_test_data'].required = False
-        self.fields['expected_outputs'].required = False
-        self.fields['test_cases_file'].required = False
         self.fields['is_weighted'].required = False
         self.fields['weight'].required = False
 
