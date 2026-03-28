@@ -1,0 +1,350 @@
+{% extends base_template %}
+
+{% block content %}
+<div style="display: flex; gap: 24px; align-items: flex-start;">
+    {% include "course_sidebar.html" %}
+    <div style="flex: 1;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <h2 class="page-title" style="margin: 0; border: none;">
+                {{ course.title }}-{{ course.section }} Students
+            </h2>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="openModal('addStudentModal')" class="add-assignment-btn"
+                    style="border: none;"><i class="fa-solid fa-user-plus"></i> Add Student</button>
+                <button onclick="openModal('addGAModal')" class="add-assignment-btn"
+                    style="border: none;"><i class="fa-solid fa-user-plus"></i> Add Grading Assistant</button>
+            </div>
+        </div>
+        <hr class="divider">
+
+        <hr class="divider" style="margin-top: 30px;">
+        <h3>Course Roster</h3>
+        <div style="display: flex; gap: 40px; margin-top: 15px;">
+            <div style="flex: 1;">
+                <h4>Students</h4>
+                <ul id="students-list" style="list-style-type: none; padding-left: 0;">
+                    <li>Loading...</li>
+                </ul>
+            </div>
+            <div style="flex: 1;">
+                <h4>Grading Assistants</h4>
+                <ul id="graders-list" style="list-style-type: none; padding-left: 0;">
+                    <li>Loading...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Add Student Modal -->
+        <div id="addStudentModal" class="modal-overlay">
+            <div class="modal-content">
+                <button class="modal-close-btn" onclick="closeModal('addStudentModal')">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+                <div class="modal-header">
+                    <h3>Add Students</h3>
+                </div>
+                <p style="color: #4b5563; font-size: 15px; margin-bottom: 20px; line-height: 1.5;">
+                    Enter Outlook email addresses manually (one per line or comma-separated) or upload a CSV containing <strong>SIS Login IDs</strong>. 
+                </p>
+                <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid var(--gold);">
+                    <p style="color: #6b7280; font-size: 13px; margin: 0; font-style: italic;">
+                        If a student hasn't registered yet, they will be pre-enrolled and automatically linked upon account creation.
+                    </p>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-size: 14px; margin-bottom: 8px; display: block; font-weight: 600;">Manual Entry</label>
+                    <textarea id="studentEmails" class="modal-form-ctrl" placeholder="e.g. student1@warhawks.ulm.edu, student2..."
+                        style="height: 120px; resize: vertical;"></textarea>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 30px;">
+                    <label style="font-size: 14px; margin-bottom: 8px; display: block; font-weight: 600;">CSV Upload (SIS Login ID column)</label>
+                    <div style="border: 2px dashed #e5e7eb; padding: 20px; border-radius: 10px; text-align: center; background: #fafafa;">
+                        <input type="file" id="csvUploadStudent" accept=".csv" style="font-size: 14px; width: 100%;">
+                    </div>
+                </div>
+
+                <div id="studentResults" style="margin-bottom: 20px; max-height: 120px; overflow-y: auto; font-size: 13px; font-weight: 500;">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 10px;">
+                    <button onclick="closeModal('addStudentModal')" class="btn-cancel">Cancel</button>
+                    <button onclick="submitEmails('api_add_students', 'studentEmails', 'csvUploadStudent', 'studentResults')"
+                        class="add-assignment-btn" style="border: none;">
+                        <i class="fa-solid fa-user-plus"></i> Add Students
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add GA Modal -->
+        <div id="addGAModal" class="modal-overlay">
+            <div class="modal-content">
+                <button class="modal-close-btn" onclick="closeModal('addGAModal')">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+                <div class="modal-header">
+                    <h3>Add Grading Assistants</h3>
+                </div>
+                <p style="color: #4b5563; font-size: 15px; margin-bottom: 20px; line-height: 1.5;">
+                    Enter Outlook email addresses manually or upload a CSV containing <strong>SIS Login IDs</strong>. 
+                </p>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-size: 14px; margin-bottom: 8px; display: block; font-weight: 600;">Manual Entry</label>
+                    <textarea id="gaEmails" class="modal-form-ctrl" placeholder="e.g. grader1@warhawks.ulm.edu..."
+                        style="height: 120px; resize: vertical;"></textarea>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 30px;">
+                    <label style="font-size: 14px; margin-bottom: 8px; display: block; font-weight: 600;">CSV Upload (SIS Login ID column)</label>
+                    <div style="border: 2px dashed #e5e7eb; padding: 20px; border-radius: 10px; text-align: center; background: #fafafa;">
+                        <input type="file" id="csvUploadGA" accept=".csv" style="font-size: 14px; width: 100%;">
+                    </div>
+                </div>
+
+                <div id="gaResults" style="margin-bottom: 20px; max-height: 120px; overflow-y: auto; font-size: 13px; font-weight: 500;"></div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 10px;">
+                    <button onclick="closeModal('addGAModal')" class="btn-cancel">Cancel</button>
+                    <button onclick="submitEmails('api_add_graders', 'gaEmails', 'csvUploadGA', 'gaResults')"
+                        class="add-assignment-btn" style="border: none;">
+                        <i class="fa-solid fa-user-plus"></i> Add to Course
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remove Member Confirmation Modal -->
+        <div id="removeMemberModal" class="modal-overlay">
+            <div class="modal-content" style="width: 450px;">
+                <button class="modal-close-btn" onclick="closeModal('removeMemberModal')">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+                <div class="modal-header">
+                    <h3>Confirm Removal</h3>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px; background: #fff5f5; padding: 15px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #fed7d7;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: #f56565; font-size: 24px;"></i>
+                    <p id="removeMemberMessage" style="color: #c53030; font-size: 15px; margin: 0; line-height: 1.4; font-weight: 500;"></p>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button onclick="closeModal('removeMemberModal')" class="btn-cancel">Cancel</button>
+                    <button id="confirmRemoveBtn"
+                        style="padding: 12px 24px; background-color: #f56565; border: none; border-radius: 10px; color: white; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;">
+                        <i class="fa-solid fa-user-minus"></i> Remove Member
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Course Data for JavaScript -->
+<script id="course-data" type="application/json">
+    {
+        "courseId": {{ course.id|default:"null" }},
+        "rosterApiUrl": "{% url 'api_course_roster' course.id %}",
+        "removeMemberUrl": "{% url 'api_remove_member' course.id %}"
+    }
+</script>
+
+<script>
+    const courseData = JSON.parse(document.getElementById('course-data').textContent);
+    const courseId = courseData.courseId;
+    const rosterApiUrl = courseData.rosterApiUrl;
+    const removeMemberUrl = courseData.removeMemberUrl;
+
+    const apiUrls = {
+        'api_add_students': "{% url 'api_add_students' course.id %}",
+        'api_add_graders': "{% url 'api_add_graders' course.id %}"
+    };
+
+    function openModal(id) {
+        document.getElementById(id).style.display = 'flex';
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+        if (id === 'addStudentModal') {
+            document.getElementById('studentEmails').value = '';
+            document.getElementById('csvUploadStudent').value = '';
+            document.getElementById('studentResults').innerHTML = '';
+        } else if (id === 'addGAModal') {
+            document.getElementById('gaEmails').value = '';
+            document.getElementById('csvUploadGA').value = '';
+            document.getElementById('gaResults').innerHTML = '';
+        }
+    }
+
+    function getCsrfToken() {
+        // First check standard hidden input, then fallback to cookie
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input) return input.value;
+        
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function submitEmails(apiType, inputId, csvInputId, resultsId) {
+        const emailText = document.getElementById(inputId).value;
+        const emails = emailText.split(/[\n,]+/).map(e => e.trim()).filter(e => e);
+        const fileInput = document.getElementById(csvInputId);
+        const file = fileInput.files[0];
+
+        if (emails.length === 0 && !file) return;
+
+        const resultsDiv = document.getElementById(resultsId);
+        resultsDiv.innerHTML = 'Processing...';
+
+        try {
+            const formData = new FormData();
+            formData.append('manual_emails', JSON.stringify(emails));
+            if (file) {
+                formData.append('csv_file', file);
+            }
+
+            const response = await fetch(apiUrls[apiType], {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                let html = '<ul>';
+                data.results.forEach(res => {
+                    let color = (res.status === 'added' || res.status === 'pending') ? 'green' : 'red';
+                    let statusLabel = res.status === 'pending' ? 'pre-enrolled (pending registration)' : res.status;
+                    html += `<li style="color:${color}">${res.email}: ${statusLabel}</li>`;
+                });
+                html += '</ul>';
+                resultsDiv.innerHTML = html;
+
+                loadRoster();
+            } else {
+                resultsDiv.innerHTML = `<span style="color:red">Error: ${data.error || 'Unknown error'}</span>`;
+            }
+        } catch (error) {
+            resultsDiv.innerHTML = `<span style="color:red">Error communicating with server</span>`;
+        }
+    }
+
+    async function loadRoster() {
+        try {
+            const response = await fetch(rosterApiUrl);
+            const data = await response.json();
+
+            const studentsList = document.getElementById('students-list');
+            studentsList.innerHTML = '';
+            if (data.students.length === 0) {
+                studentsList.innerHTML = '<li>No students enrolled.</li>';
+            } else {
+                data.students.forEach(s => {
+                    const name = s.is_pending ? `<span style="color: #666; font-style: italic;">${s.email}</span>` : `<strong>${s.first_name} ${s.last_name}</strong> (${s.email})`;
+                    const label = s.is_pending ? ` <small style="color: #999;">(pending)</small>` : '';
+                    studentsList.innerHTML += `<li style="margin-bottom:5px; padding:8px; background:#f9f9f9; border:1px solid #ddd; border-radius:3px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>${name}${label}</span>
+                        <button onclick="removeMember(${s.id}, '${s.email}', ${!!s.is_pending})" 
+                                title="Remove Student"
+                                style="background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 14px; padding: 0 5px;">
+                            <i class="fa-solid fa-user-minus"></i>
+                        </button>
+                    </li>`;
+                });
+            }
+
+            const gradersList = document.getElementById('graders-list');
+            gradersList.innerHTML = '';
+            if (data.graders.length === 0) {
+                gradersList.innerHTML = '<li>No grading assistants.</li>';
+            } else {
+                data.graders.forEach(g => {
+                    const name = g.is_pending ? `<span style="color: #666; font-style: italic;">${g.email}</span>` : `<strong>${g.first_name} ${g.last_name}</strong> (${g.email})`;
+                    const label = g.is_pending ? ` <small style="color: #999;">(pending)</small>` : '';
+                    gradersList.innerHTML += `<li style="margin-bottom:5px; padding:8px; background:#f9f9f9; border:1px solid #ddd; border-radius:3px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>${name}${label}</span>
+                        <button onclick="removeMember(${g.id}, '${g.email}', ${!!g.is_pending})" 
+                                title="Remove Grader"
+                                style="background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 14px; padding: 0 5px;">
+                            <i class="fa-solid fa-user-minus"></i>
+                        </button>
+                    </li>`;
+                });
+            }
+        } catch (error) {
+            console.error('Error loading roster:', error);
+        }
+    }
+
+    let memberToRemove = null;
+
+    function removeMember(userId, email, isPending) {
+        memberToRemove = { userId, email, isPending };
+        const message = `Are you sure you want to remove <strong>${email}</strong> from this class? This action cannot be undone.`;
+        document.getElementById('removeMemberMessage').innerHTML = message;
+        openModal('removeMemberModal');
+        
+        document.getElementById('confirmRemoveBtn').onclick = executeRemoveMember;
+    }
+
+    async function executeRemoveMember() {
+        if (!memberToRemove) return;
+        
+        const { userId, email, isPending } = memberToRemove;
+        const confirmBtn = document.getElementById('confirmRemoveBtn');
+        const originalText = confirmBtn.innerText;
+        
+        confirmBtn.innerText = 'Removing...';
+        confirmBtn.disabled = true;
+
+        try {
+            const response = await fetch(removeMemberUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    email: email,
+                    is_pending: isPending
+                })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                closeModal('removeMemberModal');
+                loadRoster();
+            } else {
+                alert(`Error: ${data.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error removing member:', error);
+            alert('Error communicating with server');
+        } finally {
+            confirmBtn.innerText = originalText;
+            confirmBtn.disabled = false;
+            memberToRemove = null;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadRoster);
+</script>
+
+{% endblock %}

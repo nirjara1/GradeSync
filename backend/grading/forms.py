@@ -7,7 +7,7 @@ import openpyxl
 class AssignmentForm(forms.ModelForm):
     class Meta:
         model = Assignment
-        fields = ['name', 'description', 'course', 'points', 'is_weighted', 'weight', 'due_date', 'no_due_date', 'allowed_language', 'public_test_data', 'status']
+        fields = ['name', 'description', 'course', 'points', 'is_weighted', 'weight', 'due_date', 'no_due_date', 'allowed_language', 'public_test_data', 'status', 'is_group_assignment', 'max_group_size']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'placeholder': 'Assignment Title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Description'}),
@@ -20,11 +20,14 @@ class AssignmentForm(forms.ModelForm):
             'allowed_language': forms.RadioSelect(attrs={'class': 'form-check-input'}),
             'public_test_data': forms.FileInput(attrs={'class': 'form-control-file'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
+            'is_group_assignment': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'max_group_size': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
         }
         labels = {
             'name': 'Assignment Title',
             'is_weighted': 'Weighted grading',
             'weight': 'Weight (%)',
+            'max_group_size': 'Maximum Group Size',
         }
 
     def __init__(self, *args, **kwargs):
@@ -35,6 +38,8 @@ class AssignmentForm(forms.ModelForm):
         self.fields['public_test_data'].required = False
         self.fields['is_weighted'].required = False
         self.fields['weight'].required = False
+        self.fields['is_group_assignment'].required = False
+        self.fields['max_group_size'].required = False
 
     def clean(self):
         cleaned = super().clean()

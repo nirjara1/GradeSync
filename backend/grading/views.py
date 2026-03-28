@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db import transaction
 from django.contrib import messages
 from django.db.models import Max, Q, Count, Avg
 from django.http import HttpResponse, HttpResponseForbidden, FileResponse, Http404, JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult
+from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult, AssignmentGroup, AssignmentGroupMember
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
 from .services import grade_submission, extract_code_from_file, run_submission_analysis
 from .sandbox import execute_code
@@ -64,13 +65,19 @@ def assignments_dashboard(request):
         # Student assignments tab should only show assignments that are still due
         # AND have not been submitted yet by this student.
         student_profile, _ = Student.objects.get_or_create(user=user)
-        submitted_assignment_ids = Submission.objects.filter(student=student_profile).values_list('assignment_id', flat=True)
+        
+        # Determine submitted assignments (considering both individual and group submissions)
+        submitted_individual = Submission.objects.filter(student=student_profile).values_list('assignment_id', flat=True)
+        submitted_group = Submission.objects.filter(group__members__student=student_profile).values_list('assignment_id', flat=True)
+        submitted_assignment_ids = set(list(submitted_individual) + list(submitted_group))
 
         now = timezone.now()
         assignments = (
             Assignment.objects.filter(course__in=courses)
+            .filter(Q(is_group_assignment=False) | Q(assignment_groups__members__student=student_profile))
             .exclude(id__in=submitted_assignment_ids)
             .filter(Q(no_due_date=True) | Q(due_date__isnull=True) | Q(due_date__gte=now))
+            .distinct()
             .order_by('due_date', 'id')
         )
         return render(request, 'assignments_dashboard.html', {
@@ -106,6 +113,30 @@ def professor_course_view(request, course_id):
     })
 
 @login_required
+def course_students_view(request, course_id):
+    user = get_user_from_request(request)
+    course = get_object_or_404(Course, id=course_id)
+    course_role = get_user_course_role(user, course, request)
+    
+    if course_role not in ['INSTRUCTOR', 'GRADING_ASSISTANT']:
+        return HttpResponseForbidden("Access Denied")
+        
+    assignments = Assignment.objects.filter(course=course).order_by('due_date')
+    default_gradebook_assignment = assignments.first()
+    
+    # We pass the same base_template logic as in course_view
+    base_template = 'base_professor.html' if course_role == 'INSTRUCTOR' else 'base_grading_assistant.html'
+    
+    return render(request, 'course_students.html', {
+        'course': course,
+        'is_instructor': course_role == 'INSTRUCTOR',
+        'is_student': False,
+        'base_template': base_template,
+        'gradebook_assignment': default_gradebook_assignment,
+        'active_tab': 'students'
+    })
+
+@login_required
 def ga_course_view(request, course_id):
     user = get_user_from_request(request)
     course = get_object_or_404(Course, id=course_id)
@@ -131,10 +162,21 @@ def student_course_view(request, course_id):
     if course_role != 'STUDENT':
         return HttpResponseForbidden("Access Denied")
         
-    assignments = list(Assignment.objects.filter(course=course).order_by('due_date', 'id'))
-    student_profile, _ = Student.objects.get_or_create(user=request.user)
+    # Only show assignments that are either individual or where the student is a member of a group
+    student_profile, _ = Student.objects.get_or_create(user=user)
+    assignments = list(
+        Assignment.objects.filter(course=course)
+        .filter(Q(is_group_assignment=False) | Q(assignment_groups__members__student=student_profile))
+        .distinct()
+        .order_by('due_date', 'id')
+    )
+    
+    # Get submissions (including group submissions)
     submissions = (
-        Submission.objects.filter(student=student_profile, assignment__in=assignments)
+        Submission.objects.filter(
+            Q(student=student_profile) | Q(group__members__student=student_profile),
+            assignment__in=assignments
+        )
         .select_related('grade')
     )
     submission_dict = {s.assignment_id: s for s in submissions}
@@ -170,6 +212,15 @@ def create_assignment(request, course_id=None):
     user = get_user_from_request(request)
     course = get_object_or_404(Course, id=course_id) if course_id else None
     
+    # Define role and template early for use in all code paths
+    course_role = get_user_course_role(user, course, request) if course else ('INSTRUCTOR' if getattr(user, 'role', None) == 'FACULTY' else 'GRADING_ASSISTANT')
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+    
     # Only instructors can create assignments
     if course and not is_course_instructor(user, course, request):
         return HttpResponseForbidden("Only instructors can create assignments.")
@@ -182,41 +233,74 @@ def create_assignment(request, course_id=None):
     if request.method == 'POST':
         form = AssignmentForm(request.POST, request.FILES)
         if form.is_valid():
-            assignment = form.save(commit=False)
-            if course:
-                assignment.course = course
+            try:
+                with transaction.atomic():
+                    assignment = form.save(commit=False)
+                    if course:
+                        assignment.course = course
+                        
+                    # Determine status based on which button was clicked
+                    action = request.POST.get('action')
+                    if action == 'draft':
+                        assignment.status = 'draft'
+                    else:
+                        assignment.status = 'published'
+                        
+                    assignment.save()
+                    
+                    # Handle Group Assignment Logic
+                    assignment_type = request.POST.get('assignment_type')
+                    if assignment_type == 'group':
+                        assignment.is_group_assignment = True
+                        assignment.save()
+                        
+                        # Create a group for the selected students
+                        selected_students = request.POST.getlist('selected_students')
+                        max_size = assignment.max_group_size or 5
+                        
+                        if len(selected_students) > max_size:
+                            messages.warning(request, f"Group size exceeded limit ({max_size}). Only the first {max_size} students were added.")
+                            selected_students = selected_students[:max_size]
+
+                        if selected_students:
+                            group = AssignmentGroup.objects.create(assignment=assignment, name=f"Group for {assignment.name}")
+                            for student_id in selected_students:
+                                try:
+                                    student = Student.objects.get(id=student_id)
+                                    AssignmentGroupMember.objects.create(group=group, student=student)
+                                except Student.DoesNotExist:
+                                    continue
+                            logger.info(f"Created group {group.id} with {len(selected_students)} members for assignment {assignment.id}")
+                    
+                    
+                    # Process test cases from CSV (if provided)
+                    test_cases_json = request.POST.get('test_cases_json', '')
+                    if test_cases_json:
+                        import json
+                        test_cases_data = json.loads(test_cases_json)
+                        for idx, tc_data in enumerate(test_cases_data, 1):
+                            TestCase.objects.create(
+                                assignment=assignment,
+                                name=f"Test Case {idx}",
+                                input_data=tc_data.get('input_data', ''),
+                                expected_output=tc_data.get('expected_output', ''),
+                                is_private=_coerce_bool(tc_data.get('is_private'), False),
+                                points_awarded=tc_data.get('points', 5),
+                                order=idx
+                            )
+                        logger.info(f"Created {len(test_cases_data)} test cases for assignment {assignment.id}")
+
+                    messages.success(request, f"Assignment '{assignment.name}' successfully {assignment.status}!")
+            except Exception as e:
+                logger.error(f"Error creating assignment: {e}")
+                messages.error(request, f"An error occurred while creating the assignment: {str(e)}")
+                return render(request, 'create_assignment.html', {
+                    'form': form,
+                    'course': course,
+                    'base_template': base_template,
+                    'course_students': course_students
+                })
                 
-            # Determine status based on which button was clicked
-            action = request.POST.get('action')
-            if action == 'draft':
-                assignment.status = 'draft'
-            else:
-                assignment.status = 'published'
-                
-            assignment.save()
-            
-            # Process test cases from CSV (if provided)
-            test_cases_json = request.POST.get('test_cases_json', '')
-            if test_cases_json:
-                try:
-                    import json
-                    test_cases_data = json.loads(test_cases_json)
-                    for idx, tc_data in enumerate(test_cases_data, 1):
-                        TestCase.objects.create(
-                            assignment=assignment,
-                            name=f"Test Case {idx}",
-                            input_data=tc_data.get('input_data', ''),
-                            expected_output=tc_data.get('expected_output', ''),
-                            is_private=_coerce_bool(tc_data.get('is_private'), False),
-                            points_awarded=tc_data.get('points', 5),
-                            order=idx
-                        )
-                    logger.info(f"Created {len(test_cases_data)} test cases for assignment {assignment.id}")
-                except Exception as e:
-                    logger.error(f"Error processing test cases for assignment {assignment.id}: {e}")
-            
-            messages.success(request, f"Assignment '{assignment.name}' successfully {assignment.status}!")
-            
             if course:
                 course_role = get_user_course_role(user, course, request)
                 route_name = 'professor_course' if course_role == 'INSTRUCTOR' else ('student_course' if course_role == 'STUDENT' else 'ga_course')
@@ -229,20 +313,22 @@ def create_assignment(request, course_id=None):
         if course:
             initial_data['course'] = course
         form = AssignmentForm(initial=initial_data)
-
-    course_role = get_user_course_role(user, course, request) if course else ('INSTRUCTOR' if getattr(request, 'user_role', None) == 'FACULTY' else 'GRADING_ASSISTANT')
     
-    if course_role == 'INSTRUCTOR':
-        base_template = 'base_professor.html'
-    elif course_role == 'STUDENT':
-        base_template = 'portal/base_portal.html'
-    else:
-        base_template = 'base_grading_assistant.html'
+    # Get students for group selection
+    course_students = []
+    if course:
+        # Get students from CourseMember
+        course_students = CourseMember.objects.filter(course=course, role_in_course='STUDENT').select_related('user')
+        # We need the student profile ID for the checkbox value
+        for member in course_students:
+            student_profile, _ = Student.objects.get_or_create(user=member.user)
+            member.student_id = student_profile.id
 
     context = {
         'form': form,
         'course': course,
-        'base_template': base_template
+        'base_template': base_template,
+        'course_students': course_students
     }
     return render(request, 'create_assignment.html', context)
 
@@ -332,35 +418,86 @@ def edit_assignment(request, pk):
     user = get_user_from_request(request)
     assignment = get_object_or_404(Assignment, pk=pk)
     
+    # Define role and template early for use in all code paths
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+    
     if not is_course_instructor(user, assignment.course, request):
         return HttpResponseForbidden("Only instructors can edit assignments.")
         
     if request.method == 'POST':
         form = AssignmentForm(request.POST, request.FILES, instance=assignment)
         if form.is_valid():
-            assignment = form.save()
+            try:
+                with transaction.atomic():
+                    assignment = form.save()
 
-            # If updated test cases JSON is provided (from create/edit UI), replace all existing test cases
-            test_cases_json = request.POST.get('test_cases_json', '')
-            if test_cases_json:
-                try:
-                    import json
-                    test_cases_data = json.loads(test_cases_json)
-                    # Remove old test cases for this assignment before recreating
-                    TestCase.objects.filter(assignment=assignment).delete()
-                    for idx, tc_data in enumerate(test_cases_data, 1):
-                        TestCase.objects.create(
+                    # Handle Group Assignment Logic
+                    assignment_type = request.POST.get('assignment_type')
+                    selected_student_ids = request.POST.getlist('selected_students')
+                    
+                    if assignment_type == 'group':
+                        assignment.is_group_assignment = True
+                        assignment.save()
+                        
+                        # For now, GradeSync supports ONE group per assignment as per requirements
+                        group, created = AssignmentGroup.objects.get_or_create(
                             assignment=assignment,
-                            name=f"Test Case {idx}",
-                            input_data=tc_data.get('input_data', ''),
-                            expected_output=tc_data.get('expected_output', ''),
-                            is_private=_coerce_bool(tc_data.get('is_private'), False),
-                            points_awarded=tc_data.get('points', 5),
-                            order=idx
+                            defaults={'name': f"Group for {assignment.name}"}
                         )
-                    logger.info(f"Replaced test cases for assignment {assignment.id} with {len(test_cases_data)} new cases")
-                except Exception as e:
-                    logger.error(f"Error updating test cases for assignment {assignment.id}: {e}")
+                        
+                        # Sync members
+                        if selected_student_ids:
+                            max_size = assignment.max_group_size or 5
+                            if len(selected_student_ids) > max_size:
+                                messages.warning(request, f"Group size exceeded limit ({max_size}). Only the first {max_size} students were saved.")
+                                selected_student_ids = selected_student_ids[:max_size]
+
+                            # Remove old members not in the new selection
+                            AssignmentGroupMember.objects.filter(group=group).exclude(student_id__in=selected_student_ids).delete()
+                            # Add new members
+                            for s_id in selected_student_ids:
+                                student = get_object_or_404(Student, id=s_id)
+                                AssignmentGroupMember.objects.get_or_create(group=group, student=student)
+                        else:
+                            # If nobody selected, should we delete the group? Or keep it empty?
+                            pass
+                    else:
+                        # Switched to Individual
+                        if assignment.is_group_assignment:
+                            assignment.is_group_assignment = False
+                            assignment.save()
+                    
+                    # Process test cases JSON
+                    test_cases_json = request.POST.get('test_cases_json', '')
+                    if test_cases_json:
+                        import json
+                        test_cases_data = json.loads(test_cases_json)
+                        TestCase.objects.filter(assignment=assignment).delete()
+                        for idx, tc_data in enumerate(test_cases_data, 1):
+                            TestCase.objects.create(
+                                assignment=assignment,
+                                name=f"Test Case {idx}",
+                                input_data=tc_data.get('input_data', ''),
+                                expected_output=tc_data.get('expected_output', ''),
+                                is_private=_coerce_bool(tc_data.get('is_private'), False),
+                                points_awarded=tc_data.get('points', 5),
+                                order=idx
+                            )
+            except Exception as e:
+                logger.error(f"Error updating assignment: {e}")
+                messages.error(request, f"An error occurred while updating the assignment: {str(e)}")
+                return render(request, 'edit_assignment.html', {
+                    'form': form,
+                    'assignment': assignment,
+                    'base_template': base_template,
+                    'course_students': CourseMember.objects.filter(course=assignment.course, role_in_course='STUDENT').select_related('user')
+                })
 
             # If a new public_test_data CSV file was uploaded, replace all DB test cases for this assignment
             # with rows from the file (honors is_private per row — students only run is_private=False).
@@ -418,15 +555,28 @@ def edit_assignment(request, pk):
     else:
         form = AssignmentForm(instance=assignment)
         
-    course_role = get_user_course_role(user, assignment.course, request)
-    if course_role == 'INSTRUCTOR':
-        base_template = 'base_professor.html'
-    elif course_role == 'STUDENT':
-        base_template = 'portal/base_portal.html'
-    else:
-        base_template = 'base_grading_assistant.html'
+    # Get students for group selection
+    course_students = []
+    group_member_ids = []
+    if assignment.course:
+        course_students = CourseMember.objects.filter(course=assignment.course, role_in_course='STUDENT').select_related('user')
+        for member in course_students:
+            student_profile, _ = Student.objects.get_or_create(user=member.user)
+            member.student_id = student_profile.id
+            
+        if assignment.is_group_assignment:
+            # Get existing group members
+            group = assignment.assignment_groups.first()
+            if group:
+                group_member_ids = list(AssignmentGroupMember.objects.filter(group=group).values_list('student_id', flat=True))
     
-    return render(request, 'edit_assignment.html', {'form': form, 'assignment': assignment, 'base_template': base_template})
+    return render(request, 'edit_assignment.html', {
+        'form': form, 
+        'assignment': assignment, 
+        'base_template': base_template,
+        'course_students': course_students,
+        'group_member_ids': group_member_ids
+    })
 
 @login_required
 def delete_assignment(request, pk):
@@ -471,11 +621,20 @@ def assignment_detail_view(request, pk):
     
     # Handle Submissions for Students
     form = None
+    group_members = []
     if is_student:
         student_profile, _ = Student.objects.get_or_create(user=user)
+        group = None
+        if assignment.is_group_assignment:
+            group = AssignmentGroup.objects.filter(assignment=assignment, members__student=student_profile).first()
+        
         if request.method == 'POST':
             # Check for existing submission (re-submission)
-            submission = Submission.objects.filter(student=student_profile, assignment=assignment).first()
+            if assignment.is_group_assignment and group:
+                submission = Submission.objects.filter(group=group, assignment=assignment).first()
+            else:
+                submission = Submission.objects.filter(student=student_profile, assignment=assignment).first()
+                
             files = request.FILES.getlist('file_path')
             monaco_files_json = request.POST.get('monaco_files', '').strip()
             
@@ -489,7 +648,15 @@ def assignment_detail_view(request, pk):
             
             if files or monaco_files:
                 if not submission:
-                    submission = Submission(student=student_profile, assignment=assignment)
+                    if assignment.is_group_assignment:
+                        if not group:
+                            return HttpResponseForbidden("You are not part of a group for this assignment.")
+                        submission = Submission(group=group, assignment=assignment)
+                    else:
+                        submission = Submission(student=student_profile, assignment=assignment)
+                
+                # Link the actual submitter for record keeping even in groups
+                submission.student = student_profile
                 
                 file_contents = {}
                 for f in files:
@@ -554,7 +721,13 @@ def assignment_detail_view(request, pk):
     latest_submission = None
     
     if is_student:
-        submissions = submissions.filter(student__user=user)
+        if assignment.is_group_assignment:
+            if group:
+                submissions = submissions.filter(group=group)
+                group_members = AssignmentGroupMember.objects.filter(group=group).select_related('student__user')
+        else:
+            submissions = submissions.filter(student__user=user)
+            
         latest_submission = submissions.first()
         
         # Monaco Editor Support
@@ -621,6 +794,7 @@ def assignment_detail_view(request, pk):
         'is_student': is_student,
         'base_template': base_template,
         'form': form,
+        'group_members': group_members,
         'has_rubric': has_rubric,
         'rubric': rubric,
         'criteria_with_display': criteria_with_display,
@@ -674,15 +848,19 @@ def gradebook_view(request, pk):
         grid_students = Student.objects.filter(user__in=student_users).select_related('user')
         student_by_user_id = {s.user_id: s for s in grid_students}
 
-        # All submissions/grades for these assignments/students
+        # All submissions/grades for these assignments
         grid_submissions = Submission.objects.filter(
-            assignment__in=grid_assignments,
-            student__in=grid_students,
-        ).select_related('assignment', 'student__user', 'grade')
+            assignment__in=grid_assignments
+        ).select_related('assignment', 'student', 'group', 'grade').prefetch_related('group__members')
 
         cell_lookup = {}
         for sub in grid_submissions:
-            cell_lookup[(sub.student_id, sub.assignment_id)] = sub
+            if sub.group:
+                # Map to all members of the group
+                for member in sub.group.members.all():
+                    cell_lookup[(member.student_id, sub.assignment_id)] = sub
+            elif sub.student_id:
+                cell_lookup[(sub.student_id, sub.assignment_id)] = sub
 
         rows = []
         for member in member_qs:
@@ -907,6 +1085,10 @@ def grade_submission_view(request, pk):
     if len(submission_files) > 0:
         can_preview_code = True
         
+    group_members = []
+    if submission.group:
+        group_members = AssignmentGroupMember.objects.filter(group=submission.group).select_related('student__user')
+
     context = {
         'submission': submission,
         'assignment': assignment,
@@ -921,6 +1103,7 @@ def grade_submission_view(request, pk):
         'criteria': criteria,
         'criteria_with_scores': criteria_with_scores,
         'criterion_grades': criterion_grades,
+        'group_members': group_members,
     }
     return render(request, 'grade_submission.html', context)
 

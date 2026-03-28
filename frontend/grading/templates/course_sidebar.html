@@ -104,6 +104,28 @@ Expects in context:
                     </a>
                 </li>
                 {% endif %}
+                <li style="margin-top: 4px;">
+                    <a href="{% url 'course_students' course.id %}"
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            padding: 8px 9px;
+                            border-radius: 6px;
+                            font-size: 14px;
+                            text-decoration: none;
+                            {% if active_tab == 'students' %}
+                                background: #f3e8ff;
+                                color: var(--maroon);
+                                font-weight: 600;
+                            {% else %}
+                                color: #374151;
+                            {% endif %}
+                        ">
+                        <span class="fa-solid fa-users" style="font-size: 13px;"></span>
+                        <span>Students</span>
+                    </a>
+                </li>
             </ul>
         </nav>
     </div>

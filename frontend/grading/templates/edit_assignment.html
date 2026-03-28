@@ -239,6 +239,60 @@
             <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.description.errors }}</div>
         </div>
 
+        <!-- SECTION 2: Assignment Type -->
+        <h3 class="section-header"><i class="fa-solid fa-users-rectangle"></i> 2. Assignment Type</h3>
+        
+        <div class="form-row" style="align-items: flex-start;">
+            <div class="form-col" style="flex: 1;">
+                <div class="form-group">
+                    <label class="form-label">Type</label>
+                    <div style="display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="radio" name="assignment_type" value="individual" id="type_individual" {% if not assignment.is_group_assignment %}checked{% endif %} onchange="toggleGroupUI()" class="form-check-input">
+                            <label for="type_individual" style="margin: 0; font-weight: 500; color: #374151; cursor: pointer;">Individual</label>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="radio" name="assignment_type" value="group" id="type_group" {% if assignment.is_group_assignment %}checked{% endif %} onchange="toggleGroupUI()" class="form-check-input">
+                            <label for="type_group" style="margin: 0; font-weight: 500; color: #374151; cursor: pointer;">Group Assignment</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" id="max_group_size_container" style="{% if not assignment.is_group_assignment %}display: none;{% endif %} margin-top: 16px;">
+                    <label for="{{ form.max_group_size.id_for_label }}" class="form-label">Max Students per Group</label>
+                    {{ form.max_group_size }}
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Limit the number of members in this group.</div>
+                </div>
+            </div>
+            
+            <div class="form-col" style="flex: 2; {% if not assignment.is_group_assignment %}display: none;{% endif %}" id="group_selection_container">
+                <div class="form-group">
+                    <label class="form-label">Select Group Members</label>
+                    <div style="border: 1px solid #d1d5db; border-radius: 8px; background: #ffffff; padding: 12px; max-height: 200px; overflow-y: auto;">
+                        <div style="margin-bottom: 10px;">
+                            <input type="text" id="student_search" placeholder="Search students..." class="form-control" style="padding: 8px 12px; font-size: 14px;" onkeyup="filterStudents()">
+                        </div>
+                        <div id="student_list">
+                            {% for member in course_students %}
+                            <div class="student-item" style="display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 6px; transition: background 0.2s;">
+                                <input type="checkbox" name="selected_students" value="{{ member.student_id }}" id="student_{{ member.student_id }}" class="form-check-input" {% if member.student_id in group_member_ids %}checked{% endif %}>
+                                <label for="student_{{ member.student_id }}" style="margin: 0; font-size: 14px; color: #374151; cursor: pointer; flex: 1;">
+                                    {{ member.user.get_full_name|default:member.user.username }} 
+                                    <span style="color: #6b7280; font-size: 12px;">({{ member.user.email }})</span>
+                                </label>
+                            </div>
+                            {% empty %}
+                            <p style="font-size: 14px; color: #6b7280; margin: 10px 0;">No students enrolled in this course.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+                        Selected students will share one submission and one grade.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="form-row">
             <div class="form-col">
                 <div class="form-group">
@@ -256,8 +310,8 @@
             </div>
         </div>
 
-        <!-- SECTION 2: Logistics -->
-        <h3 class="section-header"><i class="fa-regular fa-calendar-check"></i> 2. Deadlines & Grading</h3>
+        <!-- SECTION 3: Logistics -->
+        <h3 class="section-header"><i class="fa-regular fa-calendar-check"></i> 3. Deadlines & Grading</h3>
 
         <div class="form-row" style="align-items: center;">
             <div class="form-col" style="flex: 2;">
@@ -283,8 +337,8 @@
             </div>
         </div>
 
-        <!-- SECTION 2B: Rubric -->
-        <h3 class="section-header"><i class="fa-solid fa-list-check"></i> 2B. Rubric (Optional)</h3>
+        <!-- SECTION 3B: Rubric -->
+        <h3 class="section-header"><i class="fa-solid fa-list-check"></i> 3B. Rubric (Optional)</h3>
         <div class="form-group" style="background: #fefcfb; border-radius: 12px; border: 1px dashed #e5e7eb; padding: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px;">
             <div>
                 <div style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 4px;">
@@ -308,8 +362,8 @@
             </div>
         </div>
 
-        <!-- SECTION 3: Environment -->
-        <h3 class="section-header"><i class="fa-solid fa-code"></i> 3. Environment</h3>
+        <!-- SECTION 4: Environment -->
+        <h3 class="section-header"><i class="fa-solid fa-code"></i> 4. Environment</h3>
 
         <div class="form-group">
             <label class="form-label">Allowed Programming Language</label>
@@ -324,8 +378,8 @@
             <div style="color: #dc2626; font-size: 13px; margin-top: 4px;">{{ form.allowed_language.errors }}</div>
         </div>
 
-        <!-- SECTION 4: Test Cases & Grading Data -->
-        <h3 class="section-header"><i class="fa-solid fa-vial-virus"></i> 4. Testing Data & Files</h3>
+        <!-- SECTION 5: Test Cases & Grading Data -->
+        <h3 class="section-header"><i class="fa-solid fa-vial-virus"></i> 5. Testing Data & Files</h3>
 
         <div class="form-group"
             style="background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 20px;">
@@ -360,6 +414,46 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
+    function toggleGroupUI() {
+        const isGroup = document.getElementById('type_group').checked;
+        const container = document.getElementById('group_selection_container');
+        const sizeContainer = document.getElementById('max_group_size_container');
+        
+        container.style.display = isGroup ? 'block' : 'none';
+        sizeContainer.style.display = isGroup ? 'block' : 'none';
+        
+        // If switching back to individual, clear selections (but maybe not in edit mode? simple for now)
+        if (!isGroup) {
+            const checkboxes = document.querySelectorAll('input[name="selected_students"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+    }
+
+    // Enforce max group size
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.name === 'selected_students') {
+            const maxInput = document.getElementById('id_max_group_size');
+            if (!maxInput) return;
+            
+            const max = parseInt(maxInput.value) || 5;
+            const checked = document.querySelectorAll('input[name="selected_students"]:checked');
+            
+            if (checked.length > max) {
+                e.target.checked = false;
+                alert(`You can only select up to ${max} students for this group.`);
+            }
+        }
+    });
+
+    function filterStudents() {
+        const query = document.getElementById('student_search').value.toLowerCase();
+        const items = document.querySelectorAll('.student-item');
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(query) ? 'flex' : 'none';
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var dueInput = document.querySelector('input[name="due_date"]');
         var noDueCheckbox = document.querySelector('input[name="no_due_date"]');
