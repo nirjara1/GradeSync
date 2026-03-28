@@ -13,6 +13,7 @@ urlpatterns = [
     path('assignments/<int:pk>/view/', views.assignment_detail_view, name='assignment_detail'),
     path('assignments/<int:pk>/gradebook/', views.gradebook_view, name='gradebook'),
     path('submissions/<int:pk>/grade/', views.grade_submission_view, name='grade_submission'),
+    path('submissions/<int:submission_id>/compare/', views.compare_submissions_view, name='compare_submissions'),
     path('submissions/<int:pk>/download/', views.download_submission_view, name='download_submission'),
     path('submissions/<int:pk>/delete/', views.delete_submission_view, name='delete_submission'),
     
@@ -34,6 +35,7 @@ urlpatterns = [
     path('api/submissions/<int:submission_id>/grade/', views.grade_submission_api, name='grade_submission_api'),
     path('api/submissions/<int:submission_id>/execute/', views.execute_submission_api, name='execute_submission_api'),
     path('api/submission-files/<int:submission_id>/', views.submission_files_api, name='submission_files_api'),
+    path('submissions/<int:submission_id>/autograde/', views.autograde_submission_api, name='autograde_submission'),
     path('submissions/<int:submission_id>/test-results/', views.submission_test_results, name='submission_test_results'),
     
     # Bulk grading and reporting

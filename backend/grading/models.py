@@ -163,6 +163,9 @@ class Submission(models.Model):
     plagiarism_score = models.FloatField(null=True, blank=True)
     plagiarism_confidence_score = models.FloatField(null=True, blank=True)
     plagiarism_match_info = models.TextField(blank=True)
+    plagiarism_match = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name='plagiarized_by'
+    )
     
     # Static analysis violations
     rule_violations = models.TextField(blank=True, help_text="JSON list of rule violations found")

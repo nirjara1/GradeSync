@@ -142,6 +142,22 @@ def grade_submission_async(self, submission_id):
         raise self.retry(exc=exc, countdown=30 * (self.request.retries + 1))
 
 
+@shared_task(bind=True, max_retries=2)
+def run_submission_analysis_async(self, submission_id):
+    """
+    Asynchronously run AI likelihood and Plagiarism checks on a submission.
+    Ensures that when a student submits, the analysis is there by the time the instructor opens it.
+    """
+    try:
+        from grading.services import run_submission_analysis
+        
+        logger.info(f"Starting background Integrity Analysis for submission {submission_id}")
+        return run_submission_analysis(submission_id)
+    except Exception as exc:
+        logger.error(f"Error in background Integrity Analysis for submission {submission_id}: {str(exc)}")
+        raise self.retry(exc=exc, countdown=30 * (self.request.retries + 1))
+
+
 @shared_task
 def cleanup_old_results():
     """
