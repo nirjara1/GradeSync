@@ -87,18 +87,7 @@ def profile(request):
     profile_obj, _ = UserProfile.objects.get_or_create(user=user)
     
     if request.method == 'POST':
-        # Update User model fields
-        full_name = request.POST.get('full_name', '').strip()
-        if full_name:
-            # Simple split for first and last name
-            parts = full_name.split(' ', 1)
-            user.first_name = parts[0]
-            if len(parts) > 1:
-                user.last_name = parts[1]
-            else:
-                user.last_name = ''
-            user.save()
-            
+        # Identity fields (full name, email, CWID, role) are not editable here—only registration/admin.
         # Update UserProfile fields
         profile_obj.academic_title = request.POST.get('academic_title', '')
         profile_obj.department = request.POST.get('department', '')

@@ -30,6 +30,7 @@ class GradeSyncAdminSite(admin.AdminSite):
             path('execution-environment/', self.admin_view(self.execution_environment_view), name='execution_environment'),
             path('archive-class/', self.admin_view(self.archive_class_view), name='archive_class'),
             path('database-maintenance/', self.admin_view(self.database_maintenance_view), name='database_maintenance'),
+            path('student-cwid/', self.admin_view(self.student_cwid_view), name='student_cwid'),
         ]
         return custom_urls + urls
 
@@ -125,6 +126,69 @@ class GradeSyncAdminSite(admin.AdminSite):
         )
         return render(request, 'admin/items/execution_environment.html', context)
 
+    def student_cwid_view(self, request):
+        """Staff-facing UI to set or update each student's unique CWID."""
+        from grading.models import Student
+        from django.shortcuts import render, redirect
+        from django.contrib import messages
+        from django.db.models import Q
+        from django.urls import reverse
+        from urllib.parse import quote
+
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            if action == 'save_cwid':
+                pk = request.POST.get('student_id')
+                raw = (request.POST.get('cwid') or '').strip()
+                try:
+                    st = Student.objects.select_related('user').get(pk=pk)
+                except (Student.DoesNotExist, ValueError, TypeError):
+                    messages.error(request, 'Student record not found.')
+                else:
+                    new_cwid = raw if raw else None
+                    if new_cwid:
+                        conflict = Student.objects.filter(cwid=new_cwid).exclude(pk=st.pk).exists()
+                        if conflict:
+                            messages.error(request, 'That CWID is already assigned to another student.')
+                        else:
+                            st.cwid = new_cwid
+                            st.save(update_fields=['cwid'])
+                            label = (st.user.get_full_name() or '').strip() or st.user.username
+                            messages.success(request, f'CWID saved for {label}.')
+                    else:
+                        st.cwid = None
+                        st.save(update_fields=['cwid'])
+                        label = (st.user.get_full_name() or '').strip() or st.user.username
+                        messages.success(request, f'CWID cleared for {label}.')
+            preserve_q = (request.POST.get('preserve_q') or '').strip()
+            base = reverse('admin:student_cwid')
+            if preserve_q:
+                return redirect(f'{base}?q={quote(preserve_q)}')
+            return redirect(base)
+
+        qs = Student.objects.select_related('user').order_by(
+            'user__last_name', 'user__first_name', 'user__username'
+        )
+        q = (request.GET.get('q') or '').strip()
+        if q:
+            qs = qs.filter(
+                Q(user__username__icontains=q)
+                | Q(user__email__icontains=q)
+                | Q(user__first_name__icontains=q)
+                | Q(user__last_name__icontains=q)
+                | Q(cwid__icontains=q)
+            )
+
+        context = dict(
+            self.each_context(request),
+            title='Student CWID',
+            students=qs,
+            search_q=q,
+            student_count=qs.count(),
+        )
+        return render(request, 'admin/items/student_cwid.html', context)
+
+
 # Replace the default admin site
 gradesync_admin = GradeSyncAdminSite(name='admin')
 
@@ -154,3 +218,29 @@ class ProgrammingLanguageAdmin(admin.ModelAdmin):
     list_display = ('name', 'version', 'compile_command', 'run_command', 'status')
 
 gradesync_admin.register(ProgrammingLanguage, ProgrammingLanguageAdmin)
+
+from professor.models import UserProfile
+
+
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'role')
+    list_filter = ('role',)
+    search_fields = ('user__username', 'user__email')
+    raw_id_fields = ('user',)
+
+
+gradesync_admin.register(UserProfile, UserProfileAdmin)
+
+from grading.models import Student
+
+
+class GradeSyncStudentAdmin(admin.ModelAdmin):
+    """Student-only records; CWID is stored here (not on faculty UserProfile)."""
+    list_display = ('user', 'cwid', 'enrollment_date')
+    search_fields = ('user__username', 'user__email', 'user__first_name', 'user__last_name', 'cwid')
+    autocomplete_fields = ('user',)
+    fields = ('user', 'cwid', 'enrollment_date')
+    readonly_fields = ('enrollment_date',)
+
+
+gradesync_admin.register(Student, GradeSyncStudentAdmin)

@@ -6,8 +6,8 @@ from .models import (
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('user', 'enrollment_date')
-    search_fields = ('user__first_name', 'user__last_name', 'user__username')
+    list_display = ('user', 'cwid', 'enrollment_date')
+    search_fields = ('user__first_name', 'user__last_name', 'user__username', 'cwid')
     ordering = ('-enrollment_date',)
 
 @admin.register(Assignment)

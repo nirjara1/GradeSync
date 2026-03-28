@@ -1,11 +1,25 @@
 {% extends 'portal/base_portal.html' %}
 {% load static %}
 
+{% block extra_css %}
+<style>
+    .profile-identity-section { margin-bottom: 8px; }
+    .profile-identity-hint {
+        font-size: 13px; color: #6b7280; margin: 0 0 16px 0; line-height: 1.5;
+    }
+    .profile-identity-readonly {
+        background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 18px; margin-bottom: 8px;
+    }
+    .profile-identity-readonly .view-group label { color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .profile-identity-readonly .view-value { color: #111827; font-weight: 600; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="profile-settings-container">
     <div class="profile-settings-header">
         <h2 class="page-title">Student Profile</h2>
-        <p class="profile-subtitle">View and update your personal details</p>
+        <p class="profile-subtitle">Update your photo, major, and biography. Name, email, CWID, and account type are managed at registration or by an administrator.</p>
     </div>
     
     <hr class="divider">
@@ -49,6 +63,16 @@
                     <div class="view-value">{{ user.email }}</div>
                 </div>
 
+                <div class="view-group">
+                    <label>CWID</label>
+                    <div class="view-value">{% if student.cwid %}{{ student.cwid }}{% else %}Not on file{% endif %}</div>
+                </div>
+
+                <div class="view-group">
+                    <label>Account type</label>
+                    <div class="view-value">{{ profile.get_role_display }}</div>
+                </div>
+
                 <div class="view-group full-width">
                     <label>Major / Department</label>
                     <div class="view-value">{{ profile.department|default:'Undeclared' }}</div>
@@ -71,6 +95,31 @@
     <!-- EDIT MODE -->
     <form id="profile-edit-mode" method="post" action="{% url 'student_profile' %}" enctype="multipart/form-data" class="profile-settings-form" style="display: none;">
         {% csrf_token %}
+
+        <div class="settings-section profile-identity-section">
+            <h3 class="section-title">Account information</h3>
+            <p class="profile-identity-hint">These details cannot be changed here. Contact an administrator if something is incorrect.</p>
+            <div class="profile-identity-readonly">
+                <div class="form-grid view-grid">
+                    <div class="view-group">
+                        <label>Full name</label>
+                        <div class="view-value">{{ user.get_full_name|default:user.email }}</div>
+                    </div>
+                    <div class="view-group">
+                        <label>Email</label>
+                        <div class="view-value">{{ user.email }}</div>
+                    </div>
+                    <div class="view-group">
+                        <label>CWID</label>
+                        <div class="view-value">{% if student.cwid %}{{ student.cwid }}{% else %}Not on file{% endif %}</div>
+                    </div>
+                    <div class="view-group">
+                        <label>Account type</label>
+                        <div class="view-value">{{ profile.get_role_display }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <div class="settings-section photo-section">
             <h3 class="section-title">Profile Picture</h3>
@@ -97,18 +146,6 @@
             <h3 class="section-title">Edit Personal Details</h3>
             
             <div class="form-grid">
-                <div class="form-group">
-                    <label for="full_name">Full Name</label>
-                    <input type="text" id="full_name" name="full_name" class="form-input" value="{{ user.get_full_name }}" placeholder="Your full name">
-                    <small class="field-hint">Set when you created your account; you can update it here anytime.</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" class="form-input" value="{{ user.email }}" readonly>
-                    <small class="field-hint">Email cannot be changed.</small>
-                </div>
-
                 <div class="form-group full-width">
                     <label for="department">Major / Department</label>
                     <input type="text" id="department" name="department" class="form-input" value="{{ profile.department|default:'' }}" placeholder="e.g., Computer Science">

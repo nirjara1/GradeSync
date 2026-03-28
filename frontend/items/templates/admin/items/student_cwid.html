@@ -1,0 +1,111 @@
+{% extends "admin/base_gradesync.html" %}
+{% load static %}
+
+{% block title %}Student CWID | GradeSync Admin{% endblock %}
+{% block nav_student_cwid %}active{% endblock %}
+
+{% block extrastyle %}
+<style>
+    .cwid-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; }
+    .cwid-search { display: flex; gap: 8px; flex: 1; min-width: 220px; max-width: 480px; }
+    .cwid-search input[type="text"] {
+        flex: 1; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;
+    }
+    .cwid-search button, .btn-cwid-save {
+        padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none;
+        background: #840029; color: #fff; font-size: 14px;
+    }
+    .btn-cwid-save { padding: 8px 14px; font-size: 13px; }
+    .cwid-table-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
+    .cwid-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .cwid-table th {
+        text-align: left; padding: 12px 14px; background: #f9fafb; color: #374151; font-weight: 700;
+        font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e5e7eb;
+    }
+    .cwid-table td { padding: 12px 14px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    .cwid-table tr:last-child td { border-bottom: none; }
+    .cwid-table .cwid-input {
+        width: 100%; max-width: 200px; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px;
+        font-family: ui-monospace, monospace; font-size: 13px;
+    }
+    .cwid-hint { font-size: 13px; color: #6b7280; margin: 0 0 16px 0; max-width: 720px; line-height: 1.5; }
+    .cwid-empty { padding: 40px; text-align: center; color: #6b7280; }
+    .cwid-meta { font-size: 13px; color: #6b7280; margin-bottom: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">Student CWID</h1>
+    <hr class="page-rule">
+</div>
+
+<p class="cwid-hint">
+    Set or update each student’s unique campus-wide ID (CWID). Leave the field empty and save to clear.
+    Students with no <strong>grading → Student</strong> record yet appear only after their account has a student profile (e.g. first course activity); you can also add records under <em>Grading → Students</em> in the admin index.
+</p>
+
+{% if messages %}
+<div class="messages" style="margin-bottom: 16px;">
+    {% for message in messages %}
+    <div class="alert" style="padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; background: {% if message.tags == 'error' %}#fef2f2{% else %}#f0fdf4{% endif %}; color: #111;">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="cwid-toolbar">
+    <form method="get" class="cwid-search" action="{% url 'admin:student_cwid' %}">
+        <input type="text" name="q" value="{{ search_q|default:'' }}" placeholder="Search by name, email, username, or CWID…" aria-label="Search students">
+        <button type="submit">Search</button>
+    </form>
+    <span class="cwid-meta">{{ student_count }} student record{{ student_count|pluralize }}</span>
+</div>
+
+<div class="cwid-table-wrap">
+    {% if students %}
+    <table class="cwid-table">
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Email</th>
+                <th>Username</th>
+                <th style="min-width: 220px;">CWID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in students %}
+            <tr>
+                <td><strong>{{ s.user.get_full_name|default:s.user.username }}</strong></td>
+                <td>{{ s.user.email|default:"—" }}</td>
+                <td style="color: #6b7280;">{{ s.user.username }}</td>
+                <td>
+                    <form method="post" action="{% url 'admin:student_cwid' %}" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="save_cwid">
+                        <input type="hidden" name="student_id" value="{{ s.pk }}">
+                        <input type="hidden" name="preserve_q" value="{{ search_q|default:'' }}">
+                        <input class="cwid-input" type="text" name="cwid" value="{{ s.cwid|default:'' }}" maxlength="32" placeholder="e.g. 12345678" autocomplete="off" aria-label="CWID for {{ s.user.get_full_name|default:s.user.username }}">
+                        <button type="submit" class="btn-cwid-save">Save</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="cwid-empty">
+        {% if search_q %}
+            No student records match your search. Try a different term or clear the search.
+        {% else %}
+            No student records in the database yet.
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<p style="margin-top: 24px; font-size: 13px; color: #6b7280;">
+    <a href="{% url 'admin:grading_student_changelist' %}">Open full Student list (Django admin)</a> for add/delete or bulk operations.
+</p>
+{% endblock %}
