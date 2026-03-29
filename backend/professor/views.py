@@ -31,11 +31,6 @@ def dashboard(request):
     from grading.models import Assignment, Submission
     from django.utils import timezone
     
-    # Upcoming Assignments
-    upcoming_assignments = Assignment.objects.filter(
-        course__professor=user, 
-        due_date__gte=timezone.now()
-    ).order_by('due_date')[:5]
 
     # Recent Submissions
     recent_submissions = (
@@ -62,7 +57,6 @@ def dashboard(request):
         'courses': courses,
         'archived_courses': archived_courses,
         'is_faculty': is_faculty,
-        'upcoming_assignments': upcoming_assignments,
         'recent_submissions': recent_submissions,
         'pending_grading': pending_grading,
         'todo_items': todo_items,

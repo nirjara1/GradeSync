@@ -682,6 +682,41 @@
             white-space: nowrap;
             border: 0;
         }
+
+        /* Integrity Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 12px;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.4;
+        }
+        .badge-success { background-color: #10b981; }
+        .badge-warning { background-color: #f59e0b; }
+        .badge-danger { background-color: #dc2626; }
+        .badge-info { background-color: #3b82f6; }
+        
+        .integrity-card {
+            background: #f9fafb; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px; 
+            padding: 12px; 
+            margin-bottom: 12px; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        
+        .integrity-title {
+            color:#111827; 
+            font-weight:600; 
+            font-size:13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
     </style>
 </head>
 
@@ -911,27 +946,63 @@
                         </div> <!-- end tab-grading -->
                     </form>
 
-                    {% if not is_student %}
+                    {% if is_instructor or request.session.active_role == 'GRADING_ASSISTANT' %}
                     <div id="integrityAnalysisSection" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                        <h4 style="margin-top: 0; color: #111827; font-size: 14px; margin-bottom: 12px; text-transform:uppercase; letter-spacing:.5px;">
-                            <i class="fa-solid fa-user-shield" style="margin-right:5px; color:#840029;"></i>Integrity Analysis
+                        <h4 style="margin-top: 0; color: #111827; font-size: 14px; margin-bottom: 12px; text-transform:uppercase; letter-spacing:.5px; display: flex; justify-content: space-between; align-items: center;">
+                            <span><i class="fa-solid fa-user-shield" style="margin-right:5px; color:#840029;"></i>Integrity Analysis</span>
+                            <i class="fa-solid fa-circle-question" style="color: #9ca3af; font-size: 12px; cursor: help;" title="AI detection is heuristic and should not be used as sole evidence."></i>
                         </h4>
                         
-                        {% if submission.plagiarism_score != None %}
-                        <!-- Plagiarism -> Primary -->
-                        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="color:#111827; font-weight:600; font-size:13px;">🔍 Plagiarism Similarity</span>
-                                {% if submission.plagiarism_score < 30 %}
-                                    <span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; color:#fff; background:#10b981;">LOW</span>
-                                {% elif submission.plagiarism_score < 50 %}
-                                    <span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; color:#fff; background:#f59e0b;">MEDIUM</span>
+                        <!-- AI Detection block -->
+                        <div class="integrity-card">
+                            <div style="display:flex; justify-content:space-between; align-items: center;">
+                                <span class="integrity-title">🤖 AI Detection</span>
+                                <span style="font-weight:bold; font-size: 14px; color: {% if submission.ai_likelihood_score == None %}#9ca3af{% elif submission.ai_likelihood_score <= 30 %}#10b981{% elif submission.ai_likelihood_score <= 70 %}#f59e0b{% else %}#dc2626{% endif %};">
+                                    {% if submission.ai_likelihood_score != None %}{{ submission.ai_likelihood_score|floatformat:1 }}%{% else %}N/A{% endif %}
+                                </span>
+                            </div>
+
+                            <div style="margin-top:5px;">
+                                {% if submission.ai_likelihood_score != None %}
+                                    {% if submission.ai_likelihood_score <= 30 %}
+                                        <span class="badge badge-success">LOW</span>
+                                    {% elif submission.ai_likelihood_score <= 70 %}
+                                        <span class="badge badge-warning">MEDIUM</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">HIGH</span>
+                                    {% endif %}
                                 {% else %}
-                                    <span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; color:#fff; background:#dc2626;">HIGH</span>
+                                    <span class="badge badge-info">N/A</span>
+                                {% endif %}
+                            </div>
+
+                            <div style="font-size:12px; color:#666; margin-top:5px;">
+                                Confidence: {% if submission.ai_confidence_score != None %}{{ submission.ai_confidence_score|floatformat:1 }}%{% else %}-{% endif %}
+                            </div>
+
+                            <div style="font-size:12px; color:#777; margin-top:5px; font-style: italic;">
+                                {{ submission.ai_explanation|default:"Analysis pending or unavailable." }}
+                            </div>
+                        </div>
+
+                        <!-- Plagiarism block -->
+                        <div class="integrity-card" style="margin-bottom: 0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="integrity-title">🔍 Plagiarism Similarity</span>
+                                {% if submission.plagiarism_score != None %}
+                                    {% if submission.plagiarism_score <= 30 %}
+                                        <span class="badge badge-success">LOW</span>
+                                    {% elif submission.plagiarism_score <= 70 %}
+                                        <span class="badge badge-warning">MEDIUM</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">HIGH</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-info">N/A</span>
                                 {% endif %}
                             </div>
                             <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:4px;">
-                                <span style="font-weight:800; color:#840029; font-size:20px;">{{ submission.plagiarism_score|floatformat:1 }}%</span>
+                                <span style="font-weight:800; color:#840029; font-size:20px;">{{ submission.plagiarism_score|default:"0.0"|floatformat:1 }}%</span>
                             </div>
                             {% if submission.plagiarism_match_info %}
                             <div style="font-size:11px; color:#6b7280; margin-top:4px;">{{ submission.plagiarism_match_info }}</div>
@@ -943,32 +1014,6 @@
                             </a>
                             {% endif %}
                         </div>
-                        {% endif %}
-
-                        {% if submission.ai_likelihood_score != None %}
-                        <!-- AI Likelihood -> Secondary -->
-                        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; font-size: 13px; color: #374151;">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="color:#6b7280; font-size:12px;">🤖 AI-Generated Likelihood</span>
-                                <span style="font-weight:700; color:#374151; font-size:12px;">{{ submission.ai_likelihood_score|floatformat:1 }}%</span>
-                            </div>
-                            <div style="background:#e5e7eb; border-radius:4px; height:5px; margin-top:4px; overflow:hidden;">
-                                <div style="height:100%; background:#9ca3af; border-radius:4px; width:{% if submission.ai_likelihood_score > 100 %}100{% else %}{{ submission.ai_likelihood_score|floatformat:0 }}{% endif %}%; transition:width .5s;"></div>
-                            </div>
-                            {% if submission.ai_confidence_score %}
-                            <div style="font-size:11px; color:#6b7280; margin-top:6px;">Confidence (estimated): {{ submission.ai_confidence_score|floatformat:0 }}%</div>
-                            {% endif %}
-                            {% if submission.ai_explanation %}
-                            <div style="font-size:11px; color:#6b7280; margin-top:4px; font-style:italic;">"{{ submission.ai_explanation }}"</div>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                        
-                        {% if submission.plagiarism_score == None and submission.ai_likelihood_score == None %}
-                        <div style="font-size:12px; color:#6b7280; font-style:italic; padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px dashed #e5e7eb; text-align: center;">
-                            Integrity analysis results are not available for this submission.
-                        </div>
-                        {% endif %}
                     </div>
                     {% endif %}
 

@@ -402,19 +402,6 @@
             </form>
         </div>
 
-        <div class="widget-panel">
-            <h3 class="widget-title"><i class="fa-regular fa-clock" style="font-size: 18px;"></i> Upcoming Assignments</h3>
-            <ul class="feed-list">
-                {% for assignment in upcoming_assignments %}
-                <li class="feed-item">
-                    <span class="feed-main"><i class="fa-solid fa-file-code feed-icon"></i> {{ assignment.name }} Due</span>
-                    <span class="feed-sub">{{ assignment.course.code_section_label }} - {{ assignment.due_date|date:"l, P" }}</span>
-                </li>
-                {% empty %}
-                <li style="color: var(--text-muted); font-size: 14px;">No upcoming assignments.</li>
-                {% endfor %}
-            </ul>
-        </div>
 
         <div class="widget-panel">
             <h3 class="widget-title"><i class="fa-solid fa-bolt" style="font-size: 18px;"></i> Recent Submissions</h3>
