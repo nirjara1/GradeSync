@@ -4,6 +4,7 @@ from professor.models import CourseMember, UserProfile
 from django.utils import timezone
 from django.db.models import Q
 from grading.models import Assignment, Submission, Student
+from grading.group_services import get_effective_submission_for_student
 from .gradebook_utils import course_grade_totals
 
 @login_required
@@ -37,7 +38,12 @@ def student_dashboard_view(request):
     
     if student_profile:
         # Assignments not submitted, due in future
-        submitted_assignment_ids = Submission.objects.filter(student=student_profile).values_list('assignment_id', flat=True)
+        submitted_assignment_ids = set(
+            Submission.objects.filter(student=student_profile).values_list('assignment_id', flat=True)
+        )
+        submitted_assignment_ids.update(
+            Submission.objects.filter(group__members__student=student_profile).values_list('assignment_id', flat=True)
+        )
         now = timezone.now()
         upcoming_assignments = (
             Assignment.objects.filter(course__in=course_ids)
@@ -61,11 +67,7 @@ def student_dashboard_view(request):
             Assignment.objects.filter(course__in=enrolled_courses, status='published')
             .order_by('course_id', 'due_date', 'id')
         )
-        all_submissions = Submission.objects.filter(
-            student=student_profile,
-            assignment__in=all_assignments,
-        ).select_related('grade')
-        sub_by_assignment = {s.assignment_id: s for s in all_submissions}
+        sub_by_assignment = {a.id: get_effective_submission_for_student(a, student_profile) for a in all_assignments}
         assignments_by_course = {}
         for a in all_assignments:
             assignments_by_course.setdefault(a.course_id, []).append(a)
@@ -156,12 +158,7 @@ def student_assignments(request):
     )
     
     # Fetch submissions for this student for these assignments to determine status
-    submissions = Submission.objects.filter(
-        student=student_profile, 
-        assignment__in=assignments
-    ).select_related('grade')
-    
-    submission_dict = {s.assignment_id: s for s in submissions}
+    submission_dict = {a.id: get_effective_submission_for_student(a, student_profile) for a in assignments}
     now = timezone.now()
 
     for assignment in assignments:
@@ -246,11 +243,7 @@ def student_gradebook(request):
         if not assignments:
             continue
 
-        subs = Submission.objects.filter(
-            student=student_profile,
-            assignment__in=assignments,
-        ).select_related('grade')
-        sub_by_aid = {s.assignment_id: s for s in subs}
+        sub_by_aid = {a.id: get_effective_submission_for_student(a, student_profile) for a in assignments}
 
         pct, earned, possible = course_grade_totals(assignments, sub_by_aid)
         if pct is not None:

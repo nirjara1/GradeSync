@@ -7,15 +7,15 @@ Show course sidebar navigation when an instructor is viewing this gradebook.
 For students / GAs we keep the simple single-column layout.
 {% endcomment %}
 {% if course and base_template == 'base_professor.html' %}
-<div style="display: flex; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto; padding: 20px;">
+<div style="display: flex; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box;">
     {% include "course_sidebar.html" %}
-    <div style="flex: 1;">
+    <div style="flex: 1; min-width: 0; max-width: 100%;">
 {% else %}
 <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
 {% endif %}
     {# If we have course-level grid data (rows + assignments), show Canvas-style grid #}
     {% if rows and assignments %}
-    <div style="max-width: 100%; overflow-x: auto; padding-right: 0;">
+    <div style="max-width: 100%; min-width: 0; overflow-x: auto; padding-right: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h2 class="page-title" style="margin: 0; color: var(--maroon);">
                 {{ course.code }}-{{ course.section }} &gt; Grades
@@ -68,6 +68,7 @@ For students / GAs we keep the simple single-column layout.
                                 {% else %}
                                     <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb;">Not submitted</span>
                                 {% endif %}
+                            </td>
                             {% endfor %}
                         </tr>
                         {% empty %}

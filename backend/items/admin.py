@@ -199,7 +199,43 @@ gradesync_admin.register(Employee)
 # Also register Django's built-in auth models so Users/Groups are manageable
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib.auth.models import Group
-gradesync_admin.register(User, UserAdmin)
+from django.utils.translation import gettext_lazy as _
+
+
+class GradeSyncUserAdmin(UserAdmin):
+    """
+    Platform superuser (is_superuser) must be provisioned only via createsuperuser /
+    shell on a secure host — not through the admin UI. Staff may still manage
+    faculty/student accounts (is_staff, groups, etc.).
+    """
+
+    fieldsets = (
+        (None, {"fields": ("username", "password")}),
+        (_("Personal info"), {"fields": ("first_name", "last_name", "email")}),
+        (
+            _("Permissions"),
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "groups",
+                    "user_permissions",
+                ),
+            },
+        ),
+        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+    )
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            prior = type(obj).objects.get(pk=obj.pk)
+            obj.is_superuser = prior.is_superuser
+        else:
+            obj.is_superuser = False
+        super().save_model(request, obj, form, change)
+
+
+gradesync_admin.register(User, GradeSyncUserAdmin)
 gradesync_admin.register(Group, GroupAdmin)
 
 from django.contrib.admin.models import LogEntry

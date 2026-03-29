@@ -295,6 +295,26 @@
                     {{ form.max_group_size }}
                     <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Limit the number of members in this group.</div>
                 </div>
+                <div class="form-group" id="group_source_mode_container" style="{% if not assignment.is_group_assignment %}display: none;{% endif %} margin-top: 16px;">
+                    <label class="form-label">Group Source</label>
+                    <select id="group_source_mode" name="group_source_mode" class="form-control" onchange="toggleGroupSourceMode()">
+                        <option value="assignment" selected>Create assignment-specific groups</option>
+                        <option value="course_set">Use existing course group set</option>
+                    </select>
+                </div>
+                <div class="form-group" id="course_group_set_container" style="display:none; margin-top: 16px;">
+                    <label class="form-label">Course Group Set</label>
+                    <select id="course_group_set_id" name="course_group_set_id" class="form-control">
+                        <option value="">Select a course group set</option>
+                        {% for gs in course_group_sets %}
+                        <option value="{{ gs.id }}">{{ gs.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" id="save_as_course_set_container" style="{% if not assignment.is_group_assignment %}display: none;{% endif %} margin-top: 16px;">
+                    <label class="form-label">Save as course-level group set (optional)</label>
+                    <input type="text" class="form-control" name="save_as_course_group_set_name" placeholder="e.g., Final Project Teams">
+                </div>
             </div>
             
         <!-- NEW: Group Builder Container -->
@@ -458,7 +478,7 @@
     // Initialize data from template
     const allStudents = [
         {% for member in course_students %}
-        { id: "{{ member.id|escapejs }}", name: "{{ member.user.get_full_name|default:member.user.username|escapejs }}", email: "{{ member.user.email|escapejs }}" },
+        { id: "{{ member.student_id|escapejs }}", name: "{{ member.user.get_full_name|default:member.user.username|escapejs }}", email: "{{ member.user.email|escapejs }}" },
         {% endfor %}
     ];
 
@@ -482,12 +502,33 @@
         const isGroup = document.getElementById('type_group').checked;
         const container = document.getElementById('group_builder_container');
         const sizeContainer = document.getElementById('max_group_size_container');
+        const sourceModeContainer = document.getElementById('group_source_mode_container');
+        const saveAsContainer = document.getElementById('save_as_course_set_container');
         
         container.style.display = isGroup ? 'block' : 'none';
         sizeContainer.style.display = isGroup ? 'block' : 'none';
+        sourceModeContainer.style.display = isGroup ? 'block' : 'none';
+        saveAsContainer.style.display = isGroup ? 'block' : 'none';
+        if (isGroup) toggleGroupSourceMode();
         
         if (isGroup && groups.length === 0) {
             addGroup(); // Start with one group if none exist
+        }
+    }
+
+    function toggleGroupSourceMode() {
+        const mode = document.getElementById('group_source_mode').value;
+        const builder = document.getElementById('group_builder_container');
+        const setContainer = document.getElementById('course_group_set_container');
+        const saveAsContainer = document.getElementById('save_as_course_set_container');
+        if (mode === 'course_set') {
+            setContainer.style.display = 'block';
+            builder.style.display = 'none';
+            saveAsContainer.style.display = 'none';
+        } else {
+            setContainer.style.display = 'none';
+            builder.style.display = 'block';
+            saveAsContainer.style.display = 'block';
         }
     }
 
@@ -630,7 +671,7 @@
             groups.forEach((group, index) => {
                 const groupEl = document.createElement('div');
                 groupEl.id = `group-card-${group.id}`;
-                groupEl.style.cssText = 'background: white; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden;';
+                groupEl.style.cssText = 'background: white; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: visible;';
                 
                 const otherAssignedIds = new Set();
                 groups.forEach(g => {
@@ -642,7 +683,7 @@
                 const groupAssignedIds = new Set(group.members.map(m => m.id));
 
                 groupEl.innerHTML = `
-                    <div class="group-accordion-header" onclick="toggleGroupExpansion(${group.id})">
+                    <div class="group-accordion-header" style="overflow: hidden; border-top-left-radius: 10px; border-top-right-radius: 10px;" onclick="toggleGroupExpansion(${group.id})">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <i class="fa-solid ${group.isExpanded ? 'fa-chevron-down' : 'fa-chevron-right'}" style="color: #64748b; font-size: 14px;"></i>
                             <span style="font-weight: 700; color: #1e293b;">${group.name}</span>
@@ -675,7 +716,7 @@
                             </div>
                             
                             <div style="margin-top: 15px;">
-                                <div style="position: relative;">
+                                <div class="group-member-search-wrap" style="position: relative;">
                                     <input type="text" placeholder="Add student..." class="form-control border-focus" style="font-size: 13px; padding-left: 35px;" 
                                            onkeyup="filterDropdown(this, ${group.id})"
                                            onfocus="showDropdown(this)" 
@@ -738,18 +779,31 @@
                 g.members.forEach(m => otherAssignedIds.add(m.id));
             }
         });
-        dropdown.innerHTML = renderDropdownItems(groupId, assignedIds, otherAssignedIds, input.value);
+        if (dropdown) {
+            dropdown.innerHTML = renderDropdownItems(groupId, assignedIds, otherAssignedIds, input.value);
+            dropdown.style.display = 'block';
+        }
+    }
+
+    function getStudentDropdownEl(input) {
+        const wrap = input && input.closest && input.closest('.group-member-search-wrap');
+        if (wrap) {
+            const dd = wrap.querySelector('.student-dropdown');
+            if (dd) return dd;
+        }
+        const n2 = input && input.nextElementSibling && input.nextElementSibling.nextElementSibling;
+        return (n2 && n2.classList && n2.classList.contains('student-dropdown')) ? n2 : null;
     }
 
     function showDropdown(input) {
-        input.nextElementSibling.nextElementSibling.style.display = 'block';
+        const dd = getStudentDropdownEl(input);
+        if (dd) dd.style.display = 'block';
     }
 
     function hideDropdown(input) {
         setTimeout(() => {
-            if (input.nextElementSibling.nextElementSibling) {
-                input.nextElementSibling.nextElementSibling.style.display = 'none';
-            }
+            const dd = getStudentDropdownEl(input);
+            if (dd) dd.style.display = 'none';
         }, 200);
     }
 

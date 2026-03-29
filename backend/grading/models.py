@@ -1,4 +1,6 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.contrib.auth.models import User
 import json
 
@@ -202,11 +204,41 @@ class Submission(models.Model):
     rule_violations = models.TextField(blank=True, help_text="JSON list of rule violations found")
 
     class Meta:
-        # We handle uniqueness in the save() or view layer to support both individual and group assignments
-        pass
+        constraints = [
+            models.UniqueConstraint(
+                fields=['assignment', 'student'],
+                condition=Q(group__isnull=True),
+                name='uniq_individual_submission_per_assignment',
+            ),
+            models.UniqueConstraint(
+                fields=['assignment', 'group'],
+                condition=Q(group__isnull=False),
+                name='uniq_group_submission_per_assignment',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.student} -> {self.assignment}"
+
+    def clean(self):
+        assignment = self.assignment
+        if not assignment_id_or_obj(assignment):
+            return
+
+        if assignment.is_group_assignment:
+            if not self.group_id:
+                raise ValidationError("Group assignments must be submitted for a group.")
+            if self.group and self.group.assignment_id != assignment.id:
+                raise ValidationError("Submission group does not belong to this assignment.")
+        else:
+            if not self.student_id:
+                raise ValidationError("Individual assignments must include a student owner.")
+            if self.group_id:
+                raise ValidationError("Individual assignments cannot be submitted for a group.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
     
     def get_rule_violations_list(self):
         """Return list of rule violations from JSON"""
@@ -295,3 +327,45 @@ class CriterionGrade(models.Model):
 
     def __str__(self):
         return f"{self.points_earned} for {self.criterion.name} ({self.submission})"
+
+
+def assignment_id_or_obj(assignment):
+    return assignment and getattr(assignment, "id", None)
+
+
+class CourseGroupSet(models.Model):
+    """Reusable course-level group definitions."""
+    course = models.ForeignKey('professor.Course', on_delete=models.CASCADE, related_name='group_sets')
+    name = models.CharField(max_length=255)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_course_group_sets')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('course', 'name')
+        ordering = ['-created_at', 'id']
+
+    def __str__(self):
+        return f"{self.name} ({self.course})"
+
+
+class CourseGroup(models.Model):
+    group_set = models.ForeignKey(CourseGroupSet, on_delete=models.CASCADE, related_name='groups')
+    name = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.name or ('Group ' + str(self.id))} [{self.group_set.name}]"
+
+
+class CourseGroupMember(models.Model):
+    group = models.ForeignKey(CourseGroup, on_delete=models.CASCADE, related_name='members')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='course_group_memberships')
+
+    class Meta:
+        unique_together = ('group', 'student')
+
+    def __str__(self):
+        return f"{self.student} in {self.group}"

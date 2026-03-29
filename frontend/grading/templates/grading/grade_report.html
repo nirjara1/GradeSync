@@ -238,6 +238,9 @@
                     <div>
                         <div class="fw-bold" style="color:#111827;">Bulk testing results</div>
                         <div class="small text-muted">Click <strong>Run Bulk Testing</strong> to check Pass/Fail results. Click any cell to view Expected vs Actual output.</div>
+                        {% if assignment.is_group_assignment %}
+                        <div class="small text-muted mt-1">Rows show shared results for each student's assigned group submission.</div>
+                        {% endif %}
                     </div>
                     <span class="badge rounded-pill text-bg-light border" style="border-color:#e5e7eb;color:#374151;">{{ test_cases|length }} tests</span>
                 </div>

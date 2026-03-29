@@ -10,6 +10,17 @@ from .sandbox import execute_code
 
 logger = logging.getLogger(__name__)
 
+
+def _submission_owner_label(submission: Submission) -> str:
+    if submission.student_id and submission.student and submission.student.user:
+        return submission.student.user.email or submission.student.user.username
+    if submission.group_id:
+        member = submission.group.members.select_related('student__user').first()
+        if member and member.student and member.student.user:
+            return member.student.user.email or member.student.user.username
+        return f"group-{submission.group_id}"
+    return f"submission-{submission.id}"
+
 # Import AI modules only when needed to avoid import errors
 try:
     from autograder_ai.ai.inference_ai_likelihood import AIInferenceEngine
@@ -148,9 +159,7 @@ def run_submission_analysis(submission_id) -> dict:
                         matched_sub = Submission.objects.get(id=int(top_match_id))
                         submission.plagiarism_match = matched_sub
                         
-                        email = matched_sub.student.user.email
-                        if not email:
-                            email = matched_sub.student.user.username
+                        email = _submission_owner_label(matched_sub)
                         submission.plagiarism_match_info = f"Closest Match: {email}"
                         
                         # Bidirectional update: update the matched submission if this new match is higher
@@ -160,9 +169,7 @@ def run_submission_analysis(submission_id) -> dict:
                             matched_sub.plagiarism_confidence_score = submission.plagiarism_confidence_score
                             matched_sub.plagiarism_match = submission
                             
-                            sub_email = submission.student.user.email
-                            if not sub_email:
-                                sub_email = submission.student.user.username
+                            sub_email = _submission_owner_label(submission)
                             matched_sub.plagiarism_match_info = f"Closest Match: {sub_email}"
                             
                             matched_sub.save(update_fields=[

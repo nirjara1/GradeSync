@@ -16,6 +16,7 @@ urlpatterns = [
     path('submissions/<int:submission_id>/compare/', views.compare_submissions_view, name='compare_submissions'),
     path('submissions/<int:pk>/download/', views.download_submission_view, name='download_submission'),
     path('submissions/<int:pk>/delete/', views.delete_submission_view, name='delete_submission'),
+    path('assignments/<int:assignment_id>/groups/<int:group_id>/reopen/', views.reopen_group_submission_view, name='reopen_group_submission'),
     
     # Test case management
     path('assignments/<int:assignment_id>/test-cases/upload/', views.upload_test_cases, name='upload_test_cases'),

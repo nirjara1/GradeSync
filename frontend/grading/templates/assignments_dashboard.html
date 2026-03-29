@@ -239,6 +239,11 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
                         </span>
                         {% endif %}
                     </div>
+                    {% if assignment.is_group_assignment %}
+                    <div style="margin-bottom:8px;">
+                        <span class="student-gradebook-badge sgb-submitted">Group assignment</span>
+                    </div>
+                    {% endif %}
                     
                     <ul class="assignment-details-list">
                         <li>

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils import timezone
 from grading.models import Assignment, Submission, Student, Grade
 from grading.services import grade_submission
+from grading.group_services import get_effective_submission_for_student
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,10 +43,7 @@ def bulk_grade_assignment(self, assignment_id):
         for i, student in enumerate(students, 1):
             try:
                 # Find existing submission
-                submission = Submission.objects.filter(
-                    student=student,
-                    assignment=assignment
-                ).first()
+                submission = get_effective_submission_for_student(assignment, student)
                 
                 if submission is None:
                     # Track missing submissions

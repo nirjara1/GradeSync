@@ -9,6 +9,16 @@
         <div class="col-md-12">
             <h2>{{ assignment.name }}</h2>
             <p class="text-muted">{{ assignment.description }}</p>
+            {% if assignment.is_group_assignment %}
+            <div class="alert alert-info">
+                <strong>Group assignment.</strong>
+                {% if student_group %}
+                    You are in <strong>{{ student_group.name|default:"your group" }}</strong>. One group submission is allowed unless faculty reopens.
+                {% else %}
+                    You are not currently assigned to a group for this assignment.
+                {% endif %}
+            </div>
+            {% endif %}
 
             <!-- Assignment Info -->
             <div class="row mb-4">
@@ -74,9 +84,12 @@
                             </small>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" {% if assignment.is_group_assignment and submission %}disabled{% endif %}>
                             <i class="fas fa-upload"></i> Submit Code
                         </button>
+                        {% if assignment.is_group_assignment and submission %}
+                        <small class="d-block mt-2 text-muted">Submission is locked after first group upload. Contact faculty to reopen.</small>
+                        {% endif %}
                     </form>
                 </div>
             </div>
