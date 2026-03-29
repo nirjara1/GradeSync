@@ -98,11 +98,19 @@ def student_profile(request):
 @login_required
 def student_courses_list(request):
     request.session['active_role'] = 'STUDENT'
-    enrollments = CourseMember.objects.filter(
+    enrollments = list(CourseMember.objects.filter(
         user=request.user,
         role_in_course__in=['STUDENT', 'GRADING_ASSISTANT']
-    ).select_related('course', 'course__professor')
-    return render(request, 'portal/student_courses.html', {'enrollments': enrollments})
+    ).select_related('course', 'course__professor'))
+    
+    active_enrollments = [e for e in enrollments if not e.course.is_archived]
+    archived_enrollments = [e for e in enrollments if e.course.is_archived]
+
+    return render(request, 'portal/student_courses.html', {
+        'enrollments': enrollments,
+        'active_enrollments': active_enrollments,
+        'archived_enrollments': archived_enrollments
+    })
 
 @login_required
 def student_assignments(request):
