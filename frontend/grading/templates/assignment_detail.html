@@ -334,6 +334,18 @@
         <!-- Tab 2: Submit Work Panel -->
         <div id="panel-submit" class="tab-panel">
             {% if is_student %}
+            {% if group_submission_locked %}
+            <div class="section-box" style="text-align: center; padding: 48px 32px;">
+                <i class="fa-solid fa-users" style="font-size: 40px; color: var(--gs-maroon); opacity: 0.85; margin-bottom: 16px;"></i>
+                <h3 class="section-title-modern" style="justify-content: center;">Group submission is locked</h3>
+                <p style="color: var(--gs-text-muted); font-size: 15px; max-width: 520px; margin: 0 auto 24px auto; line-height: 1.5;">
+                    Someone in your group already submitted for this assignment. Everyone shares that submission and grade. If you need to change it, ask your instructor or TA to reopen the group slot.
+                </p>
+                <button type="button" onclick="switchMainTab('history')" style="background: var(--gs-maroon); color: white; border: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;">
+                    View submission on History
+                </button>
+            </div>
+            {% else %}
             <div class="section-box">
                 <h3 class="section-title-modern"><i class="fa-solid fa-file-arrow-up" style="color: var(--gs-maroon);"></i>New Submission</h3>
                 <form id="submissionForm" method="POST" enctype="multipart/form-data">
@@ -377,6 +389,7 @@
                     </div>
                 </form>
             </div>
+            {% endif %}
             {% else %}
             <div class="section-box" style="text-align: center; color: var(--gs-text-muted); padding: 60px;"><i class="fa-solid fa-lock" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i><p>Instructors cannot submit work. Use the History tab to manage student submissions.</p></div>
             {% endif %}
@@ -398,7 +411,7 @@
                 {% endif %}
                 <div style="display: flex; gap: 12px;">
                     <a href="{{ latest_submission.file_path.url }}" download target="_blank" style="color: var(--gs-maroon); text-decoration: none; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--gs-border); padding: 12px 20px; border-radius: 8px;"><i class="fa-solid fa-file-arrow-down"></i> Download Submitted Files</a>
-                    {% if is_student and not latest_submission.grade %}<form id="deleteSubmissionForm" method="POST" action="{% url 'delete_submission' latest_submission.pk %}" style="display: none;">{% csrf_token %}</form><button type="button" onclick="if(confirm('Delete your latest submission?')) document.getElementById('deleteSubmissionForm').submit();" style="background: white; color: #dc2626; border: 1px solid #fecaca; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"><i class="fa-solid fa-trash"></i> Delete Submission</button>{% endif %}
+                    {% if is_student and not latest_submission.grade and not assignment.is_group_assignment %}<form id="deleteSubmissionForm" method="POST" action="{% url 'delete_submission' latest_submission.pk %}" style="display: none;">{% csrf_token %}</form><button type="button" onclick="if(confirm('Delete your latest submission?')) document.getElementById('deleteSubmissionForm').submit();" style="background: white; color: #dc2626; border: 1px solid #fecaca; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"><i class="fa-solid fa-trash"></i> Delete Submission</button>{% endif %}
                 </div>
             </div>
 
@@ -419,6 +432,11 @@
                     <h3 class="section-title-modern" style="margin: 0;"><i class="fa-solid fa-users-viewfinder" style="color: var(--gs-maroon);"></i>Student Submissions</h3>
                     <a href="{% url 'grade_report' assignment.pk %}" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background-color: var(--gs-maroon); color: white; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600;"><i class="fa-solid fa-chart-bar"></i> Test Case Report</a>
                 </div>
+                {% if can_reopen_group_submissions %}
+                <p style="font-size: 13px; color: var(--gs-text-muted); margin: -12px 0 20px 0; line-height: 1.45;">
+                    For group assignments, use <strong>Reopen Assignment</strong> on a row to remove that group’s submission so any member can submit again (shared grade applies to the whole group).
+                </p>
+                {% endif %}
                 <div style="border: 1px solid var(--gs-border); border-radius: 12px; overflow: hidden;">
                     <table class="rubric-table">
                         <thead style="background: #f8fafc;"><tr><th>Student</th><th>Submitted At</th><th>Grade</th><th style="text-align: center;">Actions</th></tr></thead>
@@ -452,6 +470,14 @@
                                         <a href="{% url 'download_submission' submission.pk %}" title="Download" style="color: var(--gs-text-muted); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gs-border); border-radius: 6px;">
                                             <i class="fa-solid fa-download"></i>
                                         </a>
+                                        {% if can_reopen_group_submissions and submission.group %}
+                                        <form method="post" action="{% url 'reopen_group_submission' assignment.id submission.group.id %}" style="display: inline; margin: 0;" onsubmit="return confirm('Remove this group submission? Students in the group will be able to submit again.');">
+                                            {% csrf_token %}
+                                            <button type="submit" title="Delete group submission and allow a new one" style="background: white; color: #b45309; border: 1px solid #fde68a; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                                                <i class="fa-solid fa-unlock"></i> Reopen Assignment
+                                            </button>
+                                        </form>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -573,14 +599,17 @@
 
     require(['vs/editor/editor.main'], function(monaco) {
         window.monaco = monaco; // Global for helper functions
-        editorInstance = monaco.editor.create(document.getElementById('monaco-editor-container-submission'), {
-            theme: 'vs-dark', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, padding: { top: 16 },
-            scrollbar: { alwaysConsumeMouseWheel: false }
-        });
         let initialFiles = [];
         try { initialFiles = JSON.parse(`{{ submission_files_json|escapejs }}` || '[]'); } catch(e) {}
-        if (initialFiles.length > 0) { initialFiles.forEach(f => addFile(f.name, f.content, f.language)); switchTab(0); }
-        else { addFile(`main${configLang === 'java' ? '.java' : '.py'}`, '', configLang); switchTab(0); }
+        const submissionContainer = document.getElementById('monaco-editor-container-submission');
+        if (submissionContainer) {
+            editorInstance = monaco.editor.create(submissionContainer, {
+                theme: 'vs-dark', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, padding: { top: 16 },
+                scrollbar: { alwaysConsumeMouseWheel: false }
+            });
+            if (initialFiles.length > 0) { initialFiles.forEach(f => addFile(f.name, f.content, f.language)); switchTab(0); }
+            else { addFile(`main${configLang === 'java' ? '.java' : '.py'}`, '', configLang); switchTab(0); }
+        }
 
         const previewContainer = document.getElementById('monaco-editor-container-preview');
         if (previewContainer && initialFiles.length > 0) {

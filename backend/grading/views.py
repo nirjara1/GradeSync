@@ -5,9 +5,16 @@ from django.db.models import Max, Q, Count, Avg
 from django.http import HttpResponse, HttpResponseForbidden, FileResponse, Http404, JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult, AssignmentGroup, AssignmentGroupMember
+from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult, AssignmentGroup, AssignmentGroupMember, CourseGroupSet, CourseGroup, CourseGroupMember
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
 from .services import grade_submission, extract_code_from_file, run_submission_analysis
+from .group_services import (
+    apply_assignment_groups,
+    can_submit_for_group,
+    can_view_submission,
+    get_effective_submission_for_student,
+    resolve_assignment_group_for_student,
+)
 from .sandbox import execute_code
 from .tasks import bulk_grade_assignment
 from professor.models import Course, UserProfile, CourseMember
@@ -238,15 +245,9 @@ def student_course_view(request, course_id):
         .order_by('due_date', 'id')
     )
     
-    # Get submissions (including group submissions)
-    submissions = (
-        Submission.objects.filter(
-            Q(student=student_profile) | Q(group__members__student=student_profile),
-            assignment__in=assignments
-        )
-        .select_related('grade')
-    )
-    submission_dict = {s.assignment_id: s for s in submissions}
+    submission_dict = {}
+    for a in assignments:
+        submission_dict[a.id] = get_effective_submission_for_student(a, student_profile)
     now = timezone.now()
 
     for assignment in assignments:
@@ -298,11 +299,13 @@ def create_assignment(request, course_id=None):
             return HttpResponseForbidden("You do not have permission to create assignments.")
 
     course_students = []
+    course_group_sets = []
     if course:
         course_students = CourseMember.objects.filter(course=course, role_in_course='STUDENT').select_related('user')
         for member in course_students:
             student_profile, _ = Student.objects.get_or_create(user=member.user)
             member.student_id = student_profile.id
+        course_group_sets = CourseGroupSet.objects.filter(course=course).order_by('-created_at')
 
     if request.method == 'POST':
         form = AssignmentForm(request.POST, request.FILES)
@@ -322,35 +325,38 @@ def create_assignment(request, course_id=None):
                         
                     assignment.save()
                     
-                    # Handle Multi-Group Assignment Logic
                     assignment_type = request.POST.get('assignment_type')
-                    if assignment_type == 'group':
-                        assignment.is_group_assignment = True
-                        assignment.save()
-                        
-                        groups_data = request.POST.get('groups_data')
-                        if groups_data:
-                            try:
-                                groups_list = json.loads(groups_data)
-                                for g_data in groups_list:
-                                    group_name = g_data.get('name', 'Unnamed Group')
-                                    member_ids = g_data.get('members', [])
-                                    
-                                    if member_ids:
-                                        group = AssignmentGroup.objects.create(
-                                            assignment=assignment, 
-                                            name=group_name
-                                        )
-                                        for student_id in member_ids:
-                                            try:
-                                                student = Student.objects.get(id=student_id)
-                                                AssignmentGroupMember.objects.create(group=group, student=student)
-                                            except Student.DoesNotExist:
-                                                continue
-                                        logger.info(f"Created group '{group_name}' with {len(member_ids)} members for assignment {assignment.id}")
-                            except Exception as json_err:
-                                logger.error(f"Error parsing groups_data: {json_err}")
-                                raise json_err
+                    assignment.is_group_assignment = assignment_type == 'group'
+                    assignment.save(update_fields=['is_group_assignment'])
+                    if assignment.is_group_assignment:
+                        group_source_mode = request.POST.get('group_source_mode')
+                        selected_group_set_id = request.POST.get('course_group_set_id')
+                        if group_source_mode == 'course_set' and selected_group_set_id:
+                            apply_assignment_groups(
+                                assignment=assignment,
+                                groups_data_raw=None,
+                                max_group_size=assignment.max_group_size,
+                                course_group_set_id=int(selected_group_set_id),
+                            )
+                        else:
+                            apply_assignment_groups(
+                                assignment=assignment,
+                                groups_data_raw=request.POST.get('groups_data'),
+                                max_group_size=assignment.max_group_size,
+                                course_group_set_id=None,
+                            )
+                        save_set_name = (request.POST.get('save_as_course_group_set_name') or '').strip()
+                        if save_set_name:
+                            course_set = CourseGroupSet.objects.create(
+                                course=assignment.course,
+                                name=save_set_name,
+                                created_by=user,
+                            )
+                            for grp in assignment.assignment_groups.prefetch_related('members').all():
+                                cg = CourseGroup.objects.create(group_set=course_set, name=grp.name)
+                                CourseGroupMember.objects.bulk_create([
+                                    CourseGroupMember(group=cg, student_id=gm.student_id) for gm in grp.members.all()
+                                ])
                     
                     
                     # Process test cases from CSV (if provided)
@@ -392,7 +398,8 @@ def create_assignment(request, course_id=None):
                     'form': form,
                     'course': course,
                     'base_template': base_template,
-                    'course_students': course_students
+                    'course_students': course_students,
+                    'course_group_sets': course_group_sets,
                 })
                 
             if course:
@@ -412,7 +419,8 @@ def create_assignment(request, course_id=None):
         'form': form,
         'course': course,
         'base_template': base_template,
-        'course_students': course_students
+        'course_students': course_students,
+        'course_group_sets': course_group_sets,
     }
     return render(request, 'create_assignment.html', context)
 
@@ -562,37 +570,35 @@ def edit_assignment(request, pk):
                     assignment_type = request.POST.get('assignment_type')
                     if assignment_type == 'group':
                         assignment.is_group_assignment = True
-                        assignment.save()
-                        
-                        # Handle Multi-Group Assignment Logic
-                        groups_data = request.POST.get('groups_data')
-                        if groups_data:
-                            try:
-                                groups_list = json.loads(groups_data)
-                                
-                                # Simple approach: Clear and recreate
-                                # CAUTION: CASCADE will delete submissions if any exist.
-                                assignment.assignment_groups.all().delete()
-                                
-                                for g_data in groups_list:
-                                    group_name = g_data.get('name', 'Unnamed Group')
-                                    member_ids = g_data.get('members', [])
-                                    
-                                    if member_ids:
-                                        group = AssignmentGroup.objects.create(
-                                            assignment=assignment, 
-                                            name=group_name
-                                        )
-                                        for student_id in member_ids:
-                                            try:
-                                                student = Student.objects.get(id=student_id)
-                                                AssignmentGroupMember.objects.create(group=group, student=student)
-                                            except Student.DoesNotExist:
-                                                continue
-                                        logger.info(f"Re-created group '{group_name}' with {len(member_ids)} members for assignment {assignment.id}")
-                            except Exception as json_err:
-                                logger.error(f"Error parsing groups_data in edit: {json_err}")
-                                raise json_err
+                        assignment.save(update_fields=['is_group_assignment'])
+                        group_source_mode = request.POST.get('group_source_mode')
+                        selected_group_set_id = request.POST.get('course_group_set_id')
+                        if group_source_mode == 'course_set' and selected_group_set_id:
+                            apply_assignment_groups(
+                                assignment=assignment,
+                                groups_data_raw=None,
+                                max_group_size=assignment.max_group_size,
+                                course_group_set_id=int(selected_group_set_id),
+                            )
+                        else:
+                            apply_assignment_groups(
+                                assignment=assignment,
+                                groups_data_raw=request.POST.get('groups_data'),
+                                max_group_size=assignment.max_group_size,
+                            )
+
+                        save_set_name = (request.POST.get('save_as_course_group_set_name') or '').strip()
+                        if save_set_name:
+                            course_set = CourseGroupSet.objects.create(
+                                course=assignment.course,
+                                name=save_set_name,
+                                created_by=user,
+                            )
+                            for grp in assignment.assignment_groups.prefetch_related('members').all():
+                                cg = CourseGroup.objects.create(group_set=course_set, name=grp.name)
+                                CourseGroupMember.objects.bulk_create([
+                                    CourseGroupMember(group=cg, student_id=gm.student_id) for gm in grp.members.all()
+                                ])
                     else:
                         # Switched to Individual
                         if assignment.is_group_assignment:
@@ -636,7 +642,8 @@ def edit_assignment(request, pk):
                     'form': form,
                     'assignment': assignment,
                     'base_template': base_template,
-                    'course_students': CourseMember.objects.filter(course=assignment.course, role_in_course='STUDENT').select_related('user')
+                    'course_students': CourseMember.objects.filter(course=assignment.course, role_in_course='STUDENT').select_related('user'),
+                    'course_group_sets': CourseGroupSet.objects.filter(course=assignment.course).order_by('-created_at'),
                 })
 
             # If a new public_test_data CSV file was uploaded, replace all DB test cases for this assignment
@@ -723,7 +730,8 @@ def edit_assignment(request, pk):
         'form': form, 
         'assignment': assignment, 
         'base_template': base_template,
-        'course_students': course_students
+        'course_students': course_students,
+        'course_group_sets': CourseGroupSet.objects.filter(course=assignment.course).order_by('-created_at'),
     })
 
 @login_required
@@ -772,16 +780,11 @@ def assignment_detail_view(request, pk):
     group_members = []
     if is_student:
         student_profile, _ = Student.objects.get_or_create(user=user)
-        group = None
-        if assignment.is_group_assignment:
-            group = AssignmentGroup.objects.filter(assignment=assignment, members__student=student_profile).first()
+        group = resolve_assignment_group_for_student(assignment, student_profile) if assignment.is_group_assignment else None
         
         if request.method == 'POST':
             # Check for existing submission (re-submission)
-            if assignment.is_group_assignment and group:
-                submission = Submission.objects.filter(group=group, assignment=assignment).first()
-            else:
-                submission = Submission.objects.filter(student=student_profile, assignment=assignment).first()
+            submission = get_effective_submission_for_student(assignment, student_profile)
                 
             files = request.FILES.getlist('file_path')
             monaco_files_json = request.POST.get('monaco_files', '').strip()
@@ -795,6 +798,9 @@ def assignment_detail_view(request, pk):
                     pass
             
             if files or monaco_files:
+                if assignment.is_group_assignment and submission:
+                    messages.error(request, "Your group already has a submission. Ask faculty to reopen submissions.")
+                    return redirect('assignment_detail', pk=pk)
                 if not submission:
                     if assignment.is_group_assignment:
                         if not group:
@@ -873,10 +879,14 @@ def assignment_detail_view(request, pk):
             if group:
                 submissions = submissions.filter(group=group)
                 group_members = AssignmentGroupMember.objects.filter(group=group).select_related('student__user')
+            else:
+                submissions = submissions.none()
+                latest_submission = None
         else:
             submissions = submissions.filter(student__user=user)
-            
-        latest_submission = submissions.first()
+
+        if not (assignment.is_group_assignment and not group):
+            latest_submission = submissions.order_by('-submission_time', '-id').first()
         
         # Monaco Editor Support
         if latest_submission and latest_submission.file_path:
@@ -936,10 +946,18 @@ def assignment_detail_view(request, pk):
             'assignment_points_allocation': display_pts if rubric.is_weighted else None,
         })
     has_rubric = rubric is not None
+    group_submission_locked = (
+        is_student and assignment.is_group_assignment and latest_submission is not None
+    )
+    can_reopen_group_submissions = (
+        course_role in ('INSTRUCTOR', 'GRADING_ASSISTANT') and assignment.is_group_assignment
+    )
     context = {
         'assignment': assignment,
         'submissions': submissions,
         'latest_submission': latest_submission,
+        'group_submission_locked': group_submission_locked,
+        'can_reopen_group_submissions': can_reopen_group_submissions,
         'submission_files_json': submission_files_json,
         'can_preview_code': can_preview_code,
         'is_instructor': is_instructor,
@@ -1330,10 +1348,7 @@ def download_submission_view(request, pk):
     submission = get_object_or_404(Submission, pk=pk)
     
     # Check permissions
-    if getattr(request, 'user_role', None) == 'STUDENT' and submission.student.user != user:
-        return HttpResponseForbidden("You can only download your own submissions.")
-        
-    if not has_course_access(user, submission.assignment.course, request) and submission.student.user != user:
+    if not can_view_submission(user, submission) and not has_course_access(user, submission.assignment.course, request):
         return HttpResponseForbidden("You do not have permission to download this submission.")
         
     try:
@@ -1352,9 +1367,8 @@ def delete_submission_view(request, pk):
     user = get_user_from_request(request)
     submission = get_object_or_404(Submission, pk=pk)
     
-    # Check permissions - only the submitting student can delete it
-    if submission.student.user != user:
-        return HttpResponseForbidden("You can only delete your own submissions.")
+    if not can_view_submission(user, submission):
+        return HttpResponseForbidden("You do not have permission to delete this submission.")
         
     if request.method == 'POST':
         assignment_id = submission.assignment.id
@@ -1370,6 +1384,20 @@ def delete_submission_view(request, pk):
         return redirect('assignment_detail', pk=assignment_id)
         
     return HttpResponseForbidden("Invalid request method.")
+
+
+@login_required
+@require_POST
+def reopen_group_submission_view(request, assignment_id, group_id):
+    assignment = get_object_or_404(Assignment, id=assignment_id, is_group_assignment=True)
+    user = get_user_from_request(request)
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role not in ['INSTRUCTOR', 'GRADING_ASSISTANT']:
+        return HttpResponseForbidden("You do not have permission to reopen this group submission.")
+    group = get_object_or_404(AssignmentGroup, id=group_id, assignment=assignment)
+    Submission.objects.filter(assignment=assignment, group=group).delete()
+    messages.success(request, f"Reopened submission slot for {group.name or 'group'}.")
+    return redirect('assignment_detail', pk=assignment.id)
 
 
 @login_required
@@ -1718,7 +1746,7 @@ def grade_submission_api(request, submission_id):
     user = get_user_from_request(request)
     
     # Check permission - must be student submitting their own work or course instructor
-    is_student_owner = submission.student.user == user
+    is_student_owner = can_view_submission(user, submission)
     is_instructor = is_course_instructor(user, assignment.course)
     
     if not (is_student_owner or is_instructor):
@@ -1902,7 +1930,7 @@ def submission_test_results(request, submission_id):
     user = get_user_from_request(request)
     
     # Check permission
-    is_student_owner = submission.student.user == user
+    is_student_owner = can_view_submission(user, submission)
     is_instructor = is_course_instructor(user, assignment.course)
     
     if not (is_student_owner or is_instructor):
@@ -1959,19 +1987,23 @@ def student_submit_and_test(request, assignment_id):
     
     student_profile, _ = Student.objects.get_or_create(user=user)
     
-    # Get existing submission if any
-    submission = Submission.objects.filter(
-        student=student_profile,
-        assignment=assignment
-    ).first()
+    student_group = resolve_assignment_group_for_student(assignment, student_profile)
+    submission = get_effective_submission_for_student(assignment, student_profile)
     
     # Handle file upload
     if request.method == 'POST':
         form = SubmissionForm(request.POST, request.FILES)
         if form.is_valid():
-            if not submission:
+            if assignment.is_group_assignment:
+                if not can_submit_for_group(user, assignment, student_group):
+                    return HttpResponseForbidden("You are not assigned to a group for this assignment.")
+                if submission:
+                    messages.error(request, "Your group already has a submission. Ask faculty to reopen submissions.")
+                    return redirect('student_submit_and_test', assignment_id=assignment_id)
+                submission = Submission(student=student_profile, group=student_group, assignment=assignment)
+            elif not submission:
                 submission = Submission(student=student_profile, assignment=assignment)
-            
+
             submission.file_path = form.cleaned_data['file_path']
             submission.save()
             
@@ -2008,6 +2040,7 @@ def student_submit_and_test(request, assignment_id):
     context = {
         'assignment': assignment,
         'submission': submission,
+        'student_group': student_group,
         'form': form,
         'test_cases': test_cases,
         'test_results': test_results,
@@ -2112,18 +2145,11 @@ def grade_report(request, assignment_id):
     # Get all test cases for this assignment
     test_cases = TestCase.objects.filter(assignment=assignment).order_by('order')
     
-    # Get all submissions for this assignment
-    submissions = Submission.objects.filter(
-        assignment=assignment
-    ).select_related('student__user')
-    
-    submission_dict = {sub.student_id: sub for sub in submissions}
-    
     # Build grade report data (initially EMPTY cells; results are filled after "Run Bulk Testing")
     grade_data = []
     
     for student in students:
-        submission = submission_dict.get(student.id)
+        submission = get_effective_submission_for_student(assignment, student)
         
         student_results = []
         
@@ -2183,11 +2209,6 @@ def grade_report_data_api(request, assignment_id):
 
     test_cases = list(TestCase.objects.filter(assignment=assignment).order_by('order'))
 
-    submissions = Submission.objects.filter(
-        assignment=assignment
-    ).select_related('student__user')
-    submission_dict = {sub.student_id: sub for sub in submissions}
-
     all_results = TestResult.objects.filter(
         submission__assignment=assignment
     ).select_related('submission', 'test_case')
@@ -2208,7 +2229,7 @@ def grade_report_data_api(request, assignment_id):
 
     rows = []
     for student in students:
-        submission = submission_dict.get(student.id)
+        submission = get_effective_submission_for_student(assignment, student)
         sub_results = results_map.get(submission.id, {}) if submission else {}
 
         test_results = []
@@ -2587,7 +2608,7 @@ def submission_files_api(request, submission_id):
     submission = get_object_or_404(Submission, pk=submission_id)
     
     # Check if user is instructor or student themselves (though this is for prof preview, it should be secure)
-    if not is_course_instructor(user, submission.assignment.course, request) and submission.student.user != user:
+    if not is_course_instructor(user, submission.assignment.course, request) and not can_view_submission(user, submission):
         return JsonResponse({'error': 'Unauthorized'}, status=403)
         
     file_path = submission.file_path.path
