@@ -24,12 +24,12 @@
                 {% endif %}
 
                 <img src="{% if enrollment.course.image_url %}{{ enrollment.course.image_url }}{% else %}{% static 'images/Dashboard Pic.png' %}{% endif %}"
-                    alt="{{ enrollment.course.code }} Image"
+                    alt="{{ enrollment.course.code_section_label }} Image"
                     style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; margin-right: 25px;"
                     onerror="this.onerror=null; this.src='{% static 'images/Dashboard Pic.png' %}';">
                 
                 <div style="flex: 1;">
-                    <h3 style="margin: 0 0 5px 0; color: var(--maroon); font-size: 18px;">{{ enrollment.course.code }} - {{ enrollment.course.title }}</h3>
+                    <h3 style="margin: 0 0 5px 0; color: var(--maroon); font-size: 18px;">{{ enrollment.course.dashboard_card_title }}</h3>
                     <p style="margin: 0; color: #555; font-size: 14px;"><strong>Term:</strong> {{ enrollment.course.term }} &nbsp;|&nbsp; <strong>Section:</strong> {{ enrollment.course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #888; font-size: 13px;"><strong>Instructor:</strong> {{ enrollment.course.professor.get_full_name|default:enrollment.course.professor.username }}</p>
                 </div>
@@ -55,14 +55,14 @@
                 {% endif %}
 
                 <img src="{% if enrollment.course.image_url %}{{ enrollment.course.image_url }}{% else %}{% static 'images/Dashboard Pic.png' %}{% endif %}"
-                    alt="{{ enrollment.course.code }} Image"
+                    alt="{{ enrollment.course.code_section_label }} Image"
                     style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; margin-right: 25px; filter: grayscale(100%);"
                     onerror="this.onerror=null; this.src='{% static 'images/Dashboard Pic.png' %}';">
                 
                 <div style="flex: 1;">
                     <h3 style="margin: 0 0 5px 0; color: #374151; font-size: 18px;">
                         <i class="fa-solid fa-box-archive" style="font-size: 14px; margin-right: 6px; color: #6b7280;"></i>
-                        {{ enrollment.course.code }} - {{ enrollment.course.title }}
+                        {{ enrollment.course.dashboard_card_title }}
                     </h3>
                     <p style="margin: 0; color: #6b7280; font-size: 14px;"><strong>Term:</strong> {{ enrollment.course.term }} &nbsp;|&nbsp; <strong>Section:</strong> {{ enrollment.course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #9ca3af; font-size: 13px;"><strong>Instructor:</strong> {{ enrollment.course.professor.get_full_name|default:enrollment.course.professor.username }}</p>

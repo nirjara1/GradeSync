@@ -2456,7 +2456,7 @@ def download_student_course_report(request, course_id, student_id):
         )
 
     student_name = student.user.get_full_name() or student.user.username or "student"
-    course_code = getattr(course, "code", "") or "course"
+    course_code = course.code_section_label() or getattr(course, "code", "") or "course"
     safe_base = re.sub(r"[^A-Za-z0-9._-]+", "_", f"{course_code}_{student_name}").strip("_")
     filename = f"student_report_{safe_base}.csv"
 
@@ -2467,7 +2467,8 @@ def download_student_course_report(request, course_id, student_id):
     writer.writerow(["Student Performance Report"])
     writer.writerow(["Student Name", student_name])
     writer.writerow(["Student Email", student.user.email or ""])
-    writer.writerow(["Course", f"{course.code}: {course.title}"])
+    cs = course.code_section_label()
+    writer.writerow(["Course", f"{cs}: {course.title}" if cs else course.title])
     writer.writerow(["Overall Course Grade (%)", f"{overall_percentage:.1f}"])
     writer.writerow(["Points Earned", f"{total_points_earned:.1f}"])
     writer.writerow(["Points Possible", f"{total_points_possible:.1f}"])

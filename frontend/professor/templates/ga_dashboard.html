@@ -20,7 +20,7 @@
         {% endif %}
 
         <div class="card-content">
-            <p class="course-title">{{ course.code }}-{{ course.section }} - {{ course.title }}</p>
+            <p class="course-title">{{ course.dashboard_card_title }}</p>
             <p class="course-prof">{{ course.professor.get_full_name|default:course.professor.username }}</p>
             <p class="course-term">{{ course.term }}</p>
         </div>
