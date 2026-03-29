@@ -222,6 +222,83 @@
         font-weight: 600;
         font-size: 14px;
     }
+
+    /* Dark Mode Overrides for assignment_detail */
+    [data-theme='dark'] {
+        --gs-border: #334155;
+        --gs-bg-light: #1e293b;
+        --gs-text-main: #f1f5f9;
+        --gs-text-muted: #94a3b8;
+    }
+
+    [data-theme='dark'] .section-box,
+    [data-theme='dark'] .rubric-card,
+    [data-theme='dark'] .meta-item,
+    [data-theme='dark'] .assignment-header,
+    [data-theme='dark'] .action-row {
+        background-color: #1e293b !important;
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+
+    [data-theme='dark'] .tabs-nav {
+        background: #0f172a !important;
+    }
+
+    [data-theme='dark'] .tab-btn.active {
+        background: #1e293b !important;
+        color: var(--gs-maroon) !important; /* Keep maroon for active state or use a lighter shade */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    [data-theme='dark'] .tab-btn:not(.active):hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme='dark'] .rubric-table th {
+        background: #0f172a !important;
+        color: #94a3b8 !important;
+        border-bottom-color: #334155 !important;
+    }
+
+    [data-theme='dark'] .rubric-table td {
+        border-bottom-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+
+    [data-theme='dark'] .section-title-modern {
+        color: #f1f5f9 !important;
+    }
+
+    [data-theme='dark'] .section-box div[style*="background: #fdfdfd"] {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+
+    [data-theme='dark'] div[style*="background: white"] {
+        background: #0f172a !important; 
+        border-color: #334155 !important;
+    }
+
+    [data-theme='dark'] table thead[style*="background: #f8fafc"] {
+        background: #0f172a !important;
+    }
+
+    [data-theme='dark'] .btn-back {
+        color: #fca5a5 !important; /* Lighter maroon for dark mode links */
+    }
+
+    /* Submissions logic colors */
+    .grade-needs-grading { color: #94a3b8; }
+    .grade-completed { color: #15803d; }
+    [data-theme='dark'] .grade-completed { color: #4ade80 !important; }
+
+    .status-awaiting { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    [data-theme='dark'] .status-awaiting { background: #451a03 !important; border-color: #78350f !important; color: #fef3c7 !important; }
+
+    .status-graded { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+    [data-theme='dark'] .status-graded { background: #064e3b !important; border-color: #065f46 !important; color: #d1fae5 !important; }
 </style>
 {% endblock %}
 
@@ -261,12 +338,12 @@
             </div>
 
             {% if assignment.is_group_assignment and group_members %}
-            <div class="section-box" style="background: #fdfdfd; border-color: #e2e8f0;">
+            <div class="section-box" style="background: var(--gs-bg-light); border-color: var(--gs-border);">
                 <h3 class="section-title-modern"><i class="fa-solid fa-users" style="color: var(--gs-maroon);"></i>Group Members</h3>
                 <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px;">
                     {% for membership in group_members %}
-                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; min-width: 200px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                        <div style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--gs-maroon); font-weight: 700; font-size: 14px;">
+                    <div style="background: var(--gs-bg-card, white); border: 1px solid var(--gs-border); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; min-width: 200px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <div style="width: 32px; height: 32px; background: var(--gs-bg-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--gs-maroon); font-weight: 700; font-size: 14px;">
                             {{ membership.student.user.username|slice:":1"|upper }}
                         </div>
                         <div>
@@ -276,7 +353,7 @@
                     </div>
                     {% endfor %}
                 </div>
-                <div style="margin-top: 16px; padding: 10px 14px; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe; color: #1e40af; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                <div style="margin-top: 16px; padding: 10px 14px; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe; color: #1e40af; font-size: 13px; display: flex; align-items: center; gap: 8px;" class="group-info-alert">
                     <i class="fa-solid fa-circle-info"></i>
                     <span>This is a <strong>Group Assignment</strong>. All members share the same submission and grade.</span>
                 </div>
@@ -402,12 +479,12 @@
                 <h3 class="section-title-modern"><i class="fa-solid fa-check-circle" style="color: var(--gs-maroon);"></i>Latest Submission Status</h3>
                 <div style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-clock"></i><span>Submitted on {{ latest_submission.submission_time|date:"F j, Y, g:i A" }}</span></div>
                 {% if latest_submission.grade %}
-                <div style="margin-bottom: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 16px;">
-                    <div style="font-size: 15px; font-weight: 600; color: #166534;">Final Grade:</div>
-                    <div style="font-size: 24px; font-weight: 800; color: #15803d;">{{ latest_submission.grade.score|floatformat:"0" }} <span style="font-size: 14px; font-weight: 500; color: #166534; opacity: 0.7;">/ {{ assignment.points|floatformat:"0" }}</span></div>
+                <div style="margin-bottom: 24px; padding: 16px; border-radius: 12px; display: flex; align-items: center; gap: 16px;" class="status-graded">
+                    <div style="font-size: 15px; font-weight: 600;">Final Grade:</div>
+                    <div style="font-size: 24px; font-weight: 800;">{{ latest_submission.grade.score|floatformat:"0" }} <span style="font-size: 14px; font-weight: 500; opacity: 0.7;">/ {{ assignment.points|floatformat:"0" }}</span></div>
                 </div>
                 {% else %}
-                <div style="margin-bottom: 24px; padding: 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #92400e; font-weight: 600;"><i class="fa-solid fa-hourglass-half"></i><span>Awaiting Grading</span></div>
+                <div style="margin-bottom: 24px; padding: 16px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-weight: 600;" class="status-awaiting"><i class="fa-solid fa-hourglass-half"></i><span>Awaiting Grading</span></div>
                 {% endif %}
                 <div style="display: flex; gap: 12px;">
                     <a href="{{ latest_submission.file_path.url }}" download target="_blank" style="color: var(--gs-maroon); text-decoration: none; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--gs-border); padding: 12px 20px; border-radius: 8px;"><i class="fa-solid fa-file-arrow-down"></i> Download Submitted Files</a>
@@ -458,7 +535,7 @@
                                     {% endif %}
                                 </td>
                                 <td style="color: var(--gs-text-muted); font-size: 13px;">{{ submission.submission_time|date:"M j, g:i A" }}</td>
-                                <td style="font-weight: 700; color: {% if submission.grade %}#15803d{% else %}#94a3b8{% endif %};">{% if submission.grade %}{{ submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}{% else %}Needs Grading{% endif %}</td>
+                                <td style="font-weight: 700;" class="{% if submission.grade %}grade-completed{% else %}grade-needs-grading{% endif %}">{% if submission.grade %}{{ submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}{% else %}Needs Grading{% endif %}</td>
                                 <td style="text-align: center;">
                                     <div style="display: flex; gap: 8px; justify-content: center;">
                                         <button onclick="previewStudentSubmission('{{ submission.pk }}', '{% if submission.group %}Group: {% for m in submission.group.members.all %}{{ m.student.user.get_full_name|default:m.student.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}{{ submission.student.user.get_full_name|default:submission.student.user.username }}{% endif %}')" title="Preview Code" style="background: white; color: var(--gs-maroon); border: 1px solid var(--gs-border); padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
@@ -754,9 +831,10 @@
         termPanel.style.display = 'block'; list.innerHTML = '<div style="color: #888; padding: 10px;">Running tests...</div>'; switchOutputTab('testResults');
         testBtn.disabled = true; testIcon.className = 'fa-solid fa-spinner fa-spin'; testText.textContent = 'Testing...';
         try {
+            const assignmentId = parseInt("{{ assignment.id }}");
             const resp = await fetch('/grading/api/run-public-tests/', {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                body: JSON.stringify({ code: editorInstance.getValue(), language: configLang, filename: files[activeFileIndex].name, files: files.map(f => ({ filename: f.name, code: f.model.getValue() })), assignment_id: {{ assignment.id }} })
+                body: JSON.stringify({ code: editorInstance.getValue(), language: configLang, filename: files[activeFileIndex].name, files: files.map(f => ({ filename: f.name, code: f.model.getValue() })), assignment_id: assignmentId })
             });
             const data = await resp.json(); list.innerHTML = '';
             if (!data.results || data.results.length === 0) {
