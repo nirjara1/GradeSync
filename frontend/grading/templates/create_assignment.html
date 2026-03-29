@@ -198,7 +198,7 @@
     </div>
     {% endif %}
 
-    <form method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data" id="createAssignmentForm" onsubmit="return submitCreateAssignment(event);">
         {% csrf_token %}
 
         <!-- SECTION 1: Basic Information -->
@@ -386,13 +386,36 @@
         <!-- Hidden input to store parsed test cases as JSON -->
         <input type="hidden" id="testCasesJsonInput" name="test_cases_json" value="">
 
-        <!-- Add Rubric Button -->
-        <div style="text-align: center; margin-top: 30px; padding: 20px; border: 1px dashed #d1d5db; border-radius: 8px; background: #fefcfb;">
-            <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 15px; font-weight: 600; color: #374151;">Grading Criteria</h4>
-            <p style="font-size: 14px; color: #6b7280; margin-bottom: 15px;">Add detailed rubrics to help you grade manually submitted code or specific assignment guidelines.</p>
-            <button type="button" class="btn-secondary" onclick="window.location.href='{% url 'rubric' %}'">
-                <i class="fa-solid fa-list-check" style="margin-right: 8px;"></i> Configure Rubric
+        <!-- SECTION 6: Grading rubric (optional, same save as assignment) -->
+        <h3 class="section-header"><i class="fa-solid fa-list-check"></i> 6. Grading rubric (optional)</h3>
+        <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
+            Add criteria here when you publish or save as draft—no need to save the assignment first.
+            Leave empty if you will add a rubric later from the assignment page.
+        </p>
+        <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: #374151;">
+                    <input type="checkbox" name="rubric_is_weighted" id="id_rubric_is_weighted" class="form-check-input" onchange="syncRubricColumnMode()">
+                    Weighted rubric (each row: max points + weight %; weights must total 100%)
+                </label>
+            </div>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb; background: #fff;">
+                            <th style="text-align: left; padding: 10px 8px; color: #374151;">Criterion name</th>
+                            <th id="rubricColPoints" style="text-align: right; padding: 10px 8px; color: #374151; width: 120px;">Max points</th>
+                            <th id="rubricColWeight" style="text-align: right; padding: 10px 8px; color: #374151; width: 120px; display: none;">Weight %</th>
+                            <th style="width: 56px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rubricRowsBody"></tbody>
+                </table>
+            </div>
+            <button type="button" class="btn-secondary" onclick="addRubricRow()" style="margin-top: 12px;">
+                <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Add criterion
             </button>
+            <input type="hidden" name="rubric_criteria_json" id="rubricCriteriaJson" value="[]">
         </div>
 
         <div class="btn-action-group">
@@ -404,6 +427,85 @@
 
 
 <script>
+    function addRubricRow() {
+        var tbody = document.getElementById('rubricRowsBody');
+        var tr = document.createElement('tr');
+        tr.className = 'rubric-row';
+        tr.innerHTML =
+            '<td style="padding: 8px;"><input type="text" class="form-control rubric-name" placeholder="e.g. Correctness" style="width:100%;box-sizing:border-box;"></td>' +
+            '<td style="padding: 8px;" class="rubric-cell-points"><input type="number" class="form-control rubric-max" min="0.5" step="0.5" value="5" style="width:100%;text-align:right;"></td>' +
+            '<td style="padding: 8px; display: none;" class="rubric-cell-weight"><input type="number" class="form-control rubric-weight" min="0" max="100" step="0.5" placeholder="0" style="width:100%;text-align:right;"></td>' +
+            '<td style="padding: 8px; text-align: center;"><button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 13px;" onclick="this.closest(\'tr\').remove(); prepareRubricJson();" title="Remove">&times;</button></td>';
+        tbody.appendChild(tr);
+        syncRubricColumnMode();
+        tr.querySelectorAll('input').forEach(function (inp) {
+            inp.addEventListener('input', prepareRubricJson);
+            inp.addEventListener('change', prepareRubricJson);
+        });
+        prepareRubricJson();
+    }
+
+    function syncRubricColumnMode() {
+        var weighted = document.getElementById('id_rubric_is_weighted').checked;
+        var colPts = document.getElementById('rubricColPoints');
+        var colW = document.getElementById('rubricColWeight');
+        if (colPts) {
+            colPts.textContent = weighted ? 'Max points' : 'Points';
+            colPts.style.display = '';
+        }
+        if (colW) colW.style.display = weighted ? '' : 'none';
+        document.querySelectorAll('.rubric-cell-points').forEach(function (td) { td.style.display = ''; });
+        document.querySelectorAll('.rubric-cell-weight').forEach(function (td) { td.style.display = weighted ? '' : 'none'; });
+        prepareRubricJson();
+    }
+
+    function prepareRubricJson() {
+        var weighted = document.getElementById('id_rubric_is_weighted').checked;
+        var rows = document.querySelectorAll('#rubricRowsBody tr');
+        var out = [];
+        rows.forEach(function (tr) {
+            var nameEl = tr.querySelector('.rubric-name');
+            var name = (nameEl && nameEl.value || '').trim();
+            if (!name) return;
+            var maxEl = tr.querySelector('.rubric-max');
+            var mp = parseFloat(maxEl && maxEl.value) || 0;
+            if (weighted) {
+                var wEl = tr.querySelector('.rubric-weight');
+                var w = parseFloat(wEl && wEl.value) || 0;
+                out.push({ name: name, max_points: mp, weight: w });
+            } else {
+                out.push({ name: name, max_points: mp });
+            }
+        });
+        document.getElementById('rubricCriteriaJson').value = JSON.stringify(out);
+    }
+
+    function submitCreateAssignment(ev) {
+        prepareRubricJson();
+        var weighted = document.getElementById('id_rubric_is_weighted').checked;
+        if (!weighted) {
+            var apEl = document.querySelector('#createAssignmentForm [name="points"]');
+            var ap = parseFloat(apEl && apEl.value) || 0;
+            var raw = document.getElementById('rubricCriteriaJson').value;
+            var rows = [];
+            try {
+                rows = JSON.parse(raw || '[]');
+            } catch (e) {
+                return true;
+            }
+            var sum = 0;
+            rows.forEach(function (r) {
+                sum += parseFloat(r.max_points) || 0;
+            });
+            if (ap > 0 && sum - ap > 0.01) {
+                alert('Unweighted rubric: the sum of criterion points (' + sum + ') cannot exceed the assignment total (' + ap + ').');
+                if (ev && ev.preventDefault) ev.preventDefault();
+                return false;
+            }
+        }
+        return true;
+    }
+
     function toggleGroupUI() {
         const isGroup = document.getElementById('type_group').checked;
         const container = document.getElementById('group_selection_container');
@@ -699,6 +801,8 @@ document.addEventListener('DOMContentLoaded', function () {
         isWeightedCheckbox.addEventListener('change', syncWeight);
         syncWeight();
     }
+
+    syncRubricColumnMode();
 });
 </script>
 
