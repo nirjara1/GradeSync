@@ -11,6 +11,11 @@ urlpatterns = [
     path('calendar/', views.student_calendar_view, name='student_calendar'),
     path('inbox/', views.student_inbox, name='student_inbox'),
     path('help/', views.student_help, name='student_help'),
+    path(
+        "classes/<int:course_id>/grades/",
+        views.student_course_gradebook,
+        name="student_course_gradebook",
+    ),
     path("classes/<int:course_id>/", student_course_view, name="student_course"),
     
     # To-Do Widget Endpoints
