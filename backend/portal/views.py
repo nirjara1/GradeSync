@@ -1,11 +1,15 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from professor.models import CourseMember, UserProfile
 from django.utils import timezone
 from django.db.models import Q
+from django.http import HttpResponseForbidden
+
 from grading.models import Assignment, Submission, Student
 from grading.group_services import get_effective_submission_for_student
-from .gradebook_utils import course_grade_totals
+from professor.utils import get_user_course_role
+
+from .gradebook_utils import course_grade_totals, build_student_course_gradebook_section
 
 @login_required
 def student_dashboard_view(request):
@@ -223,92 +227,12 @@ def student_gradebook(request):
     course_pcts = []
     feedback_payload = {}
 
-    def _instructor_name(u):
-        full = (u.get_full_name() or '').strip()
-        return full or u.get_username()
-
-    def _feedback_time_label(dt):
-        if not dt:
-            return ''
-        dt = timezone.localtime(dt)
-        h = dt.hour % 12 or 12
-        m = dt.minute
-        ampm = 'am' if dt.hour < 12 else 'pm'
-        return f"{dt.strftime('%b')} {dt.day} at {h}:{m:02d}{ampm}"
-
     for course in courses:
-        assignments = list(
-            Assignment.objects.filter(course=course, status='published').order_by('due_date', 'id')
-        )
-        if not assignments:
-            continue
-
-        sub_by_aid = {a.id: get_effective_submission_for_student(a, student_profile) for a in assignments}
-
-        pct, earned, possible = course_grade_totals(assignments, sub_by_aid)
-        if pct is not None:
-            course_pcts.append(pct)
-
-        rows = []
-        for a in assignments:
-            sub = sub_by_aid.get(a.id)
-            grade = getattr(sub, 'grade', None) if sub else None
-            points = float(a.points or 0)
-
-            is_late = False
-            if sub:
-                st = sub.submission_time
-                if a.due_date and not a.no_due_date and st > a.due_date:
-                    is_late = True
-
-            status_badges = []
-            if grade:
-                status_key = 'graded'
-            elif sub:
-                status_key = 'submitted'
-                status_badges.append('pending')
-            elif not a.no_due_date and a.due_date and a.due_date < now:
-                status_key = 'missing'
-                status_badges.append('missing')
-            else:
-                status_key = 'upcoming'
-
-            if is_late:
-                status_badges.append('late')
-
-            feedback_text = (grade.feedback or '').strip() if grade else ''
-            has_feedback = bool(feedback_text)
-
-            score_num = float(grade.score) if grade else None
-            if has_feedback and grade:
-                feedback_payload[str(a.id)] = {
-                    'assignmentName': a.name,
-                    'body': feedback_text,
-                    'instructor': _instructor_name(course.professor),
-                    'gradedAt': _feedback_time_label(grade.graded_at),
-                }
-
-            rows.append({
-                'assignment': a,
-                'course': course,
-                'due_dt': a.due_date,
-                'no_due_date': a.no_due_date,
-                'submitted_time': sub.submission_time if sub else None,
-                'status_key': status_key,
-                'status_badges': status_badges,
-                'score_num': score_num,
-                'points': points,
-                'has_feedback': has_feedback,
-                'is_late': is_late,
-            })
-
-        sections.append({
-            'course': course,
-            'rows': rows,
-            'total_percentage': pct,
-            'total_earned': earned,
-            'total_possible': possible,
-        })
+        section, fb_part = build_student_course_gradebook_section(course, student_profile, now)
+        sections.append(section)
+        feedback_payload.update(fb_part)
+        if section["total_percentage"] is not None:
+            course_pcts.append(section["total_percentage"])
 
     overall_pct = None
     if course_pcts:
@@ -329,6 +253,37 @@ def student_gradebook(request):
         'filter_course_id': fid,
         'enrollments': enrollments,
         'feedback_payload': feedback_payload,
+        'gradebook_course_layout': False,
+    })
+
+
+@login_required
+def student_course_gradebook(request, course_id):
+    """Per-course grades for the logged-in student (matches course assignment visibility)."""
+    request.session['active_role'] = 'STUDENT'
+    user = request.user
+    course = get_object_or_404(Course, id=course_id)
+    if get_user_course_role(user, course, request) != 'STUDENT':
+        return HttpResponseForbidden('Access denied.')
+
+    student_profile, _ = Student.objects.get_or_create(user=user)
+    now = timezone.now()
+    section, feedback_payload = build_student_course_gradebook_section(course, student_profile, now)
+
+    enrollments = CourseMember.objects.filter(
+        user=user,
+        role_in_course__in=['STUDENT', 'GRADING_ASSISTANT'],
+    ).select_related('course', 'course__professor')
+
+    return render(request, 'portal/student_gradebook.html', {
+        'sections': [section],
+        'overall_percentage': section['total_percentage'],
+        'filter_course_id': course.id,
+        'enrollments': enrollments,
+        'feedback_payload': feedback_payload,
+        'gradebook_course_layout': True,
+        'course': course,
+        'active_tab': 'grades',
     })
 
 
