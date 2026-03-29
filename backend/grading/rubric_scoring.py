@@ -52,13 +52,19 @@ def final_score_weighted_rubric(
 def final_score_unweighted_rubric(
     criteria: Iterable,
     earned_by_criterion_id: Mapping[int, Decimal],
+    assignment_points=None,
 ) -> Decimal:
+    """Sum earned points per criterion (no per-row cap). Total capped at assignment points."""
     total = Decimal("0")
     for c in criteria:
         wid = getattr(c, "id", None)
-        mx = Decimal(str(c.max_points or 0))
         earned = Decimal(str(earned_by_criterion_id.get(wid, 0) or 0))
-        total += clamp_earned(earned, mx)
+        if earned < 0:
+            earned = Decimal("0")
+        total += earned
+    ap = Decimal(str(assignment_points or 0))
+    if ap > 0 and total > ap:
+        total = ap
     return total.quantize(Decimal("0.01"))
 
 
@@ -89,21 +95,33 @@ def validate_weighted_rubric_rows(rows: list) -> Optional[str]:
 
 
 def validate_unweighted_rubric_rows(rows: list, assignment_points: int) -> Optional[str]:
-    """Ensure positive max points; sum of max points should match assignment total when set."""
+    """
+    Unweighted: each row has a positive point allocation; sum of allocations must not exceed
+    assignment total. Uses Decimal sums to avoid float drift (e.g. 99.5 vs 100).
+    """
     if not rows:
         return None
+    total = Decimal("0")
     for r in rows:
-        mp = float(r.get("max_points") or 0)
+        mp = Decimal(str(r.get("max_points") or "0"))
         if mp <= 0:
-            return "Each criterion must have max points greater than 0."
-    s = sum(float(r.get("max_points") or 0) for r in rows)
-    ap = float(assignment_points or 0)
-    if ap > 0 and abs(s - ap) > 0.02:
+            return "Each criterion needs a positive point value."
+        total += mp
+    ap = Decimal(str(assignment_points or 0))
+    if ap > 0 and total - ap > Decimal("0.01"):
         return (
-            "Unweighted rubric: the sum of max points (%.2f) should match the assignment total (%s)."
-            % (s, assignment_points)
+            "Unweighted rubric: the sum of criterion points (%s) cannot exceed the assignment total (%s)."
+            % (total, ap)
         )
     return None
+
+
+def sum_unweighted_allocations(criteria) -> Decimal:
+    """Sum of criterion point allocations (unweighted rubric setup)."""
+    s = Decimal("0")
+    for c in criteria:
+        s += Decimal(str(getattr(c, "max_points", None) or 0))
+    return s
 
 
 def sum_weights_for_rubric(rubric) -> Decimal:

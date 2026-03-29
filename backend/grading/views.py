@@ -30,6 +30,7 @@ from .rubric_scoring import (
     criterion_weighted_contribution,
     final_score_unweighted_rubric,
     final_score_weighted_rubric,
+    sum_unweighted_allocations,
     sum_weights_for_rubric,
     validate_unweighted_rubric_rows,
     validate_weighted_rubric_rows,
@@ -476,6 +477,15 @@ def assignment_rubric_view(request, assignment_id):
                         weight=w,
                     )
                 else:
+                    ap = Decimal(str(assignment.points or 0))
+                    current_sum = sum_unweighted_allocations(rubric.criteria.all())
+                    new_mp = Decimal(str(mp))
+                    if ap > 0 and current_sum + new_mp - ap > Decimal("0.01"):
+                        messages.error(
+                            request,
+                            "That would exceed the assignment total (%s points)." % ap,
+                        )
+                        return redirect("assignment_rubric", assignment_id=assignment.id)
                     RubricCriterion.objects.create(
                         rubric=rubric,
                         name=name,
@@ -519,6 +529,9 @@ def assignment_rubric_view(request, assignment_id):
         'criteria': criteria,
         'criteria_with_display': criteria_with_display,
         'rubric_weight_total': weight_total,
+        'unweighted_points_sum': (
+            sum_unweighted_allocations(criteria) if not rubric.is_weighted else None
+        ),
     }
     return render(request, 'rubric.html', context)
 
@@ -937,6 +950,11 @@ def assignment_detail_view(request, pk):
         'has_rubric': has_rubric,
         'rubric': rubric,
         'criteria_with_display': criteria_with_display,
+        'unweighted_points_sum': (
+            sum_unweighted_allocations(criteria)
+            if rubric and not rubric.is_weighted
+            else None
+        ),
     }
     return render(request, 'assignment_detail.html', context)
 
@@ -1103,7 +1121,8 @@ def grade_submission_view(request, pk):
 
     if request.method == 'POST':
         feedback = request.POST.get('feedback', '')
-        if rubric and criteria and request.POST.get('submit_grade_rubric'):
+        rubric_grade_submit = bool(rubric and criteria and request.POST.get('submit_grade_rubric'))
+        if rubric_grade_submit:
             earned_by_id = {}
             for c in criteria:
                 raw = request.POST.get('score_criterion_' + str(c.id), '')
@@ -1111,32 +1130,43 @@ def grade_submission_view(request, pk):
                     pts = Decimal(str(raw)) if raw not in (None, '') else Decimal('0')
                 except (InvalidOperation, ValueError):
                     pts = Decimal('0')
-                mx = Decimal(str(c.max_points or 0))
-                if mx > 0:
-                    pts = max(Decimal('0'), min(pts, mx))
+                if rubric.is_weighted:
+                    mx = Decimal(str(c.max_points or 0))
+                    if mx > 0:
+                        pts = max(Decimal('0'), min(pts, mx))
+                    else:
+                        pts = Decimal('0')
                 else:
-                    pts = Decimal('0')
+                    pts = max(Decimal('0'), pts)
                 earned_by_id[c.id] = pts
-                CriterionGrade.objects.update_or_create(
-                    submission=submission,
-                    criterion=c,
-                    defaults={'points_earned': pts},
-                )
 
-            if rubric.is_weighted:
-                total = final_score_weighted_rubric(criteria, earned_by_id, assignment.points)
-            else:
-                total = final_score_unweighted_rubric(criteria, earned_by_id)
+            skip_rubric_save = False
+            if not rubric.is_weighted and assignment.points:
+                ap_lim = Decimal(str(assignment.points))
+                raw_total = sum(earned_by_id[c.id] for c in criteria)
+                if raw_total - ap_lim > Decimal('0.01'):
+                    skip_rubric_save = True
+                    messages.error(
+                        request,
+                        "Sum of criterion scores (%s) cannot exceed the assignment total (%s)."
+                        % (raw_total, ap_lim),
+                    )
+                    for c in criteria:
+                        criterion_grades[c.id] = earned_by_id[c.id]
+                    criteria_with_scores = _build_criteria_rows()
 
-            if grade:
-                grade.score = total
-                grade.feedback = feedback
-                grade.save()
-            else:
-                Grade.objects.create(submission=submission, score=total, feedback=feedback)
+            if not skip_rubric_save:
+                for c in criteria:
+                    CriterionGrade.objects.update_or_create(
+                        submission=submission,
+                        criterion=c,
+                        defaults={'points_earned': earned_by_id[c.id]},
+                    )
 
-            submission.status = 'graded'
-            submission.save(update_fields=['status'])
+                if rubric.is_weighted:
+                    total = final_score_weighted_rubric(criteria, earned_by_id, assignment.points)
+                else:
+                    total = final_score_unweighted_rubric(criteria, earned_by_id, assignment.points)
 
             pct_note = ''
             if rubric.is_weighted and assignment.points:
@@ -1173,7 +1203,7 @@ def grade_submission_view(request, pk):
             try:
                 score_val = float(score)
                 if grade:
-                    grade.score = score_val
+                    grade.score = total
                     grade.feedback = feedback
                     grade.save()
                     # Success message removed as per user request
@@ -1182,9 +1212,55 @@ def grade_submission_view(request, pk):
                     # Success message removed as per user request
                 submission.status = 'graded'
                 submission.save(update_fields=['status'])
+
+                pct_note = ''
+                if rubric.is_weighted and assignment.points:
+                    try:
+                        p_pct = (float(total) / float(assignment.points)) * 100.0
+                        pct_note = ' (%.1f%% of assignment)' % p_pct
+                    except (ValueError, ZeroDivisionError):
+                        pass
+                messages.success(
+                    request,
+                    "Grade saved. Score: %s / %s%s"
+                    % (total, assignment.points, pct_note),
+                )
+                if next_submission:
+                    return redirect('grade_submission', pk=next_submission.pk)
                 return redirect('gradebook', pk=assignment.pk)
-            except ValueError:
-                messages.error(request, "Invalid score submitted.")
+        # Single score (no rubric path — skip when submitting rubric grades)
+        if not rubric_grade_submit:
+            score = request.POST.get('score', '').strip()
+            if score == '':
+                # Empty score = UNGRADE: delete the Grade record and reset submission status
+                if grade:
+                    grade.delete()
+                    CriterionGrade.objects.filter(submission=submission).delete()
+                    messages.success(request, "Grade removed. Submission is now ungraded.")
+                else:
+                    messages.info(request, "No grade to remove.")
+
+                # Always ensure the status gets reset
+                submission.status = 'submitted'
+                submission.save(update_fields=['status'])
+                return redirect('gradebook', pk=assignment.pk)
+            else:
+                # Non-empty score = save/update the grade
+                try:
+                    score_val = float(score)
+                    if grade:
+                        grade.score = score_val
+                        grade.feedback = feedback
+                        grade.save()
+                        messages.success(request, "Grade updated successfully.")
+                    else:
+                        Grade.objects.create(submission=submission, score=score_val, feedback=feedback)
+                        messages.success(request, "Grade submitted successfully.")
+                    submission.status = 'graded'
+                    submission.save(update_fields=['status'])
+                    return redirect('gradebook', pk=assignment.pk)
+                except ValueError:
+                    messages.error(request, "Invalid score submitted.")
             
     course_role = get_user_course_role(user, assignment.course, request)
     is_instructor = (course_role == 'INSTRUCTOR')

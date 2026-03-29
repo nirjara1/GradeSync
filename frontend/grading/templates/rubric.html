@@ -1,5 +1,6 @@
 {% extends base_template %}
 {% load static %}
+{% load template_filters %}
 
 {% block content %}
 <div class="main-content">
@@ -29,7 +30,7 @@
         {% if rubric.is_weighted %}
         Grading uses <strong>(earned / max points) × weight %</strong> per criterion; results sum to a percentage, then apply to the assignment total.
         {% else %}
-        Each criterion has <strong>max points</strong> for the 0–N scale; earned scores sum to the submission grade. Sum of max points should match the assignment total ({{ assignment.points }}).
+        Each row is a <strong>point allocation</strong> (reference split across criteria). Allocations must not exceed the assignment total ({{ assignment.points }}). When grading, enter any non‑negative score per row; only the <strong>sum</strong> of those scores is capped by the assignment total.
         {% endif %}
     </p>
 
@@ -64,7 +65,7 @@
         <thead>
             <tr style="border-bottom: 2px solid #e5e7eb;">
                 <th style="text-align: left; padding: 10px;">Name</th>
-                <th style="text-align: right; padding: 10px;">Max points</th>
+                <th style="text-align: right; padding: 10px;">{% if rubric.is_weighted %}Max points{% else %}Points{% endif %}</th>
                 {% if rubric.is_weighted %}
                 <th style="text-align: right; padding: 10px;">Weight %</th>
                 <th style="text-align: right; padding: 10px;">Assignment pts (share)</th>
@@ -100,9 +101,8 @@
     </p>
     {% else %}
     <p style="font-size: 14px; color: #666;">
-        Sum of max points:
-        {% for c in criteria %}{% if not forloop.first %} + {% endif %}{{ c.max_points|floatformat:1 }}{% endfor %}
-        (assignment total: {{ assignment.points }}).
+        Sum of allocations: <strong>{% if unweighted_points_sum != None %}{{ unweighted_points_sum|rubric_num }}{% else %}0{% endif %}</strong>
+        (assignment total: {{ assignment.points }}; must not exceed).
     </p>
     {% endif %}
     {% else %}

@@ -230,7 +230,7 @@
     </div>
     {% endif %}
 
-    <form method="POST" enctype="multipart/form-data" id="createAssignmentForm" onsubmit="prepareRubricJson(); return true;">
+    <form method="POST" enctype="multipart/form-data" id="createAssignmentForm" onsubmit="return submitCreateAssignment(event);">
         {% csrf_token %}
 
         <!-- SECTION 1: Basic Information -->
@@ -525,6 +525,32 @@
             }
         });
         document.getElementById('rubricCriteriaJson').value = JSON.stringify(out);
+    }
+
+    function submitCreateAssignment(ev) {
+        prepareRubricJson();
+        var weighted = document.getElementById('id_rubric_is_weighted').checked;
+        if (!weighted) {
+            var apEl = document.querySelector('#createAssignmentForm [name="points"]');
+            var ap = parseFloat(apEl && apEl.value) || 0;
+            var raw = document.getElementById('rubricCriteriaJson').value;
+            var rows = [];
+            try {
+                rows = JSON.parse(raw || '[]');
+            } catch (e) {
+                return true;
+            }
+            var sum = 0;
+            rows.forEach(function (r) {
+                sum += parseFloat(r.max_points) || 0;
+            });
+            if (ap > 0 && sum - ap > 0.01) {
+                alert('Unweighted rubric: the sum of criterion points (' + sum + ') cannot exceed the assignment total (' + ap + ').');
+                if (ev && ev.preventDefault) ev.preventDefault();
+                return false;
+            }
+        }
+        return true;
     }
 
     function toggleGroupUI() {
