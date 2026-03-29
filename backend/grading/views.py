@@ -1190,10 +1190,10 @@ def grade_submission_view(request, pk):
             if grade:
                 grade.delete()
                 CriterionGrade.objects.filter(submission=submission).delete()
-                # Success message removed as per user request
+                messages.success(request, "Grade removed. Submission is now ungraded.")
             else:
                 messages.info(request, "No grade to remove.")
-                
+
             # Always ensure the status gets reset
             submission.status = 'submitted'
             submission.save(update_fields=['status'])
@@ -1203,64 +1203,18 @@ def grade_submission_view(request, pk):
             try:
                 score_val = float(score)
                 if grade:
-                    grade.score = total
+                    grade.score = score_val
                     grade.feedback = feedback
                     grade.save()
-                    # Success message removed as per user request
+                    messages.success(request, "Grade updated successfully.")
                 else:
                     Grade.objects.create(submission=submission, score=score_val, feedback=feedback)
-                    # Success message removed as per user request
+                    messages.success(request, "Grade submitted successfully.")
                 submission.status = 'graded'
                 submission.save(update_fields=['status'])
-
-                pct_note = ''
-                if rubric.is_weighted and assignment.points:
-                    try:
-                        p_pct = (float(total) / float(assignment.points)) * 100.0
-                        pct_note = ' (%.1f%% of assignment)' % p_pct
-                    except (ValueError, ZeroDivisionError):
-                        pass
-                messages.success(
-                    request,
-                    "Grade saved. Score: %s / %s%s"
-                    % (total, assignment.points, pct_note),
-                )
-                if next_submission:
-                    return redirect('grade_submission', pk=next_submission.pk)
                 return redirect('gradebook', pk=assignment.pk)
-        # Single score (no rubric path — skip when submitting rubric grades)
-        if not rubric_grade_submit:
-            score = request.POST.get('score', '').strip()
-            if score == '':
-                # Empty score = UNGRADE: delete the Grade record and reset submission status
-                if grade:
-                    grade.delete()
-                    CriterionGrade.objects.filter(submission=submission).delete()
-                    messages.success(request, "Grade removed. Submission is now ungraded.")
-                else:
-                    messages.info(request, "No grade to remove.")
-
-                # Always ensure the status gets reset
-                submission.status = 'submitted'
-                submission.save(update_fields=['status'])
-                return redirect('gradebook', pk=assignment.pk)
-            else:
-                # Non-empty score = save/update the grade
-                try:
-                    score_val = float(score)
-                    if grade:
-                        grade.score = score_val
-                        grade.feedback = feedback
-                        grade.save()
-                        messages.success(request, "Grade updated successfully.")
-                    else:
-                        Grade.objects.create(submission=submission, score=score_val, feedback=feedback)
-                        messages.success(request, "Grade submitted successfully.")
-                    submission.status = 'graded'
-                    submission.save(update_fields=['status'])
-                    return redirect('gradebook', pk=assignment.pk)
-                except ValueError:
-                    messages.error(request, "Invalid score submitted.")
+            except ValueError:
+                messages.error(request, "Invalid score submitted.")
             
     course_role = get_user_course_role(user, assignment.course, request)
     is_instructor = (course_role == 'INSTRUCTOR')

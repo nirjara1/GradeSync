@@ -54,6 +54,30 @@ def student_dashboard_view(request):
         upcoming_assignments = []
         recent_submissions = []
 
+    # Per-course overall percentage for dashboard cards (same totals logic as gradebook/report)
+    enrolled_courses = [e.course for e in enrollments]
+    if student_profile and enrolled_courses:
+        all_assignments = list(
+            Assignment.objects.filter(course__in=enrolled_courses, status='published')
+            .order_by('course_id', 'due_date', 'id')
+        )
+        all_submissions = Submission.objects.filter(
+            student=student_profile,
+            assignment__in=all_assignments,
+        ).select_related('grade')
+        sub_by_assignment = {s.assignment_id: s for s in all_submissions}
+        assignments_by_course = {}
+        for a in all_assignments:
+            assignments_by_course.setdefault(a.course_id, []).append(a)
+
+        for enrollment in enrollments:
+            course_assignments = assignments_by_course.get(enrollment.course_id, [])
+            pct, _, _ = course_grade_totals(course_assignments, sub_by_assignment)
+            enrollment.course_percentage = pct
+    else:
+        for enrollment in enrollments:
+            enrollment.course_percentage = None
+
     context = {
         'enrollments': enrollments,
         'todo_items': todo_items,

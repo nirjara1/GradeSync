@@ -82,6 +82,21 @@
         margin-top: 0;
     }
 
+    .course-grade-pill {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(132, 0, 41, 0.92);
+        color: #fff;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        z-index: 10;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
     /* Widgets Panel */
     .widget-panel {
         background: var(--white);
@@ -235,6 +250,11 @@
                 {% for enrollment in enrollments %}
                 <div style="position: relative;">
                     <a href="{% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}{% url 'ga_course' enrollment.course.id %}{% else %}{% url 'student_course' enrollment.course.id %}{% endif %}" class="course-card-enhanced">
+                        {% if enrollment.course_percentage is not None %}
+                        <div class="course-grade-pill">{{ enrollment.course_percentage|floatformat:2 }}%</div>
+                        {% else %}
+                        <div class="course-grade-pill" style="background: rgba(107, 114, 128, 0.92);">N/A</div>
+                        {% endif %}
                         
                         <!-- GA Badge -->
                         {% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}
