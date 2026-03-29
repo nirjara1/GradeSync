@@ -248,29 +248,35 @@ def create_assignment(request, course_id=None):
                         
                     assignment.save()
                     
-                    # Handle Group Assignment Logic
+                    # Handle Multi-Group Assignment Logic
                     assignment_type = request.POST.get('assignment_type')
                     if assignment_type == 'group':
                         assignment.is_group_assignment = True
                         assignment.save()
                         
-                        # Create a group for the selected students
-                        selected_students = request.POST.getlist('selected_students')
-                        max_size = assignment.max_group_size or 5
-                        
-                        if len(selected_students) > max_size:
-                            messages.warning(request, f"Group size exceeded limit ({max_size}). Only the first {max_size} students were added.")
-                            selected_students = selected_students[:max_size]
-
-                        if selected_students:
-                            group = AssignmentGroup.objects.create(assignment=assignment, name=f"Group for {assignment.name}")
-                            for student_id in selected_students:
-                                try:
-                                    student = Student.objects.get(id=student_id)
-                                    AssignmentGroupMember.objects.create(group=group, student=student)
-                                except Student.DoesNotExist:
-                                    continue
-                            logger.info(f"Created group {group.id} with {len(selected_students)} members for assignment {assignment.id}")
+                        groups_data = request.POST.get('groups_data')
+                        if groups_data:
+                            try:
+                                groups_list = json.loads(groups_data)
+                                for g_data in groups_list:
+                                    group_name = g_data.get('name', 'Unnamed Group')
+                                    member_ids = g_data.get('members', [])
+                                    
+                                    if member_ids:
+                                        group = AssignmentGroup.objects.create(
+                                            assignment=assignment, 
+                                            name=group_name
+                                        )
+                                        for student_id in member_ids:
+                                            try:
+                                                student = Student.objects.get(id=student_id)
+                                                AssignmentGroupMember.objects.create(group=group, student=student)
+                                            except Student.DoesNotExist:
+                                                continue
+                                        logger.info(f"Created group '{group_name}' with {len(member_ids)} members for assignment {assignment.id}")
+                            except Exception as json_err:
+                                logger.error(f"Error parsing groups_data: {json_err}")
+                                raise json_err
                     
                     
                     # Process test cases from CSV (if provided)
@@ -290,7 +296,7 @@ def create_assignment(request, course_id=None):
                             )
                         logger.info(f"Created {len(test_cases_data)} test cases for assignment {assignment.id}")
 
-                    messages.success(request, f"Assignment '{assignment.name}' successfully {assignment.status}!")
+                    # Success message removed as per user request
             except Exception as e:
                 logger.error(f"Error creating assignment: {e}")
                 messages.error(request, f"An error occurred while creating the assignment: {str(e)}")
@@ -436,42 +442,47 @@ def edit_assignment(request, pk):
             try:
                 with transaction.atomic():
                     assignment = form.save()
-
-                    # Handle Group Assignment Logic
                     assignment_type = request.POST.get('assignment_type')
-                    selected_student_ids = request.POST.getlist('selected_students')
-                    
                     if assignment_type == 'group':
                         assignment.is_group_assignment = True
                         assignment.save()
                         
-                        # For now, GradeSync supports ONE group per assignment as per requirements
-                        group, created = AssignmentGroup.objects.get_or_create(
-                            assignment=assignment,
-                            defaults={'name': f"Group for {assignment.name}"}
-                        )
-                        
-                        # Sync members
-                        if selected_student_ids:
-                            max_size = assignment.max_group_size or 5
-                            if len(selected_student_ids) > max_size:
-                                messages.warning(request, f"Group size exceeded limit ({max_size}). Only the first {max_size} students were saved.")
-                                selected_student_ids = selected_student_ids[:max_size]
-
-                            # Remove old members not in the new selection
-                            AssignmentGroupMember.objects.filter(group=group).exclude(student_id__in=selected_student_ids).delete()
-                            # Add new members
-                            for s_id in selected_student_ids:
-                                student = get_object_or_404(Student, id=s_id)
-                                AssignmentGroupMember.objects.get_or_create(group=group, student=student)
-                        else:
-                            # If nobody selected, should we delete the group? Or keep it empty?
-                            pass
+                        # Handle Multi-Group Assignment Logic
+                        groups_data = request.POST.get('groups_data')
+                        if groups_data:
+                            try:
+                                groups_list = json.loads(groups_data)
+                                
+                                # Simple approach: Clear and recreate
+                                # CAUTION: CASCADE will delete submissions if any exist.
+                                assignment.assignment_groups.all().delete()
+                                
+                                for g_data in groups_list:
+                                    group_name = g_data.get('name', 'Unnamed Group')
+                                    member_ids = g_data.get('members', [])
+                                    
+                                    if member_ids:
+                                        group = AssignmentGroup.objects.create(
+                                            assignment=assignment, 
+                                            name=group_name
+                                        )
+                                        for student_id in member_ids:
+                                            try:
+                                                student = Student.objects.get(id=student_id)
+                                                AssignmentGroupMember.objects.create(group=group, student=student)
+                                            except Student.DoesNotExist:
+                                                continue
+                                        logger.info(f"Re-created group '{group_name}' with {len(member_ids)} members for assignment {assignment.id}")
+                            except Exception as json_err:
+                                logger.error(f"Error parsing groups_data in edit: {json_err}")
+                                raise json_err
                     else:
                         # Switched to Individual
                         if assignment.is_group_assignment:
                             assignment.is_group_assignment = False
                             assignment.save()
+                            # Delete groups when switching to individual
+                            assignment.assignment_groups.all().delete()
                     
                     # Process test cases JSON
                     test_cases_json = request.POST.get('test_cases_json', '')
@@ -548,7 +559,7 @@ def edit_assignment(request, pk):
                 except Exception as e:
                     logger.error(f"Error parsing public_test_data CSV for assignment {assignment.id}: {e}")
 
-            messages.success(request, "Assignment updated successfully!")
+            # Success message removed as per user request
             course_role = get_user_course_role(user, assignment.course, request)
             route_name = 'professor_course' if course_role == 'INSTRUCTOR' else ('student_course' if course_role == 'STUDENT' else 'ga_course')
             return redirect(route_name, course_id=assignment.course.id)
@@ -574,8 +585,7 @@ def edit_assignment(request, pk):
         'form': form, 
         'assignment': assignment, 
         'base_template': base_template,
-        'course_students': course_students,
-        'group_member_ids': group_member_ids
+        'course_students': course_students
     })
 
 @login_required
@@ -590,7 +600,7 @@ def delete_assignment(request, pk):
         
     if request.method == 'POST':
         assignment.delete()
-        messages.success(request, "Assignment deleted successfully!")
+        # Success message removed as per user request
         if course_id:
             course_role = get_user_course_role(user, course, request)
             route_name = 'professor_course' if course_role == 'INSTRUCTOR' else ('student_course' if course_role == 'STUDENT' else 'ga_course')
@@ -977,7 +987,7 @@ def grade_submission_view(request, pk):
             if grade:
                 grade.delete()
                 CriterionGrade.objects.filter(submission=submission).delete()
-                messages.success(request, "Grade removed. Submission is now ungraded.")
+                # Success message removed as per user request
             else:
                 messages.info(request, "No grade to remove.")
                 
@@ -993,10 +1003,10 @@ def grade_submission_view(request, pk):
                     grade.score = score_val
                     grade.feedback = feedback
                     grade.save()
-                    messages.success(request, "Grade updated successfully.")
+                    # Success message removed as per user request
                 else:
                     Grade.objects.create(submission=submission, score=score_val, feedback=feedback)
-                    messages.success(request, "Grade submitted successfully.")
+                    # Success message removed as per user request
                 submission.status = 'graded'
                 submission.save(update_fields=['status'])
                 return redirect('gradebook', pk=assignment.pk)
