@@ -273,11 +273,9 @@ html {
     /* Rounded course cards */
     overflow: hidden;
     /* Keep image inside rounded borders */
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .course-card:hover {
-    transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
     /* Stronger hover shadow */
     border-color: transparent;

@@ -15,7 +15,7 @@
         <h3 style="margin-top: 20px; color: var(--maroon);">Active Courses</h3>
         <div class="courses-list" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px;">
             {% for enrollment in active_enrollments %}
-            <a href="{% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}{% url 'ga_course' enrollment.course.id %}{% else %}{% url 'student_course' enrollment.course.id %}{% endif %}" class="course-list-item" style="display: flex; align-items: center; background: white; border-radius: 8px; padding: 20px; border: 1px solid #eaeaea; text-decoration: none; color: inherit; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.02)';">
+            <a href="{% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}{% url 'ga_course' enrollment.course.id %}{% else %}{% url 'student_course' enrollment.course.id %}{% endif %}" class="course-list-item" style="display: flex; align-items: center; background: white; border-radius: 8px; padding: 20px; border: 1px solid #eaeaea; text-decoration: none; color: inherit; position: relative;">
                 
                 {% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}
                 <div style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.75); color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
@@ -44,7 +44,7 @@
         <h3 style="margin-top: 10px; color: #6b7280;">Archived Courses</h3>
         <div class="courses-list" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; opacity: 0.8;">
             {% for enrollment in archived_enrollments %}
-            <a href="{% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}{% url 'ga_course' enrollment.course.id %}{% else %}{% url 'student_course' enrollment.course.id %}{% endif %}" class="course-list-item" style="display: flex; align-items: center; background: #f3f4f6; border-radius: 8px; padding: 20px; border: 1px solid #e5e7eb; text-decoration: none; color: inherit; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.02)';">
+            <a href="{% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}{% url 'ga_course' enrollment.course.id %}{% else %}{% url 'student_course' enrollment.course.id %}{% endif %}" class="course-list-item" style="display: flex; align-items: center; background: #f3f4f6; border-radius: 8px; padding: 20px; border: 1px solid #e5e7eb; text-decoration: none; color: inherit; position: relative;">
                 
                 {% if enrollment.role_in_course == 'GRADING_ASSISTANT' %}
                 <div style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.4); color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
