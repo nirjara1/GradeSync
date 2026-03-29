@@ -220,7 +220,6 @@ def student_gradebook(request):
 
     now = timezone.now()
     sections = []
-    course_pcts = []
     feedback_payload = {}
 
     def _instructor_name(u):
@@ -246,8 +245,6 @@ def student_gradebook(request):
         sub_by_aid = {a.id: get_effective_submission_for_student(a, student_profile) for a in assignments}
 
         pct, earned, possible = course_grade_totals(assignments, sub_by_aid)
-        if pct is not None:
-            course_pcts.append(pct)
 
         rows = []
         for a in assignments:
@@ -310,10 +307,6 @@ def student_gradebook(request):
             'total_possible': possible,
         })
 
-    overall_pct = None
-    if course_pcts:
-        overall_pct = sum(course_pcts) / len(course_pcts)
-
     fid = None
     if course_filter and str(course_filter).isdigit():
         try:
@@ -325,7 +318,6 @@ def student_gradebook(request):
 
     return render(request, 'portal/student_gradebook.html', {
         'sections': sections,
-        'overall_percentage': overall_pct,
         'filter_course_id': fid,
         'enrollments': enrollments,
         'feedback_payload': feedback_payload,
@@ -403,7 +395,7 @@ def student_calendar_view(request):
         url = f"/ga/classes/{assignment.course.id}/" if is_ga else f"/student/classes/{assignment.course.id}/"
         
         events.append({
-            'title': f"{assignment.course.code}: {assignment.name}",
+            'title': f"{assignment.course.code_section_label() or assignment.course.title}: {assignment.name}",
             'start': assignment.due_date.isoformat(),
             'url': url,
             'backgroundColor': '#fdb913' if is_ga else 'var(--maroon)',

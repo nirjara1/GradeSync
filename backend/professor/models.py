@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -15,8 +17,58 @@ class Course(models.Model):
     professor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='courses')
     is_archived = models.BooleanField(default=False)
 
+    def is_generic_code(self):
+        return (self.code or '').strip().upper() == 'GENERIC'
+
+    def code_section_label(self):
+        """Catalog code + section for UI (e.g. CS101-01). Omits placeholder GENERIC — uses section only."""
+        code = (self.code or '').strip()
+        sec = (self.section or '').strip()
+        if code.upper() == 'GENERIC':
+            return sec
+        if sec:
+            return f'{code}-{sec}'
+        return code
+
+    def code_title_label(self):
+        """One line for cards/lists: 'CODE-SEC - Title' or 'SEC - Title' when code is GENERIC."""
+        cs = self.code_section_label()
+        title = (self.title or '').strip()
+        if cs and title:
+            return f'{cs} - {title}'
+        return title or cs
+
+    def dashboard_year_label(self):
+        """Calendar year for dashboard cards (from term text, section, or catalog label)."""
+        term = (self.term or '').strip()
+        m = re.search(r'\b(19|20)\d{2}\b', term)
+        if m:
+            return m.group(0)
+        sec = (self.section or '').strip()
+        if len(sec) == 4 and sec.isdigit():
+            return sec
+        cs = self.code_section_label()
+        if cs and len(cs) == 4 and cs.isdigit():
+            return cs
+        return ''
+
+    def dashboard_card_title(self):
+        """Course dashboard cards: 'Course Name - Year - CRN 12345'."""
+        title = (self.title or '').strip() or 'Course'
+        year = self.dashboard_year_label()
+        crn = (self.crn or '').strip()
+        parts = [title]
+        if year:
+            parts.append(year)
+        if crn:
+            parts.append(f'CRN {crn}')
+        return ' - '.join(parts)
+
     def __str__(self):
-        return f"{self.code}-{self.section}: {self.title}"
+        cs = self.code_section_label()
+        if cs:
+            return f'{cs}: {self.title}'
+        return self.title or 'Course'
 
 class UserProfile(models.Model):
     ROLE_CHOICES = [
@@ -63,7 +115,8 @@ class CourseMember(models.Model):
         unique_together = ('course', 'user')
 
     def __str__(self):
-        return f"{self.user.username} in {self.course.code} as {self.role_in_course}"
+        label = self.course.code_section_label() or self.course.title or 'course'
+        return f"{self.user.username} in {label} as {self.role_in_course}"
 
 class PendingEnrollment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='pending_enrollments')
@@ -75,7 +128,8 @@ class PendingEnrollment(models.Model):
         unique_together = ('course', 'email')
 
     def __str__(self):
-        return f"Pending: {self.email} in {self.course.code}"
+        label = self.course.code_section_label() or self.course.title or 'course'
+        return f"Pending: {self.email} in {label}"
 
 class ToDoItem(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todo_items')

@@ -306,7 +306,7 @@
                     <img src="{% static 'images/Dashboard Pic.png' %}" alt="Campus Placeholder" class="card-image-enhanced">
                     {% endif %}
                     <div class="card-content-enhanced">
-                        <p class="course-title">{{ course.code }}-{{ course.section }} - {{ course.title }}</p>
+                        <p class="course-title">{{ course.dashboard_card_title }}</p>
                         <p class="course-prof">{{ course.professor.get_full_name|default:course.professor.username }}</p>
                         <p class="course-term">{{ course.term }}</p>
                     </div>
@@ -339,7 +339,7 @@
                     <img src="{% static 'images/Dashboard Pic.png' %}" alt="Campus Placeholder" class="card-image-enhanced" style="filter: grayscale(40%);">
                     {% endif %}
                     <div class="card-content-enhanced">
-                        <p class="course-title" style="color: #555;">{{ course.code }}-{{ course.section }} - {{ course.title }}</p>
+                        <p class="course-title" style="color: #555;">{{ course.dashboard_card_title }}</p>
                         <p class="course-prof">{{ course.professor.get_full_name|default:course.professor.username }}</p>
                         <p class="course-term">{{ course.term }}</p>
                     </div>
@@ -364,7 +364,7 @@
                             Grade: {{ sub.assignment.name }} ({{ sub.student.user.last_name|default:sub.student.user.username }})
                         </a>
                     </div>
-                    <span style="font-size: 11px; color: #9ca3af; background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">{{ sub.assignment.course.code }}</span>
+                    <span style="font-size: 11px; color: #9ca3af; background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">{{ sub.assignment.course.code_section_label }}</span>
                 </li>
                 {% endfor %}
 
@@ -408,7 +408,7 @@
                 {% for assignment in upcoming_assignments %}
                 <li class="feed-item">
                     <span class="feed-main"><i class="fa-solid fa-file-code feed-icon"></i> {{ assignment.name }} Due</span>
-                    <span class="feed-sub">{{ assignment.course.code }} - {{ assignment.due_date|date:"l, P" }}</span>
+                    <span class="feed-sub">{{ assignment.course.code_section_label }} - {{ assignment.due_date|date:"l, P" }}</span>
                 </li>
                 {% empty %}
                 <li style="color: var(--text-muted); font-size: 14px;">No upcoming assignments.</li>
@@ -420,10 +420,12 @@
             <h3 class="widget-title"><i class="fa-solid fa-bolt" style="font-size: 18px;"></i> Recent Submissions</h3>
             <ul class="feed-list">
                 {% for submission in recent_submissions %}
+                {% with course=submission.assignment.course %}
                 <li class="feed-item">
-                    <span class="feed-main"><i class="fa-solid fa-circle-check feed-icon" style="color: #10b981;"></i> Student {{ submission.student.user.last_name|default:submission.student.user.username }} submitted {{ submission.assignment.name }}</span>
-                    <span class="feed-sub">{{ submission.submission_time|timesince }} ago in {{ submission.assignment.course.code }}</span>
+                    <span class="feed-main"><i class="fa-solid fa-circle-check feed-icon" style="color: #10b981;"></i> {{ course.title }} · {% if course.term %}{{ course.term }}{% else %}{{ submission.submission_time|date:"Y" }}{% endif %}{% if course.crn %} · CRN {{ course.crn }}{% endif %}</span>
+                    <span class="feed-sub">{{ submission.assignment.name }} · {{ submission.submission_time|timesince }} ago</span>
                 </li>
+                {% endwith %}
                 {% empty %}
                 <li style="color: var(--text-muted); font-size: 14px;">No recent submissions.</li>
                 {% endfor %}

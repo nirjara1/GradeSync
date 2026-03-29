@@ -183,7 +183,7 @@
                     Current: {{ submission.student.user.last_name|default:submission.student.user.username }} ({{ submission.student.user.email }})
                 </div>
                 <div style="font-size: 12px; color: #a1a1aa; margin-top: 4px;">
-                    <i class="fa-solid fa-book" style="margin-right: 4px;"></i> {{ submission.assignment.course.code }} &mdash; {{ submission.assignment.name }}
+                    <i class="fa-solid fa-book" style="margin-right: 4px;"></i> {{ submission.assignment.course.code_section_label }} &mdash; {{ submission.assignment.name }}
                 </div>
             </div>
             
@@ -200,7 +200,7 @@
                     Matched: {{ matched_sub.student.user.last_name|default:matched_sub.student.user.username }} ({{ matched_sub.student.user.email }})
                 </div>
                 <div style="font-size: 12px; color: #fca5a5; opacity: 0.8; margin-top: 4px;">
-                    <i class="fa-solid fa-book" style="margin-right: 4px;"></i> {{ matched_sub.assignment.course.code }} &mdash; {{ matched_sub.assignment.name }}
+                    <i class="fa-solid fa-book" style="margin-right: 4px;"></i> {{ matched_sub.assignment.course.code_section_label }} &mdash; {{ matched_sub.assignment.name }}
                 </div>
             </div>
             
