@@ -271,7 +271,7 @@
                         {% endif %}
 
                         <div class="card-content-enhanced">
-                            <p class="course-title">{{ enrollment.course.code }}-{{ enrollment.course.section|default:"001" }} - {{ enrollment.course.title }}</p>
+                            <p class="course-title">{{ enrollment.course.dashboard_card_title }}</p>
                             <p class="course-prof">{{ enrollment.course.professor.get_full_name|default:enrollment.course.professor.username }}</p>
                             <p class="course-term">{{ enrollment.course.term }}</p>
                         </div>
@@ -331,7 +331,7 @@
                     {% for assignment in upcoming_assignments %}
                     <li class="feed-item">
                         <span class="feed-main"><i class="fa-solid fa-file-code feed-icon"></i> {{ assignment.name }}</span>
-                        <span class="feed-sub">{{ assignment.course.code }} - {{ assignment.due_date|date:"l, P"|default:"No due date" }}</span>
+                        <span class="feed-sub">{{ assignment.course.code_section_label }} - {{ assignment.due_date|date:"l, P"|default:"No due date" }}</span>
                     </li>
                     {% empty %}
                     <li style="color: var(--text-muted); font-size: 14px;">No upcoming assignments. Enjoy your free time!</li>
