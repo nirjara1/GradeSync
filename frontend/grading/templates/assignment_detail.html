@@ -1,4 +1,5 @@
 {% extends base_template %}
+{% load template_filters %}
 
 {% block extra_css %}
 <style>
@@ -294,7 +295,7 @@
                     <thead>
                         <tr>
                             <th>Criterion</th>
-                            <th style="text-align: right;">Max pts</th>
+                            <th style="text-align: right;">{% if rubric.is_weighted %}Max pts{% else %}Pts{% endif %}</th>
                             {% if rubric.is_weighted %}
                             <th style="text-align: right;">Weight</th>
                             <th style="text-align: right;">Assignment share</th>
@@ -321,6 +322,11 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if not rubric.is_weighted and unweighted_points_sum != None %}
+                <p style="margin: 12px 0 0 0; font-size: 13px; color: var(--gs-text-muted);">
+                    Sum of allocations: <strong>{{ unweighted_points_sum|rubric_num }}</strong> / {{ assignment.points }} (must not exceed assignment total).
+                </p>
+                {% endif %}
             </div>
             {% endif %}
         </div>

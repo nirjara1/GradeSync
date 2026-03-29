@@ -259,23 +259,6 @@
             color: #6b7280;
         }
 
-        .rubric-help-line {
-            font-size: 12px;
-            color: #6b7280;
-            margin: 0;
-            padding: 10px 14px 8px;
-            line-height: 1.4;
-            border-bottom: 1px solid #f3f4f6;
-        }
-
-        .rubric-help-scale {
-            display: block;
-            font-size: 11px;
-            color: #9ca3af;
-            margin-top: 6px;
-            line-height: 1.35;
-        }
-
         .rubric-criterion {
             padding: 14px 14px;
             border-bottom: 1px solid #f3f4f6;
@@ -812,11 +795,6 @@
                                 <span>{{ assignment.points }} pts</span>
                             </div>
 
-                            <p class="rubric-help-line">
-                                Score each criterion from 0 to its max.
-                                <span class="rubric-help-scale" title="Rubric scale reference">0–5 style: 0 none · 1 very poor · 2 limited · 3 partial · 4 mostly correct · 5 full credit</span>
-                            </p>
-
                             {% for row in criteria_with_scores %}
                             <div class="rubric-criterion rubric-row" data-criterion-id="{{ row.criterion.id }}"
                                 data-max-points="{{ row.criterion.max_points }}"
@@ -825,9 +803,13 @@
                                     <div class="rubric-criterion-text">
                                         <h4 class="rubric-criterion-name" id="label_criterion_{{ row.criterion.id }}">{{ row.criterion.name }}</h4>
                                         <p class="rubric-criterion-meta">
+                                            {% if rubric.is_weighted %}
                                             Max {{ row.criterion.max_points|rubric_num }} pts
-                                            {% if rubric.is_weighted and row.criterion.weight != None %}
+                                            {% if row.criterion.weight != None %}
                                             · Weight {{ row.criterion.weight|rubric_num }}%
+                                            {% endif %}
+                                            {% else %}
+                                            Allocation {{ row.criterion.max_points|rubric_num }} pts (reference)
                                             {% endif %}
                                         </p>
                                         {% if rubric.is_weighted and row.contribution_pct != None %}
@@ -841,10 +823,10 @@
                                         <div class="rubric-score-input-wrap">
                                             <input type="number" class="rubric-score-input" id="score_criterion_{{ row.criterion.id }}"
                                                 name="score_criterion_{{ row.criterion.id }}" step="0.5" min="0"
-                                                max="{{ row.criterion.max_points }}"
+                                                {% if rubric.is_weighted %}max="{{ row.criterion.max_points }}"{% endif %}
                                                 value="{{ row.points_earned|rubric_num }}"
                                                 aria-labelledby="label_criterion_{{ row.criterion.id }}">
-                                            <span class="rubric-score-denom">/ {{ row.criterion.max_points|rubric_num }}</span>
+                                            {% if rubric.is_weighted %}<span class="rubric-score-denom">/ {{ row.criterion.max_points|rubric_num }}</span>{% else %}<span class="rubric-score-denom">pts</span>{% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -866,6 +848,7 @@
                                     <span class="rubric-summary-label">Total earned</span>
                                     <span class="rubric-summary-value"><span id="rubric-sum">0</span><span class="rubric-summary-denom"> / {{ assignment.points }}</span></span>
                                 </div>
+                                <p id="rubric-unweighted-warn" class="rubric-summary-note" style="display: none; color: #b91c1c; margin-top: 8px;"></p>
                             </div>
                             {% endif %}
                         </div>
@@ -1201,6 +1184,7 @@
             var weighted = card.getAttribute('data-rubric-weighted') === '1';
             var sumEl = document.getElementById('rubric-sum');
             var pctEl = document.getElementById('rubric-pct-sum');
+            var unweightedWarn = document.getElementById('rubric-unweighted-warn');
             var overallInput = document.getElementById('overall-score-input');
             var inputs = document.querySelectorAll('.rubric-score-input');
 
@@ -1253,6 +1237,15 @@
                         s += parseFloat(inp.value) || 0;
                     });
                     assignmentScore = s;
+                    if (unweightedWarn) {
+                        if (ap > 0 && s - ap > 0.005) {
+                            unweightedWarn.style.display = '';
+                            unweightedWarn.textContent = 'Total exceeds assignment maximum (' + fmtAssignment(ap) + '). Adjust scores before saving.';
+                        } else {
+                            unweightedWarn.style.display = 'none';
+                            unweightedWarn.textContent = '';
+                        }
+                    }
                 }
                 if (sumEl) sumEl.textContent = fmtAssignment(assignmentScore);
                 if (overallInput && overallInput.hasAttribute('readonly')) {
