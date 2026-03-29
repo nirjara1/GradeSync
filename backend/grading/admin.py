@@ -67,7 +67,7 @@ class RubricAdmin(admin.ModelAdmin):
 
 @admin.register(RubricCriterion)
 class RubricCriterionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'rubric', 'order', 'points', 'weight')
+    list_display = ('name', 'rubric', 'order', 'max_points', 'weight')
     list_filter = ('rubric__assignment', 'order')
     search_fields = ('name', 'rubric__assignment__name')
     ordering = ('rubric', 'order')

@@ -21,12 +21,16 @@
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                 <input type="checkbox" name="is_weighted" {% if rubric.is_weighted %}checked{% endif %} onchange="this.form.submit()">
-                <span>Weighted criteria (use percentage per criterion; total = 100%)</span>
+                <span>Weighted rubric (each criterion: max points for scoring + weight %; weights must total 100%)</span>
             </label>
         </div>
     </form>
     <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
-        {% if rubric.is_weighted %}Each criterion's <strong>weight</strong> is a percentage of the assignment total.{% else %}Each criterion has a <strong>points</strong> value; the sum should match the assignment total.{% endif %}
+        {% if rubric.is_weighted %}
+        Grading uses <strong>(earned / max points) × weight %</strong> per criterion; results sum to a percentage, then apply to the assignment total.
+        {% else %}
+        Each criterion has <strong>max points</strong> for the 0–N scale; earned scores sum to the submission grade. Sum of max points should match the assignment total ({{ assignment.points }}).
+        {% endif %}
     </p>
 
     <!-- Add criterion -->
@@ -39,15 +43,14 @@
                 <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Name</label>
                 <input type="text" name="criterion_name" required placeholder="e.g. Correctness" style="padding: 8px 12px; width: 200px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
+            <div>
+                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Max points</label>
+                <input type="number" name="criterion_max_points" min="0.5" step="0.5" value="5" required style="padding: 8px 12px; width: 88px; border: 1px solid #ccc; border-radius: 4px;">
+            </div>
             {% if rubric.is_weighted %}
             <div>
                 <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Weight %</label>
                 <input type="number" name="criterion_weight" min="0" max="100" step="0.5" placeholder="25" style="padding: 8px 12px; width: 80px; border: 1px solid #ccc; border-radius: 4px;">
-            </div>
-            {% else %}
-            <div>
-                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Points</label>
-                <input type="number" name="criterion_points" min="0" step="0.5" placeholder="10" style="padding: 8px 12px; width: 80px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             {% endif %}
             <button type="submit" class="btn-publish" style="padding: 8px 18px;">Add</button>
@@ -61,11 +64,10 @@
         <thead>
             <tr style="border-bottom: 2px solid #e5e7eb;">
                 <th style="text-align: left; padding: 10px;">Name</th>
+                <th style="text-align: right; padding: 10px;">Max points</th>
                 {% if rubric.is_weighted %}
                 <th style="text-align: right; padding: 10px;">Weight %</th>
-                <th style="text-align: right; padding: 10px;">Points (of {{ assignment.points }})</th>
-                {% else %}
-                <th style="text-align: right; padding: 10px;">Points</th>
+                <th style="text-align: right; padding: 10px;">Assignment pts (share)</th>
                 {% endif %}
                 <th style="width: 80px;"></th>
             </tr>
@@ -74,11 +76,10 @@
             {% for row in criteria_with_display %}
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 10px;">{{ row.criterion.name }}</td>
+                <td style="text-align: right; padding: 10px;">{{ row.criterion.max_points|floatformat:1 }}</td>
                 {% if rubric.is_weighted %}
                 <td style="text-align: right; padding: 10px;">{% if row.criterion.weight is not None %}{{ row.criterion.weight|floatformat:1 }}%{% else %}—{% endif %}</td>
                 <td style="text-align: right; padding: 10px;">{% if row.criterion.weight is not None %}{{ row.display_points }}{% else %}—{% endif %}</td>
-                {% else %}
-                <td style="text-align: right; padding: 10px;">{{ row.criterion.points }}</td>
                 {% endif %}
                 <td style="padding: 10px;">
                     <form method="post" style="display: inline;" onsubmit="return confirm('Remove this criterion?');">
@@ -92,13 +93,18 @@
             {% endfor %}
         </tbody>
     </table>
-    {% with total_pts=0 %}
     {% if rubric.is_weighted %}
-    <p style="font-size: 14px; color: #666;">Total weight: {% widthratio criteria|length 1 1 %} criteria (should sum to 100%).</p>
+    <p style="font-size: 14px; color: #666;">
+        Total weight: <strong>{% if rubric_weight_total != None %}{{ rubric_weight_total|floatformat:1 }}{% else %}0{% endif %}%</strong>
+        (must equal 100% before grading is meaningful).
+    </p>
     {% else %}
-    <p style="font-size: 14px; color: #666;">Sum of criterion points: {% for c in criteria %}{% if forloop.first %}{{ c.points }}{% else %} + {{ c.points }}{% endif %}{% endfor %} (assignment total: {{ assignment.points }}).</p>
+    <p style="font-size: 14px; color: #666;">
+        Sum of max points:
+        {% for c in criteria %}{% if not forloop.first %} + {% endif %}{{ c.max_points|floatformat:1 }}{% endfor %}
+        (assignment total: {{ assignment.points }}).
+    </p>
     {% endif %}
-    {% endwith %}
     {% else %}
     <p style="color: #666;">No criteria yet. Add one above.</p>
     {% endif %}

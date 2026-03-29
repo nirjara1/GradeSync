@@ -1,4 +1,5 @@
 {% load static %}
+{% load template_filters %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -118,9 +119,9 @@
             min-height: 0;
         }
 
-        /* Code Editor Left Panel */
+        /* Code Editor Left Panel (~70% width) */
         .grade-submission-editor-area {
-            flex: 1;
+            flex: 1 1 70%;
             min-width: 0;
             display: flex;
             flex-direction: column;
@@ -193,9 +194,12 @@
             background: #fff;
         }
 
-        /* Grading Sidebar Right Panel */
+        /* Grading Sidebar Right Panel (~30% width) */
         .grade-submission-sidebar-area {
-            width: 380px;
+            flex: 0 0 30%;
+            width: 30%;
+            min-width: 260px;
+            max-width: 520px;
             flex-shrink: 0;
             background: #fff;
             overflow-y: auto;
@@ -223,82 +227,193 @@
         }
 
         .sidebar-content {
-            padding: 24px;
+            padding: 16px 18px 24px;
             flex: 1;
         }
 
         .rubric-card {
             background: #fff;
             border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            margin-bottom: 18px;
             overflow: hidden;
         }
 
         .rubric-card-header {
-            background: #f9fafb;
-            padding: 12px 16px;
+            background: #fafafa;
+            padding: 10px 14px;
             border-bottom: 1px solid #e5e7eb;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #374151;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            letter-spacing: 0.02em;
         }
 
-        .rubric-row {
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
+        .rubric-card-header span:last-child {
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        .rubric-help-line {
+            font-size: 12px;
+            color: #6b7280;
+            margin: 0;
+            padding: 10px 14px 8px;
+            line-height: 1.4;
             border-bottom: 1px solid #f3f4f6;
-            gap: 10px;
         }
 
-        .rubric-row:last-child {
+        .rubric-help-scale {
+            display: block;
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 6px;
+            line-height: 1.35;
+        }
+
+        .rubric-criterion {
+            padding: 14px 14px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .rubric-criterion:last-of-type {
             border-bottom: none;
         }
 
-        .rubric-row-top {
+        .rubric-criterion-main {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            gap: 15px;
+            align-items: flex-start;
+            gap: 12px;
         }
 
-        .rubric-row label {
-            font-size: 14px;
-            color: #4b5563;
+        .rubric-criterion-text {
             flex: 1;
-            font-weight: 500;
+            min-width: 0;
         }
 
-        .rubric-row input[type="number"] {
-            width: 70px;
-            padding: 8px;
+        .rubric-criterion-name {
+            margin: 0 0 6px 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: #111827;
+            line-height: 1.35;
+        }
+
+        .rubric-criterion-meta {
+            margin: 0;
+            font-size: 12px;
+            color: #9ca3af;
+            line-height: 1.4;
+        }
+
+        .rubric-criterion-contrib {
+            margin: 8px 0 0 0;
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        .rubric-criterion-contrib .contrib-val {
+            font-weight: 500;
+            color: #a1a1aa;
+        }
+
+        .rubric-criterion-score {
+            flex-shrink: 0;
+            padding-top: 2px;
+        }
+
+        .rubric-score-input-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .rubric-row input[type="number"],
+        .rubric-score-input {
+            width: 56px;
+            padding: 7px 6px;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 14px;
+            font-variant-numeric: tabular-nums;
             text-align: center;
             transition: border-color 0.2s;
         }
 
-        .rubric-row input[type="number"]:focus {
+        .rubric-score-denom {
+            font-size: 12px;
+            color: #9ca3af;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .rubric-row input[type="number"]:focus,
+        .rubric-score-input:focus {
             border-color: var(--maroon);
             outline: none;
             box-shadow: 0 0 0 2px rgba(132, 0, 41, 0.1);
         }
 
-        .rubric-total-box {
-            padding: 16px;
-            background: #fdf8f8;
-            border-top: 1px solid #fecaca;
+        .rubric-summary-card {
+            margin: 0 14px 14px;
+            padding: 12px 14px;
+            background: #fafafa;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .rubric-summary-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .rubric-summary-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .rubric-summary-value {
+            font-size: 18px;
             font-weight: 700;
             color: var(--maroon);
-            font-size: 16px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .rubric-summary-value .rubric-summary-denom {
+            font-size: 14px;
+            font-weight: 600;
+            color: #9ca3af;
+        }
+
+        .rubric-summary-sub {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #6b7280;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .rubric-summary-note {
+            margin: 8px 0 0 0;
+            font-size: 11px;
+            color: #9ca3af;
+            line-height: 1.35;
+        }
+
+        /* legacy class kept for unweighted single-line fallback */
+        .rubric-total-box {
+            display: none;
         }
 
         .feedback-section {
@@ -409,7 +524,7 @@
             flex-direction: column;
             min-height: 0;
             overflow-y: auto;
-            padding: 20px;
+            padding: 12px 14px 18px;
             background: #fff;
         }
         .evaluation-pane-tab-content.active {
@@ -547,6 +662,43 @@
         .console-terminal .console-input-line textarea::placeholder {
             color: #9ca3af;
         }
+
+        @media (max-width: 1100px) {
+            .grade-submission-sidebar-area {
+                flex: 0 0 34%;
+                width: 34%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grade-submission-body {
+                flex-direction: column;
+            }
+            .grade-submission-editor-area {
+                flex: 1 1 56%;
+                min-height: 260px;
+            }
+            .grade-submission-sidebar-area {
+                flex: 1 1 auto;
+                width: 100%;
+                max-width: none;
+                min-width: 0;
+                max-height: min(52vh, 520px);
+                border-top: 1px solid #e5e7eb;
+            }
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
     </style>
 </head>
 
@@ -611,8 +763,8 @@
             <!-- Right Column: Grading Panel -->
             <div class="grade-submission-sidebar-area">
                 <div class="sidebar-header">
-                    <h3>Evaluation Pane</h3>
-                    <p>Review and assign grades based on the rubric.</p>
+                    <h3>Evaluation</h3>
+                    <p>Grading &amp; rubric</p>
                 </div>
 
                 {% if submission.group and group_members %}
@@ -652,34 +804,70 @@
                         {% if rubric and criteria %}
                         <input type="hidden" name="submit_grade_rubric" value="1">
 
-                        <div class="rubric-card">
+                        <div class="rubric-card" id="rubricGradeCard"
+                            data-assignment-points="{{ assignment.points }}"
+                            data-rubric-weighted="{% if rubric.is_weighted %}1{% else %}0{% endif %}">
                             <div class="rubric-card-header">
-                                <span>Grading Criteria</span>
-                                <span>{{ assignment.points }} pts total</span>
+                                <span>Rubric</span>
+                                <span>{{ assignment.points }} pts</span>
                             </div>
 
+                            <p class="rubric-help-line">
+                                Score each criterion from 0 to its max.
+                                <span class="rubric-help-scale" title="Rubric scale reference">0–5 style: 0 none · 1 very poor · 2 limited · 3 partial · 4 mostly correct · 5 full credit</span>
+                            </p>
+
                             {% for row in criteria_with_scores %}
-                            <div class="rubric-row">
-                                <div class="rubric-row-top">
-                                    <label for="score_criterion_{{ row.criterion.id }}">
-                                        {{ row.criterion.name }}
-                                        <span
-                                            style="color: #9ca3af; font-size: 12px; margin-left: 4px; font-weight: normal;">
-                                            {% if rubric.is_weighted %}({{ row.criterion.weight|floatformat:0 }}%){%
-                                            else %}({{ row.criterion.points }} pts){% endif %}
-                                        </span>
-                                    </label>
-                                    <input type="number" id="score_criterion_{{ row.criterion.id }}"
-                                        name="score_criterion_{{ row.criterion.id }}" step="0.5" min="0"
-                                        value="{{ row.points_earned|default:'0' }}">
+                            <div class="rubric-criterion rubric-row" data-criterion-id="{{ row.criterion.id }}"
+                                data-max-points="{{ row.criterion.max_points }}"
+                                data-weight="{% if rubric.is_weighted and row.criterion.weight != None %}{{ row.criterion.weight }}{% else %}0{% endif %}">
+                                <div class="rubric-criterion-main">
+                                    <div class="rubric-criterion-text">
+                                        <h4 class="rubric-criterion-name" id="label_criterion_{{ row.criterion.id }}">{{ row.criterion.name }}</h4>
+                                        <p class="rubric-criterion-meta">
+                                            Max {{ row.criterion.max_points|rubric_num }} pts
+                                            {% if rubric.is_weighted and row.criterion.weight != None %}
+                                            · Weight {{ row.criterion.weight|rubric_num }}%
+                                            {% endif %}
+                                        </p>
+                                        {% if rubric.is_weighted and row.contribution_pct != None %}
+                                        <p class="rubric-criterion-contrib">
+                                            Contribution <span class="contrib-val">—</span>
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="rubric-criterion-score">
+                                        <label for="score_criterion_{{ row.criterion.id }}" class="visually-hidden">{{ row.criterion.name }} score</label>
+                                        <div class="rubric-score-input-wrap">
+                                            <input type="number" class="rubric-score-input" id="score_criterion_{{ row.criterion.id }}"
+                                                name="score_criterion_{{ row.criterion.id }}" step="0.5" min="0"
+                                                max="{{ row.criterion.max_points }}"
+                                                value="{{ row.points_earned|rubric_num }}"
+                                                aria-labelledby="label_criterion_{{ row.criterion.id }}">
+                                            <span class="rubric-score-denom">/ {{ row.criterion.max_points|rubric_num }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             {% endfor %}
 
-                            <div class="rubric-total-box">
-                                <span>Rubric Total:</span>
-                                <div><span id="rubric-sum">0</span> / {{ assignment.points }}</div>
+                            {% if rubric.is_weighted %}
+                            <div class="rubric-summary-card">
+                                <div class="rubric-summary-row">
+                                    <span class="rubric-summary-label">Weighted score</span>
+                                    <span class="rubric-summary-value"><span id="rubric-pct-sum">0</span><span class="rubric-summary-denom"> / 100</span></span>
+                                </div>
+                                <div class="rubric-summary-sub"><span id="rubric-sum">0</span> / {{ assignment.points }} assignment pts</div>
+                                <p class="rubric-summary-note">Calculated from rubric weights</p>
                             </div>
+                            {% else %}
+                            <div class="rubric-summary-card">
+                                <div class="rubric-summary-row">
+                                    <span class="rubric-summary-label">Total earned</span>
+                                    <span class="rubric-summary-value"><span id="rubric-sum">0</span><span class="rubric-summary-denom"> / {{ assignment.points }}</span></span>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                         {% else %}
                         <div class="empty-rubric">
@@ -1004,23 +1192,71 @@
             function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
         })();
 
-        // Rubric Auto-Calculation
+        // Rubric UI sync only (same math as backend; display formatting only)
         {% if rubric and criteria %}
         (function () {
-            var inputs = document.querySelectorAll('.rubric-row input[type="number"]');
+            var card = document.getElementById('rubricGradeCard');
+            if (!card) return;
+            var ap = parseFloat(card.getAttribute('data-assignment-points')) || 0;
+            var weighted = card.getAttribute('data-rubric-weighted') === '1';
             var sumEl = document.getElementById('rubric-sum');
+            var pctEl = document.getElementById('rubric-pct-sum');
             var overallInput = document.getElementById('overall-score-input');
+            var inputs = document.querySelectorAll('.rubric-score-input');
+
+            function fmtAssignment(n) {
+                var x = Number(n);
+                if (!isFinite(x)) return '0';
+                var s = x.toFixed(2);
+                return s.replace(/\.?0+$/, '') || '0';
+            }
+
+            function fmtPct100(n) {
+                var x = Number(n);
+                if (!isFinite(x)) return '0';
+                if (Math.abs(x - Math.round(x)) < 0.001) return String(Math.round(x));
+                return (Math.round(x * 10) / 10).toFixed(1).replace(/\.0$/, '');
+            }
+
+            function fmtContrib(n) {
+                var x = Number(n);
+                if (!isFinite(x)) return '—';
+                var r = Math.round(x * 10) / 10;
+                if (Math.abs(r - Math.round(r)) < 0.05) return String(Math.round(r));
+                return (Math.round(r * 10) / 10).toFixed(1).replace(/\.0$/, '');
+            }
 
             function updateTotal() {
-                var sum = 0;
-                inputs.forEach(function (inp) {
-                    var v = parseFloat(inp.value) || 0;
-                    sum += v;
-                });
-                var formatted = sum.toFixed(1).replace(/\.0$/, ''); // Format to 1 decimal, remove .0
-                sumEl.textContent = formatted;
+                var assignmentScore = 0;
+                if (weighted) {
+                    var sumPct = 0;
+                    document.querySelectorAll('.rubric-criterion.rubric-row[data-criterion-id]').forEach(function (row) {
+                        var inp = row.querySelector('.rubric-score-input');
+                        var maxP = parseFloat(row.getAttribute('data-max-points')) || 0;
+                        var w = parseFloat(row.getAttribute('data-weight')) || 0;
+                        var earned = parseFloat(inp && inp.value) || 0;
+                        if (maxP > 0) {
+                            sumPct += (earned / maxP) * w;
+                        }
+                        var contrib = row.querySelector('.contrib-val');
+                        if (contrib && maxP > 0) {
+                            contrib.textContent = fmtContrib((earned / maxP) * w);
+                        } else if (contrib) {
+                            contrib.textContent = '—';
+                        }
+                    });
+                    assignmentScore = (sumPct / 100) * ap;
+                    if (pctEl) pctEl.textContent = fmtPct100(sumPct);
+                } else {
+                    var s = 0;
+                    inputs.forEach(function (inp) {
+                        s += parseFloat(inp.value) || 0;
+                    });
+                    assignmentScore = s;
+                }
+                if (sumEl) sumEl.textContent = fmtAssignment(assignmentScore);
                 if (overallInput && overallInput.hasAttribute('readonly')) {
-                    overallInput.value = formatted;
+                    overallInput.value = fmtAssignment(assignmentScore);
                 }
             }
 

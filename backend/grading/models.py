@@ -263,13 +263,17 @@ class Rubric(models.Model):
 
 
 class RubricCriterion(models.Model):
-    """Single criterion in a rubric. For unweighted: points = max points. For weighted: weight = percentage (0-100)."""
+    """Single criterion: max_points = scale for grading (e.g. 5); weight = % of assignment when rubric is weighted."""
     rubric = models.ForeignKey(Rubric, on_delete=models.CASCADE, related_name='criteria')
     name = models.CharField(max_length=255)
     order = models.PositiveSmallIntegerField(default=0)
-    # Unweighted: max points for this criterion
-    points = models.DecimalField(max_digits=6, decimal_places=2, default=0)
-    # Weighted: percentage (0-100) of total assignment points
+    max_points = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=5,
+        help_text="Maximum points for this criterion (faculty scores 0–max; e.g. 5 for a 0–5 scale).",
+    )
+    # Weighted rubric: percentage 0–100; unweighted: null
     weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     class Meta:
