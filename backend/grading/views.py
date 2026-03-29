@@ -270,8 +270,12 @@ def student_course_view(request, course_id):
                 assignment.student_status = 'UPCOMING'
 
     return render(request, 'assignments_dashboard.html', {
-        'assignments': assignments, 'course': course,
-        'is_instructor': False, 'is_student': True, 'base_template': 'portal/base_portal.html'
+        'assignments': assignments,
+        'course': course,
+        'is_instructor': False,
+        'is_student': True,
+        'base_template': 'portal/base_portal.html',
+        'active_tab': 'assignments',
     })
 
 @login_required
@@ -990,10 +994,10 @@ def gradebook_view(request, pk):
     if not has_course_access(user, assignment.course, request):
         return HttpResponseForbidden("You do not have permission to view this gradebook.")
     course_role = get_user_course_role(user, assignment.course, request)
+    if course_role == 'STUDENT':
+        return redirect('student_course_gradebook', course_id=assignment.course_id)
     if course_role == 'INSTRUCTOR':
         base_template = 'base_professor.html'
-    elif course_role == 'STUDENT':
-        base_template = 'portal/base_portal.html'
     else:
         base_template = 'base_grading_assistant.html'
     submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade').order_by('id')
