@@ -9,6 +9,10 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
 <div style="display: flex; gap: 24px; align-items: flex-start;">
     {% include "course_sidebar.html" %}
     <div style="flex: 1;">
+{% elif course and is_student %}
+<div style="display: flex; gap: 24px; align-items: flex-start;">
+    {% include "student_course_sidebar.html" %}
+    <div style="flex: 1;">
 {% endif %}
 
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
@@ -290,6 +294,9 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
 
 
 {% if course and is_instructor %}
+    </div>
+</div>
+{% elif course and is_student %}
     </div>
 </div>
 {% endif %}
