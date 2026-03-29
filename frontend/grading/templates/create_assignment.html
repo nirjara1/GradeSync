@@ -180,6 +180,38 @@
         font-weight: 600;
         color: #374151;
     }
+    
+    /* NEW: Group Builder Styles */
+    .group-accordion-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 20px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        cursor: pointer;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        transition: background 0.2s;
+    }
+    .group-accordion-header:hover {
+        background: #f1f5f9;
+    }
+    .unassigned-hud {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        padding: 10px 20px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
 </style>
 
 <div class="unified-form-container">
@@ -238,36 +270,45 @@
                 <div class="form-group" id="max_group_size_container" style="display: none; margin-top: 16px;">
                     <label for="{{ form.max_group_size.id_for_label }}" class="form-label">Max Students per Group</label>
                     {{ form.max_group_size }}
-                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Limit the number of members in this group.</div>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Limit the number of members in each group.</div>
                 </div>
             </div>
-            
-            <div class="form-col" style="flex: 2; display: none;" id="group_selection_container">
-                <div class="form-group">
-                    <label class="form-label">Select Group Members</label>
-                    <div style="border: 1px solid #d1d5db; border-radius: 8px; background: #ffffff; padding: 12px; max-height: 200px; overflow-y: auto;">
-                        <div style="margin-bottom: 10px;">
-                            <input type="text" id="student_search" placeholder="Search students..." class="form-control" style="padding: 8px 12px; font-size: 14px;" onkeyup="filterStudents()">
-                        </div>
-                        <div id="student_list">
-                            {% for member in course_students %}
-                            <div class="student-item" style="display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 6px; transition: background 0.2s;">
-                                <input type="checkbox" name="selected_students" value="{{ member.student_id }}" id="student_{{ member.student_id }}" class="form-check-input">
-                                <label for="student_{{ member.student_id }}" style="margin: 0; font-size: 14px; color: #374151; cursor: pointer; flex: 1;">
-                                    {{ member.user.get_full_name|default:member.user.username }} 
-                                    <span style="color: #6b7280; font-size: 12px;">({{ member.user.email }})</span>
-                                </label>
-                            </div>
-                            {% empty %}
-                            <p style="font-size: 14px; color: #6b7280; margin: 10px 0;">No students enrolled in this course.</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
-                        Selected students will share one submission and one grade.
-                    </div>
+        </div>
+
+        <!-- NEW: Group Builder Container -->
+        <div id="group_builder_container" style="display: none; margin-top: 30px; padding: 25px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <div id="unassigned_hud" class="unassigned-hud" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="background: var(--maroon); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;" id="unassigned_count">0</span>
+                    <span style="font-size: 14px; font-weight: 600; color: #475569;">Unassigned Students</span>
+                </div>
+                <div id="unassigned_names" style="font-size: 12px; color: #64748b; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b;">
+                    <i class="fa-solid fa-users-gear" style="color: var(--maroon); margin-right: 8px;"></i> Defined Groups
+                </h4>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="randomizeGroups()" class="btn-secondary" style="padding: 8px 16px; font-size: 13px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;">
+                        <i class="fa-solid fa-shuffle" style="margin-right: 6px;"></i> Randomize 
+                    </button>
+                    <button type="button" onclick="addGroup()" class="btn-secondary" style="padding: 8px 16px; font-size: 13px; background: var(--maroon); color: white; border: none;">
+                        <i class="fa-solid fa-plus-circle" style="margin-right: 6px;"></i> Create New Group
+                    </button>
                 </div>
             </div>
+
+            <div id="groups_list">
+                <!-- Groups will be rendered here by JavaScript -->
+            </div>
+
+            <div id="empty_groups_msg" style="text-align: center; padding: 40px; background: #ffffff; border: 2px dashed #e2e8f0; border-radius: 12px; margin-bottom: 20px;">
+                <i class="fa-solid fa-users-viewfinder" style="font-size: 32px; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
+                <p style="color: #64748b; font-size: 14px; margin: 0;">No groups defined yet. Click "Create New Group" or "Randomize" to get started.</p>
+            </div>
+
+            <input type="hidden" name="groups_data" id="groups_data_input">
         </div>
 
         <!-- SECTION 3: Logistics -->
@@ -427,6 +468,14 @@
 
 
 <script>
+    // Initialize data from template
+    const allStudents = [
+        {% for member in course_students %}
+        { id: "{{ member.id|escapejs }}", name: "{{ member.user.get_full_name|default:member.user.username|escapejs }}", email: "{{ member.user.email|escapejs }}" },
+        {% endfor %}
+    ];
+    let groups = [];
+
     function addRubricRow() {
         var tbody = document.getElementById('rubricRowsBody');
         var tr = document.createElement('tr');
@@ -447,20 +496,18 @@
 
     function syncRubricColumnMode() {
         var weighted = document.getElementById('id_rubric_is_weighted').checked;
-        var colPts = document.getElementById('rubricColPoints');
-        var colW = document.getElementById('rubricColWeight');
-        if (colPts) {
-            colPts.textContent = weighted ? 'Max points' : 'Points';
-            colPts.style.display = '';
-        }
-        if (colW) colW.style.display = weighted ? '' : 'none';
+        if (!document.getElementById('rubricColPoints')) return; // Guard for safety
+        document.getElementById('rubricColPoints').style.display = '';
+        document.getElementById('rubricColWeight').style.display = weighted ? '' : 'none';
         document.querySelectorAll('.rubric-cell-points').forEach(function (td) { td.style.display = ''; });
         document.querySelectorAll('.rubric-cell-weight').forEach(function (td) { td.style.display = weighted ? '' : 'none'; });
         prepareRubricJson();
     }
 
     function prepareRubricJson() {
-        var weighted = document.getElementById('id_rubric_is_weighted').checked;
+        var weightedEl = document.getElementById('id_rubric_is_weighted');
+        if (!weightedEl) return;
+        var weighted = weightedEl.checked;
         var rows = document.querySelectorAll('#rubricRowsBody tr');
         var out = [];
         rows.forEach(function (tr) {
@@ -508,305 +555,486 @@
 
     function toggleGroupUI() {
         const isGroup = document.getElementById('type_group').checked;
-        const container = document.getElementById('group_selection_container');
+        const container = document.getElementById('group_builder_container');
         const sizeContainer = document.getElementById('max_group_size_container');
         
         container.style.display = isGroup ? 'block' : 'none';
         sizeContainer.style.display = isGroup ? 'block' : 'none';
         
-        // If switching back to individual, clear selections
-        if (!isGroup) {
-            const checkboxes = document.querySelectorAll('input[name="selected_students"]');
-            checkboxes.forEach(cb => cb.checked = false);
+        if (isGroup && groups.length === 0) {
+            addGroup(); // Start with one group by default
         }
     }
 
-    // Enforce max group size
-    document.addEventListener('change', function(e) {
-        if (e.target && e.target.name === 'selected_students') {
-            const maxInput = document.getElementById('id_max_group_size');
-            if (!maxInput) return;
-            
-            const max = parseInt(maxInput.value) || 5;
-            const checked = document.querySelectorAll('input[name="selected_students"]:checked');
-            
-            if (checked.length > max) {
-                e.target.checked = false;
-                alert(`You can only select up to ${max} students for this group.`);
-            }
+    function addGroup(name) {
+        const groupCount = groups.length + 1;
+        const newId = Date.now() + Math.random();
+        
+        // Collapse all others
+        groups.forEach(g => g.isExpanded = false);
+        
+        groups.push({
+            id: newId,
+            name: name || `Group ${groupCount}`,
+            members: [],
+            isExpanded: true
+        });
+        renderGroups();
+        
+        // Smooth scroll to new group
+        setTimeout(() => {
+            const el = document.getElementById(`group-card-${newId}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    }
+
+    function toggleGroupExpansion(groupId) {
+        const group = groups.find(g => g.id === groupId);
+        if (group) {
+            group.isExpanded = !group.isExpanded;
+            renderGroups();
         }
-    });
-
-function filterStudents() {
-    const query = document.getElementById('student_search').value.toLowerCase();
-    const items = document.querySelectorAll('.student-item');
-    items.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(query) ? 'flex' : 'none';
-    });
-}
-
-let parsedTestCases = [];
-
-function handleCsvDragOver(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    document.getElementById('csvUploadContainer').style.backgroundColor = '#f3f4f6';
-    document.getElementById('csvUploadContainer').style.borderColor = 'var(--maroon)';
-}
-
-function handleCsvDragLeave(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    document.getElementById('csvUploadContainer').style.backgroundColor = '#f9fafb';
-    document.getElementById('csvUploadContainer').style.borderColor = '#d1d5db';
-}
-
-function handleCsvDrop(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    document.getElementById('csvUploadContainer').style.backgroundColor = '#f9fafb';
-    document.getElementById('csvUploadContainer').style.borderColor = '#d1d5db';
-    
-    if (event.dataTransfer.files.length > 0) {
-        document.getElementById('test_cases_csv').files = event.dataTransfer.files;
-        handleCsvFileSelect({ target: { files: event.dataTransfer.files } });
     }
-}
 
-function handleCsvFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    if (!file.name.endsWith('.csv')) {
-        showPreviewError('Please upload a CSV file.');
-        return;
+    function removeGroup(groupId) {
+        groups = groups.filter(g => g.id !== groupId);
+        renderGroups();
     }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            // Strip UTF-8 BOM so first header matches "input_data" (Excel often adds BOM)
-            const csv = (e.target.result || '').replace(/^\uFEFF/, '');
-            parsedTestCases = parseCSV(csv);
+
+    function updateGroupName(groupId, newName) {
+        const group = groups.find(g => g.id === groupId);
+        if (group) group.name = newName;
+        syncToHiddenInput();
+    }
+
+    function randomizeGroups() {
+        if (allStudents.length === 0) {
+            alert("No students available in this course.");
+            return;
+        }
+
+        const confirmReset = groups.some(g => g.members.length > 0) 
+            ? confirm("This will reset all current group assignments. Continue?") 
+            : true;
+        
+        if (!confirmReset) return;
+
+        const maxSize = parseInt(document.getElementById('id_max_group_size').value) || 5;
+        const students = [...allStudents].sort(() => Math.random() - 0.5); // Shuffle
+        
+        // Smart distribution logic
+        const total = students.length;
+        const numGroups = Math.ceil(total / maxSize);
+        const baseSize = Math.floor(total / numGroups);
+        const extra = total % numGroups;
+
+        groups = [];
+        let currentIndex = 0;
+
+        for (let i = 0; i < numGroups; i++) {
+            const currentGroupSize = i < extra ? baseSize + 1 : baseSize;
+            const groupMembers = students.slice(currentIndex, currentIndex + currentGroupSize);
             
-            if (parsedTestCases.length === 0) {
-                showPreviewError('No valid test cases found in CSV.');
+            groups.push({
+                id: Date.now() + Math.random() + i,
+                name: `Group ${i + 1}`,
+                members: groupMembers,
+                isExpanded: i === 0 // Expand first group by default
+            });
+            
+            currentIndex += currentGroupSize;
+        }
+
+        renderGroups();
+    }
+
+    function toggleMember(groupId, studentId) {
+        const group = groups.find(g => g.id === groupId);
+        if (!group) return;
+
+        const student = allStudents.find(s => s.id == studentId);
+        if (!student) return;
+
+        const memberIndex = group.members.findIndex(m => m.id == studentId);
+        if (memberIndex > -1) {
+            // Remove member
+            group.members.splice(memberIndex, 1);
+        } else {
+            // Add member - Check constraints
+            const max = parseInt(document.getElementById('id_max_group_size').value) || 5;
+            if (group.members.length >= max) {
+                alert(`This group has reached the maximum size of ${max} students.`);
                 return;
             }
-            
-            displayPreviewTable(parsedTestCases);
-            storeTestCasesAsJson(parsedTestCases);
-        } catch (error) {
-            showPreviewError('Error parsing CSV: ' + error.message);
-        }
-    };
-    reader.readAsText(file);
-}
 
-function parseCSV(csvText) {
-    const rows = [];
-    let currentRow = [];
-    let currentCell = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < csvText.length; i++) {
-        let char = csvText[i];
-        let nextChar = csvText[i + 1];
-        
-        if (inQuotes) {
-            if (char === '"' && nextChar === '"') {
-                currentCell += '"';
-                i++; // Skip the escaped quote
-            } else if (char === '"') {
-                inQuotes = false;
-            } else {
-                currentCell += char;
+            // Check if student is already in another group
+            const otherGroup = groups.find(g => g.id !== groupId && g.members.some(m => m.id == studentId));
+            if (otherGroup) {
+                if (confirm(`${student.name} is already in ${otherGroup.name}. Move to ${group.name}?`)) {
+                    // Remove from other group
+                    otherGroup.members = otherGroup.members.filter(m => m.id != studentId);
+                } else {
+                    return;
+                }
             }
+
+            group.members.push(student);
+        }
+        renderGroups();
+    }
+
+    function renderGroups() {
+        const list = document.getElementById('groups_list');
+        const emptyMsg = document.getElementById('empty_groups_msg');
+        const hud = document.getElementById('unassigned_hud');
+        list.innerHTML = '';
+        
+        // Calculate Unassigned Students
+        const assignedIds = new Set();
+        groups.forEach(g => g.members.forEach(m => assignedIds.add(m.id)));
+        const unassigned = allStudents.filter(s => !assignedIds.has(s.id));
+        
+        if (unassigned.length > 0 && groups.length > 0) {
+            hud.style.display = 'flex';
+            document.getElementById('unassigned_count').innerText = unassigned.length;
+            document.getElementById('unassigned_names').innerText = unassigned.map(s => s.name).join(', ');
         } else {
-            if (char === '"') {
-                inQuotes = true;
-            } else if (char === ',') {
-                currentRow.push(currentCell);
-                currentCell = '';
-            } else if (char === '\r' && nextChar === '\n') {
-                currentRow.push(currentCell);
-                currentCell = '';
-                rows.push(currentRow);
-                currentRow = [];
-                i++; // Skip \n
-            } else if (char === '\n' || char === '\r') {
-                currentRow.push(currentCell);
-                currentCell = '';
-                rows.push(currentRow);
-                currentRow = [];
-            } else {
-                currentCell += char;
-            }
-        }
-    }
-    
-    // Push the last cell and row if any
-    if (currentCell !== '' || currentRow.length > 0) {
-        currentRow.push(currentCell);
-        rows.push(currentRow);
-    }
-    
-    // Filter out completely empty rows
-    const validRows = rows.filter(row => row.join('').trim() !== '');
-    
-    if (validRows.length < 2) {
-        throw new Error('CSV must have header row plus at least one data row');
-    }
-    
-    const headers = validRows[0].map(h => h.trim().toLowerCase());
-    const requiredColumns = ['input_data', 'expected_output', 'is_private', 'points'];
-    
-    for (let col of requiredColumns) {
-        if (!headers.includes(col)) {
-            throw new Error(`Missing required column: ${col}`);
-        }
-    }
-    
-    const testCases = [];
-    for (let i = 1; i < validRows.length; i++) {
-        const row = validRows[i];
-        const obj = {};
-        
-        headers.forEach((h, idx) => {
-            obj[h] = row[idx] !== undefined ? row[idx].trim() : ''; 
-        });
-        
-        const pt = parseInt(obj.points) || 5;
-        const privRaw = (obj.is_private !== undefined && obj.is_private !== null) ? String(obj.is_private).trim().toLowerCase() : 'false';
-        const isPriv = privRaw === 'true' || privRaw === '1' || privRaw === 'yes';
-        
-        testCases.push({
-            input_data: obj.input_data,      // Render preserving actual layout
-            expected_output: obj.expected_output,
-            is_private: isPriv,
-            points: pt
-        });
-    }
-    
-    return testCases;
-}
-
-function displayPreviewTable(testCases) {
-    const tbody = document.getElementById('previewTableBody');
-    tbody.innerHTML = '';
-    
-    testCases.forEach((tc, idx) => {
-        const row = document.createElement('tr');
-        
-        row.innerHTML = `
-            <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-family: monospace; font-size: 13px; color: #4b5563; white-space: pre-wrap; max-width: 250px; vertical-align: top;">${escapeHtml(tc.input_data)}</td>
-            <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-family: monospace; font-size: 13px; color: #4b5563; white-space: pre-wrap; max-width: 250px; vertical-align: top;">${escapeHtml(tc.expected_output)}</td>
-            <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center; vertical-align: top;">
-                <select id="private_${idx}" class="form-control" style="padding: 6px 10px; font-size: 13px;" onchange="updateTestCase(${idx})">
-                    <option value="false" ${!tc.is_private ? 'selected' : ''}>Public</option>
-                    <option value="true" ${tc.is_private ? 'selected' : ''}>Hidden</option>
-                </select>
-            </td>
-            <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center; vertical-align: top;">
-                <input type="number" id="points_${idx}" class="form-control" value="${tc.points}" min="1" style="width: 70px; padding: 6px 10px; font-size: 13px; text-align: center;" onchange="updateTestCase(${idx})">
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-    
-    document.getElementById('previewTableContainer').style.display = 'block';
-    document.getElementById('previewError').style.display = 'none';
-}
-
-function updateTestCase(idx) {
-    const isPrivate = document.getElementById(`private_${idx}`).value === 'true';
-    const points = parseInt(document.getElementById(`points_${idx}`).value) || 5;
-    
-    parsedTestCases[idx].is_private = isPrivate;
-    parsedTestCases[idx].points = points;
-    
-    storeTestCasesAsJson(parsedTestCases);
-}
-
-function storeTestCasesAsJson(testCases) {
-    document.getElementById('testCasesJsonInput').value = JSON.stringify(testCases);
-}
-
-function showPreviewError(message) {
-    document.getElementById('previewError').textContent = '<i class="fa-solid fa-triangle-exclamation"></i> ' + message;
-    document.getElementById('previewError').style.display = 'block';
-    document.getElementById('previewTableContainer').style.display = 'none';
-}
-
-function escapeHtml(text) {
-    if (text === null || text === undefined) return '';
-    const s = String(text);
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return s.replace(/[&<>"']/g, function (ch) { return map[ch]; });
-}
-
-// Premium Flatpickr with Material Red Theme
-document.addEventListener('DOMContentLoaded', function () {
-    var dueInput = document.querySelector('input[name="due_date"]');
-    var noDueCheckbox = document.querySelector('input[name="no_due_date"]');
-    if (!dueInput || typeof flatpickr === 'undefined') return;
-
-    var fp = flatpickr(dueInput, {
-        enableTime: true,
-        dateFormat: "Y-m-d H:i",
-        altInput: true,
-        altFormat: "F j, Y - h:i K",
-        minDate: "today",
-        time_24hr: false
-    });
-
-    if (noDueCheckbox) {
-        // Initial state
-        if (noDueCheckbox.checked) {
-            fp.clear();
-            fp._input.disabled = true;
-            if (fp.altInput) fp.altInput.disabled = true;
+            hud.style.display = 'none';
         }
 
-        // Toggle state
-        noDueCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                fp.clear();
-                fp._input.disabled = true;
-                if (fp.altInput) fp.altInput.disabled = true;
-            } else {
-                fp._input.disabled = false;
-                if (fp.altInput) fp.altInput.disabled = false;
+        if (groups.length === 0) {
+            emptyMsg.style.display = 'block';
+        } else {
+            emptyMsg.style.display = 'none';
+            
+            groups.forEach((group, index) => {
+                const groupEl = document.createElement('div');
+                groupEl.id = `group-card-${group.id}`;
+                groupEl.style.cssText = 'background: white; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden;';
+                
+                const otherAssignedIds = new Set();
+                groups.forEach(g => {
+                    if (g.id !== group.id) {
+                        g.members.forEach(m => otherAssignedIds.add(m.id));
+                    }
+                });
+
+                const groupAssignedIds = new Set(group.members.map(m => m.id));
+
+                groupEl.innerHTML = `
+                    <div class="group-accordion-header" onclick="toggleGroupExpansion(${group.id})">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fa-solid ${group.isExpanded ? 'fa-chevron-down' : 'fa-chevron-right'}" style="color: #64748b; font-size: 14px;"></i>
+                            <span style="font-weight: 700; color: #1e293b;">${group.name}</span>
+                            <span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">${group.members.length} members</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button type="button" onclick="event.stopPropagation(); removeGroup(${group.id})" style="color: #ef4444; background: none; border: none; cursor: pointer; font-size: 14px;" title="Delete Group">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: ${group.isExpanded ? 'block' : 'none'}; padding: 20px; border-top: 1px solid #f1f5f9;">
+                        <div style="margin-bottom: 15px;">
+                            <label style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Rename Group</label>
+                            <input type="text" value="${group.name}" onchange="updateGroupName(${group.id}, this.value)" 
+                                   class="form-control" style="margin-top: 5px; font-weight: 600;">
+                        </div>
+                        
+                        <div>
+                            <label style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Members (${group.members.length})</label>
+                            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px; min-height: 40px; padding: 10px; background: #f1f5f9; border-radius: 8px;">
+                                ${group.members.length === 0 ? '<span style="color: #94a3b8; font-size: 13px;">No members added yet.</span>' : ''}
+                                ${group.members.map(m => `
+                                    <div style="background: var(--maroon); color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; display: flex; align-items: center; gap: 8px; animation: fadeIn 0.3s ease;">
+                                        ${m.name}
+                                        <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 11px;" onclick="toggleMember(${group.id}, '${m.id}')"></i>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            <div style="margin-top: 15px;">
+                                <div style="position: relative;">
+                                    <input type="text" placeholder="Add student..." class="form-control border-focus" style="font-size: 13px; padding-left: 35px;" 
+                                           onkeyup="filterDropdown(this, ${group.id})"
+                                           onfocus="showDropdown(this)" 
+                                           onblur="hideDropdown(this)">
+                                    <i class="fa-solid fa-search" style="position: absolute; left: 12px; top: 12px; color: #94a3b8; font-size: 14px;"></i>
+                                    <div class="student-dropdown" id="dropdown-${group.id}" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; margin-top: 4px;">
+                                        ${renderDropdownItems(group.id, groupAssignedIds, otherAssignedIds)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(groupEl);
+            });
+        }
+        syncToHiddenInput();
+    }
+
+    function renderDropdownItems(groupId, assignedIds, otherAssignedIds, filterText = '') {
+        const filtered = allStudents.filter(s => 
+            s.name.toLowerCase().includes(filterText.toLowerCase()) || 
+            s.email.toLowerCase().includes(filterText.toLowerCase())
+        );
+
+        if (filtered.length === 0) {
+            return `<div style="padding: 15px; text-align: center; color: #94a3b8; font-size: 13px;">No students found</div>`;
+        }
+
+        return filtered.map(s => {
+            const isAlreadyInGroup = assignedIds.has(s.id);
+            const isInOtherGroup = otherAssignedIds.has(s.id);
+            const style = isInOtherGroup ? 'opacity: 0.5; cursor: not-allowed;' : 'cursor: pointer;';
+            const badge = isInOtherGroup ? '<span style="font-size: 10px; background: #e5e7eb; color: #475569; padding: 2px 6px; border-radius: 4px; margin-left: auto;">In other group</span>' : (isAlreadyInGroup ? '<i class="fa-solid fa-circle-check" style="color: #10b981; margin-left: auto;"></i>' : '');
+            
+            return `
+                <div onclick="${isInOtherGroup ? '' : `toggleMember(${groupId}, '${s.id}')`}" 
+                     style="padding: 10px 15px; display: flex; align-items: center; gap: 10px; font-size: 14px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; ${style}"
+                     onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                    <div style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #475569; font-size: 12px;">
+                        ${s.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 500; color: #1e293b;">${s.name}</span>
+                        <span style="font-size: 11px; color: #64748b;">${s.email}</span>
+                    </div>
+                    ${badge}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function filterDropdown(input, groupId) {
+        const dropdown = document.getElementById(`dropdown-${groupId}`);
+        const group = groups.find(g => g.id === groupId);
+        const assignedIds = new Set(group.members.map(m => m.id));
+        const otherAssignedIds = new Set();
+        groups.forEach(g => {
+            if (g.id !== group.id) {
+                g.members.forEach(m => otherAssignedIds.add(m.id));
             }
         });
+        dropdown.innerHTML = renderDropdownItems(groupId, assignedIds, otherAssignedIds, input.value);
     }
 
-    var isWeightedCheckbox = document.querySelector('input[name="is_weighted"]');
-    var weightWrap = document.getElementById('weightFieldWrap');
-    var weightInput = document.querySelector('input[name="weight"]');
-    function syncWeight() {
-        if (!isWeightedCheckbox || !weightWrap || !weightInput) return;
-        var on = !!isWeightedCheckbox.checked;
-        weightWrap.style.display = on ? 'block' : 'none';
-        if (!on) weightInput.value = '';
-    }
-    if (isWeightedCheckbox) {
-        isWeightedCheckbox.addEventListener('change', syncWeight);
-        syncWeight();
+    function showDropdown(input) {
+        input.nextElementSibling.nextElementSibling.style.display = 'block';
     }
 
-    syncRubricColumnMode();
-});
+    function hideDropdown(input) {
+        setTimeout(() => {
+            if (input.nextElementSibling.nextElementSibling) {
+                input.nextElementSibling.nextElementSibling.style.display = 'none';
+            }
+        }, 200);
+    }
+
+    function syncToHiddenInput() {
+        if (!document.getElementById('groups_data_input')) return;
+        const serialized = groups.map(g => ({
+            name: g.name,
+            members: g.members.map(m => m.id)
+        }));
+        document.getElementById('groups_data_input').value = JSON.stringify(serialized);
+    }
+
+    function filterStudents() {
+        // Redundant with new UI but keeping for compatibility if needed
+    }
+
+    let parsedTestCases = [];
+
+    // ... handleCsv functions ...
+
+    function handleCsvDragOver(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.getElementById('csvUploadContainer').style.backgroundColor = '#f3f4f6';
+        document.getElementById('csvUploadContainer').style.borderColor = 'var(--maroon)';
+    }
+
+    function handleCsvDragLeave(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.getElementById('csvUploadContainer').style.backgroundColor = '#f9fafb';
+        document.getElementById('csvUploadContainer').style.borderColor = '#d1d5db';
+    }
+
+    function handleCsvDrop(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.getElementById('csvUploadContainer').style.backgroundColor = '#f9fafb';
+        document.getElementById('csvUploadContainer').style.borderColor = '#d1d5db';
+        
+        if (event.dataTransfer.files.length > 0) {
+            document.getElementById('test_cases_csv').files = event.dataTransfer.files;
+            handleCsvFileSelect({ target: { files: event.dataTransfer.files } });
+        }
+    }
+
+    function handleCsvFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        if (!file.name.endsWith('.csv')) {
+            showPreviewError('Please upload a CSV file.');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const csv = (e.target.result || '').replace(/^\uFEFF/, '');
+                parsedTestCases = parseCSV(csv);
+                
+                if (parsedTestCases.length === 0) {
+                    showPreviewError('No valid test cases found in CSV.');
+                    return;
+                }
+                
+                displayPreviewTable(parsedTestCases);
+                storeTestCasesAsJson(parsedTestCases);
+            } catch (error) {
+                showPreviewError('Error parsing CSV: ' + error.message);
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function parseCSV(csvText) {
+        const rows = [];
+        let currentRow = [];
+        let currentCell = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < csvText.length; i++) {
+            let char = csvText[i];
+            let nextChar = csvText[i + 1];
+            
+            if (inQuotes) {
+                if (char === '"' && nextChar === '"') {
+                    currentCell += '"';
+                    i++; 
+                } else if (char === '"') {
+                    inQuotes = false;
+                } else {
+                    currentCell += char;
+                }
+            } else {
+                if (char === '"') {
+                    inQuotes = true;
+                } else if (char === ',') {
+                    currentRow.push(currentCell);
+                    currentCell = '';
+                } else if (char === '\r' && nextChar === '\n') {
+                    currentRow.push(currentCell);
+                    currentCell = '';
+                    rows.push(currentRow);
+                    currentRow = [];
+                    i++; 
+                } else if (char === '\n' || char === '\r') {
+                    currentRow.push(currentCell);
+                    currentCell = '';
+                    rows.push(currentRow);
+                    currentRow = [];
+                } else {
+                    currentCell += char;
+                }
+            }
+        }
+        
+        if (currentCell !== '' || currentRow.length > 0) {
+            currentRow.push(currentCell);
+            rows.push(currentRow);
+        }
+        
+        const validRows = rows.filter(row => row.join('').trim() !== '');
+        if (validRows.length < 2) {
+            throw new Error('CSV must have header row plus at least one data row');
+        }
+        
+        const headers = validRows[0].map(h => h.trim().toLowerCase());
+        const requiredColumns = ['input_data', 'expected_output', 'is_private', 'points'];
+        
+        for (let col of requiredColumns) {
+            if (!headers.includes(col)) {
+                throw new Error(`Missing required column: ${col}`);
+            }
+        }
+        
+        const testCases = [];
+        for (let i = 1; i < validRows.length; i++) {
+            const row = validRows[i];
+            const obj = {};
+            headers.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? row[idx].trim() : ''; });
+            const pt = parseInt(obj.points) || 5;
+            const privRaw = String(obj.is_private || 'false').trim().toLowerCase();
+            const isPriv = privRaw === 'true' || privRaw === '1' || privRaw === 'yes';
+            testCases.push({ input_data: obj.input_data, expected_output: obj.expected_output, is_private: isPriv, points: pt });
+        }
+        return testCases;
+    }
+
+    function displayPreviewTable(testCases) {
+        const tbody = document.getElementById('previewTableBody');
+        tbody.innerHTML = '';
+        testCases.forEach((tc, idx) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-family: monospace; font-size: 13px; color: #4b5563; white-space: pre-wrap; max-width: 250px; vertical-align: top;">${escapeHtml(tc.input_data)}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-family: monospace; font-size: 13px; color: #4b5563; white-space: pre-wrap; max-width: 250px; vertical-align: top;">${escapeHtml(tc.expected_output)}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center; vertical-align: top;">
+                    <select id="private_${idx}" class="form-control" style="padding: 6px 10px; font-size: 13px;" onchange="updateTestCase(${idx})">
+                        <option value="false" ${!tc.is_private ? 'selected' : ''}>Public</option>
+                        <option value="true" ${tc.is_private ? 'selected' : ''}>Hidden</option>
+                    </select>
+                </td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center; vertical-align: top;">
+                    <input type="number" id="points_${idx}" class="form-control" value="${tc.points}" min="1" style="width: 70px; padding: 6px 10px; font-size: 13px; text-align: center;" onchange="updateTestCase(${idx})">
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        document.getElementById('previewTableContainer').style.display = 'block';
+        document.getElementById('previewError').style.display = 'none';
+    }
+
+    function updateTestCase(idx) {
+        parsedTestCases[idx].is_private = document.getElementById(`private_${idx}`).value === 'true';
+        parsedTestCases[idx].points = parseInt(document.getElementById(`points_${idx}`).value) || 5;
+        storeTestCasesAsJson(parsedTestCases);
+    }
+
+    function storeTestCasesAsJson(testCases) {
+        document.getElementById('testCasesJsonInput').value = JSON.stringify(testCases);
+    }
+
+    function showPreviewError(message) {
+        document.getElementById('previewError').textContent = message;
+        document.getElementById('previewError').style.display = 'block';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr('input[name="due_date"]', {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                altInput: true,
+                altFormat: "F j, Y - h:i K",
+                minDate: "today"
+            });
+        }
+        
+        // Initial setup
+        toggleGroupUI();
+        syncRubricColumnMode();
+    });
 </script>
 
-<!-- Premium Flatpickr (Material Red Theme) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_red.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>

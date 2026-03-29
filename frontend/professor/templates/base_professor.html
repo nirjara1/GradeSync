@@ -8,8 +8,17 @@
     <title>GradeSync - Professor Dashboard</title>
     <!-- Use FontAwesome for sidebar icons to match screenshot -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.1">
+    <!-- Reusing the professor CSS for identical layout -->
+    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.2">
     {% block extra_css %}{% endblock %}
+    
+    <!-- Dark Mode Load Script -->
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
 </head>
 
 <body>
@@ -25,6 +34,9 @@
                 <h1 class="header-left-title">GradeSync</h1>
             </a>
             <div class="user-controls">
+                <button id="themeToggleBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-main); margin-right: 15px; display: flex; align-items: center;" title="Toggle Dark/Light Mode">
+                    <i class="fa-solid fa-moon" style="transition: transform 0.3s;"></i>
+                </button>
                 <span class="username">Welcome, <a href="{% url 'user_profile' %}" class="username-bold">{{ display_name }}</a></span>
                 <div class="nav-separator"></div>
                 <form method="post" action="{% url 'logout' %}" style="display: inline;">
@@ -86,6 +98,32 @@
         </main>
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeBtn = document.getElementById('themeToggleBtn');
+            const icon = themeBtn.querySelector('i');
+            
+            // Set initial icon based on applied theme
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                icon.classList.replace('fa-moon', 'fa-sun');
+            }
+
+            themeBtn.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                if (currentTheme === 'dark') {
+                    document.documentElement.removeAttribute('data-theme');
+                    localStorage.setItem('theme', 'light');
+                    icon.classList.replace('fa-sun', 'fa-moon');
+                    icon.style.transform = 'rotate(-360deg)';
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                    icon.classList.replace('fa-moon', 'fa-sun');
+                    icon.style.transform = 'rotate(360deg)';
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
