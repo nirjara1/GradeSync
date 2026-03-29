@@ -112,8 +112,12 @@ def profile(request):
 def courses_list(request):
     user = get_user_from_request(request)
     request.session['active_role'] = 'INSTRUCTOR'
-    courses = Course.objects.filter(professor=user).distinct()
-    return render(request, 'professor_courses.html', {'courses': courses})
+    active_courses = Course.objects.filter(professor=user, is_archived=False).distinct()
+    archived_courses = Course.objects.filter(professor=user, is_archived=True).distinct().order_by('-id')
+    return render(request, 'professor_courses.html', {
+        'active_courses': active_courses,
+        'archived_courses': archived_courses
+    })
 
 @login_required
 def reports(request):

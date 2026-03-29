@@ -59,14 +59,14 @@ For students / GAs we keep the simple single-column layout.
                                     </a>
                                 {% elif cell.status == 'ungraded' %}
                                     <a href="{% url 'grade_submission' pk=cell.submission_id %}"
-                                       style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 700; text-decoration: none; transition: transform 0.1s;"
+                                       style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; text-decoration: none; transition: transform 0.1s;"
                                        onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                        Ungraded
+                                        Submitted
                                     </a>
                                 {% elif cell.status == 'missing' %}
-                                    <span style="font-size: 11px; color: var(--maroon); font-style: italic; font-weight: 700;">Missing</span>
+                                    <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">Missing</span>
                                 {% else %}
-                                    <span style="font-size: 11px; color: #d1d5db; font-style: italic;">Not submitted</span>
+                                    <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb;">Not submitted</span>
                                 {% endif %}
                             {% endfor %}
                         </tr>
@@ -129,12 +129,12 @@ For students / GAs we keep the simple single-column layout.
                     </td>
                     <td style="padding: 16px;">
                         {% if submission.grade %}
-                        <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; background:#dcfce7; color:#15803d; padding:3px 10px; border-radius:12px;">
+                        <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; padding:4px 10px; border-radius:9999px;">
                             <i class="fa-solid fa-circle-check" style="font-size:10px;"></i> Graded
                         </span>
                         {% else %}
-                        <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; background:#fef3c7; color:#92400e; padding:3px 10px; border-radius:12px;">
-                            <i class="fa-regular fa-clock" style="font-size:10px;"></i> Ungraded
+                        <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:4px 10px; border-radius:9999px;">
+                            <i class="fa-solid fa-file-arrow-up" style="font-size:10px;"></i> Submitted
                         </span>
                         {% endif %}
                     </td>

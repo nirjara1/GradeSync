@@ -24,6 +24,16 @@ from django.utils import timezone
 import re
 import zipfile
 import os
+from decimal import Decimal, InvalidOperation
+
+from .rubric_scoring import (
+    criterion_weighted_contribution,
+    final_score_unweighted_rubric,
+    final_score_weighted_rubric,
+    sum_weights_for_rubric,
+    validate_unweighted_rubric_rows,
+    validate_weighted_rubric_rows,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +55,62 @@ def _coerce_bool(val, default=False):
     if s in ("false", "0", "no", "off", ""):
         return False
     return default
+
+
+def _save_rubric_from_create_post(request, assignment):
+    """Optional rubric + criteria from the create-assignment form (same POST as assignment)."""
+    raw = (request.POST.get("rubric_criteria_json") or "").strip()
+    if not raw:
+        return
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return
+    if not isinstance(data, list):
+        return
+    rows = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        name = (item.get("name") or "").strip()
+        if not name:
+            continue
+        rows.append(item)
+    if not rows:
+        return
+    is_weighted = request.POST.get("rubric_is_weighted") == "on"
+    ap = int(assignment.points) if assignment.points is not None else 0
+    if is_weighted:
+        err = validate_weighted_rubric_rows(rows)
+        if err:
+            raise ValueError(err)
+    else:
+        err = validate_unweighted_rubric_rows(rows, ap)
+        if err:
+            raise ValueError(err)
+
+    rubric = Rubric.objects.create(assignment=assignment, is_weighted=is_weighted)
+    for order, item in enumerate(rows, start=1):
+        name = (item.get("name") or "").strip()
+        mp = float(item.get("max_points") or 0)
+        if is_weighted:
+            w = float(item.get("weight") or 0)
+            RubricCriterion.objects.create(
+                rubric=rubric,
+                name=name,
+                order=order,
+                max_points=mp,
+                weight=w,
+            )
+        else:
+            RubricCriterion.objects.create(
+                rubric=rubric,
+                name=name,
+                order=order,
+                max_points=mp,
+                weight=None,
+            )
+
 
 @login_required
 def assignments_dashboard(request):
@@ -230,6 +296,13 @@ def create_assignment(request, course_id=None):
         if profile.role != 'FACULTY' and user.username != 'poudelb2':
             return HttpResponseForbidden("You do not have permission to create assignments.")
 
+    course_students = []
+    if course:
+        course_students = CourseMember.objects.filter(course=course, role_in_course='STUDENT').select_related('user')
+        for member in course_students:
+            student_profile, _ = Student.objects.get_or_create(user=member.user)
+            member.student_id = student_profile.id
+
     if request.method == 'POST':
         form = AssignmentForm(request.POST, request.FILES)
         if form.is_valid():
@@ -284,17 +357,31 @@ def create_assignment(request, course_id=None):
                     if test_cases_json:
                         import json
                         test_cases_data = json.loads(test_cases_json)
-                        for idx, tc_data in enumerate(test_cases_data, 1):
+                        seen_tcs = set()
+                        order_idx = 1
+                        for tc_data in test_cases_data:
+                            key = (
+                                tc_data.get('input_data', '').strip(),
+                                tc_data.get('expected_output', '').strip(),
+                                _coerce_bool(tc_data.get('is_private'), False)
+                            )
+                            if key in seen_tcs:
+                                continue
+                            seen_tcs.add(key)
+                            
                             TestCase.objects.create(
                                 assignment=assignment,
-                                name=f"Test Case {idx}",
+                                name=f"Test Case {order_idx}",
                                 input_data=tc_data.get('input_data', ''),
                                 expected_output=tc_data.get('expected_output', ''),
-                                is_private=_coerce_bool(tc_data.get('is_private'), False),
+                                is_private=key[2],
                                 points_awarded=tc_data.get('points', 5),
-                                order=idx
+                                order=order_idx
                             )
-                        logger.info(f"Created {len(test_cases_data)} test cases for assignment {assignment.id}")
+                            order_idx += 1
+                        logger.info(f"Created {order_idx - 1} test cases for assignment {assignment.id}")
+
+                    _save_rubric_from_create_post(request, assignment)
 
                     # Success message removed as per user request
             except Exception as e:
@@ -319,16 +406,6 @@ def create_assignment(request, course_id=None):
         if course:
             initial_data['course'] = course
         form = AssignmentForm(initial=initial_data)
-    
-    # Get students for group selection
-    course_students = []
-    if course:
-        # Get students from CourseMember
-        course_students = CourseMember.objects.filter(course=course, role_in_course='STUDENT').select_related('user')
-        # We need the student profile ID for the checkbox value
-        for member in course_students:
-            student_profile, _ = Student.objects.get_or_create(user=member.user)
-            member.student_id = student_profile.id
 
     context = {
         'form': form,
@@ -341,7 +418,7 @@ def create_assignment(request, course_id=None):
 
 @login_required
 def rubric_view(request):
-    """Shown when opening rubric from create assignment (no assignment yet)."""
+    """Legacy/info page when visiting rubric URL without an assignment context."""
     user = get_user_from_request(request)
     role = request.session.get('active_role') or getattr(request, 'user_role', None)
     if role == 'INSTRUCTOR' or (role in ['FACULTY', 'PROFESSOR']):
@@ -373,17 +450,39 @@ def assignment_rubric_view(request, assignment_id):
         elif action == 'add_criterion':
             name = request.POST.get('criterion_name', '').strip()
             if name:
+                try:
+                    mp = float(request.POST.get('criterion_max_points') or 0)
+                except ValueError:
+                    mp = 0
+                if mp <= 0:
+                    messages.error(request, "Max points must be greater than 0.")
+                    return redirect('assignment_rubric', assignment_id=assignment.id)
                 max_order = RubricCriterion.objects.filter(rubric=rubric).aggregate(
                     m=Max('order'))['m'] or 0
-                points = request.POST.get('criterion_points')
-                weight = request.POST.get('criterion_weight')
-                c = RubricCriterion.objects.create(
-                    rubric=rubric,
-                    name=name,
-                    order=max_order + 1,
-                    points=float(points or 0) if not rubric.is_weighted else 0,
-                    weight=float(weight or 0) if rubric.is_weighted else None,
-                )
+                if rubric.is_weighted:
+                    try:
+                        w = float(request.POST.get('criterion_weight') or 0)
+                    except ValueError:
+                        w = 0
+                    current_w = float(sum_weights_for_rubric(rubric))
+                    if current_w + w - 100 > 0.02:
+                        messages.error(request, "Total weight cannot exceed 100%.")
+                        return redirect('assignment_rubric', assignment_id=assignment.id)
+                    RubricCriterion.objects.create(
+                        rubric=rubric,
+                        name=name,
+                        order=max_order + 1,
+                        max_points=mp,
+                        weight=w,
+                    )
+                else:
+                    RubricCriterion.objects.create(
+                        rubric=rubric,
+                        name=name,
+                        order=max_order + 1,
+                        max_points=mp,
+                        weight=None,
+                    )
                 messages.success(request, f"Criterion '{name}' added.")
         elif action == 'delete_criterion':
             cid = request.POST.get('criterion_id')
@@ -393,15 +492,19 @@ def assignment_rubric_view(request, assignment_id):
         return redirect('assignment_rubric', assignment_id=assignment.id)
 
     criteria = list(rubric.criteria.all())
-    # For weighted criteria, compute points from weight using proper rounding (widthratio truncates and can show 99 for 100)
     total_pts = int(assignment.points) if assignment.points is not None else 0
     criteria_with_display = []
+    weight_total = float(sum_weights_for_rubric(rubric)) if rubric.is_weighted else None
     for c in criteria:
         if rubric.is_weighted and c.weight is not None:
-            display_pts = round(float(total_pts) * float(c.weight) / 100)
+            alloc = round(float(total_pts) * float(c.weight) / 100)
         else:
-            display_pts = int(c.points) if c.points is not None else 0
-        criteria_with_display.append({'criterion': c, 'display_points': display_pts})
+            alloc = int(c.max_points) if c.max_points is not None else 0
+        criteria_with_display.append({
+            'criterion': c,
+            'display_points': alloc,
+            'assignment_points_allocation': alloc if rubric.is_weighted else None,
+        })
     role = request.session.get('active_role') or getattr(request, 'user_role', None)
     if role == 'INSTRUCTOR' or (role in ['FACULTY', 'PROFESSOR']):
         base_template = 'base_professor.html'
@@ -415,6 +518,7 @@ def assignment_rubric_view(request, assignment_id):
         'rubric': rubric,
         'criteria': criteria,
         'criteria_with_display': criteria_with_display,
+        'rubric_weight_total': weight_total,
     }
     return render(request, 'rubric.html', context)
 
@@ -490,16 +594,28 @@ def edit_assignment(request, pk):
                         import json
                         test_cases_data = json.loads(test_cases_json)
                         TestCase.objects.filter(assignment=assignment).delete()
-                        for idx, tc_data in enumerate(test_cases_data, 1):
+                        seen_tcs = set()
+                        order_idx = 1
+                        for tc_data in test_cases_data:
+                            key = (
+                                tc_data.get('input_data', '').strip(),
+                                tc_data.get('expected_output', '').strip(),
+                                _coerce_bool(tc_data.get('is_private'), False)
+                            )
+                            if key in seen_tcs:
+                                continue
+                            seen_tcs.add(key)
+                            
                             TestCase.objects.create(
                                 assignment=assignment,
-                                name=f"Test Case {idx}",
+                                name=f"Test Case {order_idx}",
                                 input_data=tc_data.get('input_data', ''),
                                 expected_output=tc_data.get('expected_output', ''),
-                                is_private=_coerce_bool(tc_data.get('is_private'), False),
+                                is_private=key[2],
                                 points_awarded=tc_data.get('points', 5),
-                                order=idx
+                                order=order_idx
                             )
+                            order_idx += 1
             except Exception as e:
                 logger.error(f"Error updating assignment: {e}")
                 messages.error(request, f"An error occurred while updating the assignment: {str(e)}")
@@ -528,7 +644,9 @@ def edit_assignment(request, pk):
                     TestCase.objects.filter(assignment=assignment).delete()
 
                     count = 0
-                    for idx, raw in enumerate(reader, 1):
+                    seen_tcs = set()
+                    order_idx = 1
+                    for raw in reader:
                         row = {
                             (k or '').strip().lstrip('\ufeff').lower(): (v if v is not None else '').strip()
                             for k, v in raw.items()
@@ -537,6 +655,12 @@ def edit_assignment(request, pk):
                         expected_output = row.get('expected_output', '')
                         is_private_str = str(row.get('is_private', 'false')).strip().lower()
                         is_private = is_private_str in ('true', '1', 'yes')
+                        
+                        key = (input_data.strip(), expected_output.strip(), is_private)
+                        if key in seen_tcs:
+                            continue
+                        seen_tcs.add(key)
+
                         points_val = row.get('points', '') or '5'
                         try:
                             points = int(float(points_val))
@@ -545,14 +669,15 @@ def edit_assignment(request, pk):
 
                         TestCase.objects.create(
                             assignment=assignment,
-                            name=f"Test Case {idx}",
+                            name=f"Test Case {order_idx}",
                             input_data=input_data,
                             expected_output=expected_output,
                             is_private=is_private,
                             is_hidden=False,
                             points_awarded=points,
-                            order=idx,
+                            order=order_idx,
                         )
+                        order_idx += 1
                         count += 1
 
                     logger.info(f"Re-imported {count} test cases for assignment {assignment.id} from CSV")
@@ -791,8 +916,12 @@ def assignment_detail_view(request, pk):
         if rubric.is_weighted and c.weight is not None:
             display_pts = round(float(total_pts) * float(c.weight) / 100)
         else:
-            display_pts = int(c.points) if c.points is not None else 0
-        criteria_with_display.append({'criterion': c, 'display_points': display_pts})
+            display_pts = int(c.max_points) if c.max_points is not None else 0
+        criteria_with_display.append({
+            'criterion': c,
+            'display_points': display_pts,
+            'assignment_points_allocation': display_pts if rubric.is_weighted else None,
+        })
     has_rubric = rubric is not None
     context = {
         'assignment': assignment,
@@ -943,40 +1072,84 @@ def grade_submission_view(request, pk):
     grade = getattr(submission, 'grade', None)
     rubric = getattr(assignment, 'rubric', None)
     criteria = list(rubric.criteria.all()) if rubric else []
-    criterion_grades = {}  # criterion_id -> points_earned
+    criterion_grades = {}  # criterion_id -> points_earned (Decimal)
     if submission and criteria:
         for cg in CriterionGrade.objects.filter(submission=submission, criterion__in=criteria):
             criterion_grades[cg.criterion_id] = cg.points_earned
-    criteria_with_scores = [{'criterion': c, 'points_earned': criterion_grades.get(c.id, 0)} for c in criteria]
+
+    def _build_criteria_rows():
+        rows = []
+        for c in criteria:
+            pe = criterion_grades.get(c.id)
+            if pe is None:
+                pe = Decimal('0')
+            else:
+                pe = Decimal(str(pe))
+            mx = Decimal(str(c.max_points or 0))
+            w = Decimal(str(c.weight)) if c.weight is not None else None
+            row = {
+                'criterion': c,
+                'points_earned': pe,
+                'max_points': c.max_points,
+                'weight': c.weight,
+                'contribution_pct': None,
+            }
+            if rubric and rubric.is_weighted and w is not None and mx > 0:
+                row['contribution_pct'] = criterion_weighted_contribution(pe, mx, w)
+            rows.append(row)
+        return rows
+
+    criteria_with_scores = _build_criteria_rows()
 
     if request.method == 'POST':
         feedback = request.POST.get('feedback', '')
         if rubric and criteria and request.POST.get('submit_grade_rubric'):
-            # Save per-criterion scores and total from rubric
-            total = 0
+            earned_by_id = {}
             for c in criteria:
                 raw = request.POST.get('score_criterion_' + str(c.id), '')
                 try:
-                    pts = float(raw) if raw else 0
-                except ValueError:
-                    pts = 0
-                total += pts
+                    pts = Decimal(str(raw)) if raw not in (None, '') else Decimal('0')
+                except (InvalidOperation, ValueError):
+                    pts = Decimal('0')
+                mx = Decimal(str(c.max_points or 0))
+                if mx > 0:
+                    pts = max(Decimal('0'), min(pts, mx))
+                else:
+                    pts = Decimal('0')
+                earned_by_id[c.id] = pts
                 CriterionGrade.objects.update_or_create(
-                    submission=submission, criterion=c,
-                    defaults={'points_earned': pts}
+                    submission=submission,
+                    criterion=c,
+                    defaults={'points_earned': pts},
                 )
+
+            if rubric.is_weighted:
+                total = final_score_weighted_rubric(criteria, earned_by_id, assignment.points)
+            else:
+                total = final_score_unweighted_rubric(criteria, earned_by_id)
+
             if grade:
                 grade.score = total
                 grade.feedback = feedback
                 grade.save()
             else:
                 Grade.objects.create(submission=submission, score=total, feedback=feedback)
-            
-            # Ensure status is updated
+
             submission.status = 'graded'
             submission.save(update_fields=['status'])
-            
-            messages.success(request, "Grade saved. Total: %s / %s" % (total, assignment.points))
+
+            pct_note = ''
+            if rubric.is_weighted and assignment.points:
+                try:
+                    p_pct = (float(total) / float(assignment.points)) * 100.0
+                    pct_note = ' (%.1f%% of assignment)' % p_pct
+                except (ValueError, ZeroDivisionError):
+                    pass
+            messages.success(
+                request,
+                "Grade saved. Score: %s / %s%s"
+                % (total, assignment.points, pct_note),
+            )
             if next_submission:
                 return redirect('grade_submission', pk=next_submission.pk)
             return redirect('gradebook', pk=assignment.pk)
@@ -1212,8 +1385,8 @@ def upload_test_cases(request, assignment_id):
 
                     obj, created = TestCase.objects.update_or_create(
                         assignment=assignment,
-                        input_data=input_data,
-                        expected_output=expected_output,
+                        input_data=input_data.strip(),
+                        expected_output=expected_output.strip(),
                         is_private=is_private,
                         is_hidden=is_hidden,
                         defaults={

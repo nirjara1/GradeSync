@@ -294,7 +294,11 @@
                     <thead>
                         <tr>
                             <th>Criterion</th>
-                            <th style="text-align: right;">Points</th>
+                            <th style="text-align: right;">Max pts</th>
+                            {% if rubric.is_weighted %}
+                            <th style="text-align: right;">Weight</th>
+                            <th style="text-align: right;">Assignment share</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -307,8 +311,12 @@
                                 {% endif %}
                             </td>
                             <td style="text-align: right; font-weight: 600;">
-                                {{ row.display_points }}
+                                {{ row.criterion.max_points|floatformat:1 }}
                             </td>
+                            {% if rubric.is_weighted %}
+                            <td style="text-align: right;">{% if row.criterion.weight != None %}{{ row.criterion.weight|floatformat:1 }}%{% else %}—{% endif %}</td>
+                            <td style="text-align: right; font-weight: 600;">{{ row.display_points }} pts</td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
