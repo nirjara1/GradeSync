@@ -23,13 +23,15 @@
         <h3 style="margin-top: 10px; color: var(--maroon);">Active Courses</h3>
         <div class="courses-list" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px;">
             {% for course in active_courses %}
-            <a href="{% url 'professor_course' course.id %}" class="course-list-item" style="display: flex; align-items: center; background: white; border-radius: 8px; padding: 20px; border: 1px solid #eaeaea; text-decoration: none; color: inherit; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.02);" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.02)';">
+            <a href="{% url 'professor_course' course.id %}" class="course-list-item" style="display: flex; align-items: center; background: white; border-radius: 8px; padding: 20px; border: 1px solid #eaeaea; text-decoration: none; color: inherit; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative;">
                 
-                <img src="{% if course.image_url %}{{ course.image_url }}{% else %}https://via.placeholder.com/80x80.png?text={{ course.code }}{% endif %}"
-                    alt="{{ course.code }} Image" style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; margin-right: 25px;" onerror="this.style.display='none'">
+                <img src="{% if course.image_url %}{{ course.image_url }}{% else %}{% static 'images/Dashboard Pic.png' %}{% endif %}"
+                    alt="{{ course.code_section_label }} Image"
+                    style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; margin-right: 25px;"
+                    onerror="this.onerror=null; this.src='{% static 'images/Dashboard Pic.png' %}';">
                 
                 <div style="flex: 1;">
-                    <h3 style="margin: 0 0 5px 0; color: var(--maroon); font-size: 18px;">{{ course.code }} - {{ course.title }}</h3>
+                    <h3 style="margin: 0 0 5px 0; color: var(--maroon); font-size: 18px;">{{ course.dashboard_card_title }}</h3>
                     <p style="margin: 0; color: #555; font-size: 14px;"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Section:</strong> {{ course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #888; font-size: 13px;">{{ course.students.count }} Students Enrolled</p>
                 </div>
@@ -46,15 +48,17 @@
         <h3 style="margin-top: 10px; color: #6b7280;">Archived Courses</h3>
         <div class="courses-list" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; opacity: 0.8;">
             {% for course in archived_courses %}
-            <a href="{% url 'professor_course' course.id %}" class="course-list-item" style="display: flex; align-items: center; background: #f3f4f6; border-radius: 8px; padding: 20px; border: 1px solid #e5e7eb; text-decoration: none; color: inherit; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.02);" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.02)';">
+            <a href="{% url 'professor_course' course.id %}" class="course-list-item" style="display: flex; align-items: center; background: #f3f4f6; border-radius: 8px; padding: 20px; border: 1px solid #e5e7eb; text-decoration: none; color: inherit; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative;">
                 
-                <img src="{% if course.image_url %}{{ course.image_url }}{% else %}https://via.placeholder.com/80x80.png?text={{ course.code|urlencode }}{% endif %}"
-                    alt="{{ course.code }} Image" style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; margin-right: 25px; filter: grayscale(100%);" onerror="this.style.display='none'">
+                <img src="{% if course.image_url %}{{ course.image_url }}{% else %}{% static 'images/Dashboard Pic.png' %}{% endif %}"
+                    alt="{{ course.code_section_label }} Image"
+                    style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; margin-right: 25px; filter: grayscale(100%);"
+                    onerror="this.onerror=null; this.src='{% static 'images/Dashboard Pic.png' %}';">
                 
                 <div style="flex: 1;">
                     <h3 style="margin: 0 0 5px 0; color: #374151; font-size: 18px;">
                         <i class="fa-solid fa-box-archive" style="font-size: 14px; margin-right: 6px; color: #6b7280;"></i>
-                        {{ course.code }} - {{ course.title }}
+                        {{ course.dashboard_card_title }}
                     </h3>
                     <p style="margin: 0; color: #6b7280; font-size: 14px;"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Section:</strong> {{ course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #9ca3af; font-size: 13px;">{{ course.students.count }} Students Enrolled</p>

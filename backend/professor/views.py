@@ -33,15 +33,21 @@ def dashboard(request):
     
 
     # Recent Submissions
-    recent_submissions = Submission.objects.filter(
-        assignment__course__professor=user
-    ).order_by('-submission_time')[:5]
-    
+    recent_submissions = (
+        Submission.objects.filter(assignment__course__professor=user)
+        .select_related('assignment__course', 'student__user', 'group')
+        .order_by('-submission_time')[:5]
+    )
+
     # Pending Grading Tasks
-    pending_grading = Submission.objects.filter(
-        assignment__course__professor=user,
-        status__in=['submitted', 'grading']
-    ).order_by('submission_time')[:5]
+    pending_grading = (
+        Submission.objects.filter(
+            assignment__course__professor=user,
+            status__in=['submitted', 'grading'],
+        )
+        .select_related('assignment__course', 'student__user', 'group')
+        .order_by('submission_time')[:5]
+    )
 
     # To-Do Items
     from .models import ToDoItem
@@ -192,7 +198,7 @@ def calendar_view(request):
     events = []
     for assignment in assignments:
         events.append({
-            'title': f"{assignment.course.code}: {assignment.name}",
+            'title': f"{assignment.course.code_section_label() or assignment.course.title}: {assignment.name}",
             'start': assignment.due_date.isoformat(),
             'url': f"/professor/classes/{assignment.course.id}/", # Link to the course for now
             'backgroundColor': 'var(--maroon)',

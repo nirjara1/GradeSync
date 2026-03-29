@@ -14,7 +14,7 @@
                     <strong>{{ student.user.get_full_name|default:student.user.username }}</strong> &bull; {{ student.user.email }}
                 </p>
                 <div style="margin-top: 8px; font-size: 13px; color: var(--maroon); font-weight: 600;">
-                    {{ course.code }}: {{ course.title }}
+                    {% if course.code_section_label %}{{ course.code_section_label }}: {% endif %}{{ course.title }}
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
