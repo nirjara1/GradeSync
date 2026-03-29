@@ -358,7 +358,7 @@ def student_calendar_view(request):
         url = f"/ga/classes/{assignment.course.id}/" if is_ga else f"/student/classes/{assignment.course.id}/"
         
         events.append({
-            'title': f"{assignment.course.code}: {assignment.name}",
+            'title': f"{assignment.course.code_section_label() or assignment.course.title}: {assignment.name}",
             'start': assignment.due_date.isoformat(),
             'url': url,
             'backgroundColor': '#fdb913' if is_ga else 'var(--maroon)',

@@ -200,7 +200,7 @@
             <h1 class="mb-1">{{ assignment.name }} - Test Case Report</h1>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{% url 'professor_course' assignment.course.id %}" class="text-decoration-none text-muted">{{ assignment.course.code }}</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'professor_course' assignment.course.id %}" class="text-decoration-none text-muted">{{ assignment.course.code_section_label }}</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Reports</li>
                 </ol>
             </nav>

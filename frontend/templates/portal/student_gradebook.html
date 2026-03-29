@@ -56,12 +56,6 @@
     .gb-feedback-icon { color: #840029; font-size: 18px; opacity: 0.85; }
     .gb-total-row td { background: #fafafa; font-weight: 700; border-top: 2px solid #e5e7eb; }
     .gb-total-pct { font-size: 20px; color: var(--maroon, #840029); }
-    .gb-grand {
-        margin-top: 28px; padding: 20px 24px; background: linear-gradient(135deg, #fdf2f2 0%, #fff 100%);
-        border: 1px solid #fecaca; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;
-    }
-    .gb-grand-label { font-size: 14px; font-weight: 600; color: #374151; }
-    .gb-grand-val { font-size: 26px; font-weight: 800; color: var(--maroon, #840029); }
     .gb-empty { text-align: center; padding: 60px 24px; color: #6b7280; background: #f9fafb; border-radius: 12px; border: 1px dashed #d1d5db; }
 
     .gb-feedback-btn {
@@ -136,7 +130,7 @@
             <option value="">All courses</option>
             {% for e in enrollments %}
             <option value="{{ e.course.id }}" {% if filter_course_id == e.course.id %}selected{% endif %}>
-                {{ e.course.code }} — {{ e.course.title }}
+                {{ e.course.code_title_label }}
             </option>
             {% endfor %}
         </select>
@@ -157,7 +151,7 @@
             {{ section.course.title }}
         </h2>
         <div class="gb-course-meta">
-            {{ section.course.code }} · Section {{ section.course.section }}{% if section.course.term %} · {{ section.course.term }}{% endif %}
+            {{ section.course.code_section_label }}{% if section.course.term %} · {{ section.course.term }}{% endif %}
         </div>
 
         <div class="gb-table-wrap">
@@ -179,7 +173,7 @@
                             <div class="gb-assn-name">
                                 <a href="{% url 'assignment_detail' row.assignment.pk %}">{{ row.assignment.name }}</a>
                             </div>
-                            <div class="gb-assn-sub">{{ section.course.code }}</div>
+                            <div class="gb-assn-sub">{{ section.course.code_section_label }}</div>
                         </td>
                         <td>
                             {% if row.no_due_date or not row.due_dt %}
@@ -258,13 +252,6 @@
         </div>
     </section>
     {% endfor %}
-
-    {% if sections|length > 1 and overall_percentage is not None %}
-    <div class="gb-grand">
-        <span class="gb-grand-label">Overall (average across courses shown)</span>
-        <span class="gb-grand-val">{{ overall_percentage|floatformat:2 }}%</span>
-    </div>
-    {% endif %}
 </div>
 
 {% if gradebook_course_layout %}

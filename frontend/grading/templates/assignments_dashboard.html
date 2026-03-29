@@ -25,8 +25,14 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
     </h2>
         {% if is_instructor %}
             {% if course %}
-            <a href="{% url 'course_create_assignment' course.id %}" class="add-assignment-btn"
-                style="text-decoration: none;"><i class="fa-solid fa-plus"></i> Add Assignment</a>
+            <div style="display: flex; gap: 10px;">
+                <a href="{% url 'course_students' course.id %}?add_student=true" class="add-assignment-btn"
+                    style="text-decoration: none; background-color: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db;">
+                    <i class="fa-solid fa-user-plus"></i> Add Student
+                </a>
+                <a href="{% url 'course_create_assignment' course.id %}" class="add-assignment-btn"
+                    style="text-decoration: none;"><i class="fa-solid fa-plus"></i> Add Assignment</a>
+            </div>
             {% else %}
             <a href="{% url 'create_assignment' %}" class="add-assignment-btn"
                 style="text-decoration: none;"><i class="fa-solid fa-plus"></i> Add Assignment</a>
@@ -223,7 +229,7 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
                 <i class="fa-solid fa-graduation-cap course-header-icon"></i>
                 {% if course_group.grouper %}
                     {{ course_group.grouper.title }}-{{ course_group.grouper.section }} 
-                    <span style="color:#6b7280; font-size:14px; font-weight:normal;">({{ course_group.grouper.code }}) {% if course_group.grouper.term %}- {{ course_group.grouper.term }}{% endif %}</span>
+                    <span style="color:#6b7280; font-size:14px; font-weight:normal;">({{ course_group.grouper.code_section_label }}) {% if course_group.grouper.term %}- {{ course_group.grouper.term }}{% endif %}</span>
                 {% else %}
                     General Assignments
                 {% endif %}

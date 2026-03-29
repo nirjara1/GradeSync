@@ -117,8 +117,21 @@ class Course(models.Model):
         # Fallback for older admin views that used 'name'
         return self.title
 
+    def is_generic_code(self):
+        return (self.code or '').strip().upper() == 'GENERIC'
+
+    def display_code_label(self):
+        code = (self.code or '').strip()
+        if code.upper() == 'GENERIC':
+            return ''
+        return code
+
     def __str__(self):
-        return f"{self.code} - {self.title}"
+        code_part = self.display_code_label()
+        title = (self.title or '').strip()
+        if code_part and title:
+            return f'{code_part} - {title}'
+        return title or code_part or 'Course'
 
     class Meta:
         verbose_name = "Course"
@@ -157,7 +170,7 @@ class Enrollment(models.Model):
     status = models.CharField(max_length=20, choices=[('ACTIVE', 'ACTIVE'), ('DROPPED', 'DROPPED')], default='ACTIVE')
 
     def __str__(self):
-        return f"Enrollment: {self.student_id} in {self.course.code}"
+        return f'Enrollment: {self.student_id} in {self.course}'
 
 
 class Assignment(models.Model):
