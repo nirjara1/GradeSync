@@ -1,0 +1,103 @@
+{% comment %}
+Student course shell: Assignments + Grades (no Students).
+Expects: course, active_tab in "assignments" | "grades"
+{% endcomment %}
+
+<div class="course-sidebar-shell" style="position: relative; display: inline-block;">
+    <button type="button"
+        onclick="
+            var drawer = this.nextElementSibling;
+            if (drawer.style.display === 'block') {
+                drawer.style.display = 'none';
+            } else {
+                drawer.style.display = 'block';
+            }
+        "
+        style="
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-right: 8px;
+        ">
+        <span style="display:block; width:18px; height:2px; background:#4b5563; border-radius:999px; box-shadow:0 6px 0 #4b5563, 0 -6px 0 #4b5563;"></span>
+    </button>
+
+    <div class="course-sidebar-drawer"
+        style="
+            position: absolute;
+            top: 46px;
+            left: 0;
+            width: 220px;
+            background: #ffffff;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            padding: 16px 14px 14px 14px;
+            display: none;
+            z-index: 40;
+        ">
+        <div style="margin-bottom: 10px;">
+            <div style="font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em;">
+                Class
+            </div>
+            <div style="font-size: 14px; font-weight: 600; color: #111827; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ course.code }}-{{ course.section }}
+            </div>
+        </div>
+        <nav>
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                <li>
+                    <a href="{% url 'student_course' course.id %}"
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            padding: 8px 9px;
+                            border-radius: 6px;
+                            font-size: 14px;
+                            text-decoration: none;
+                            {% if active_tab|default:'assignments' == 'assignments' %}
+                                background: #f3e8ff;
+                                color: var(--maroon);
+                                font-weight: 600;
+                            {% else %}
+                                color: #374151;
+                            {% endif %}
+                        ">
+                        <span class="fa-solid fa-list-check" style="font-size: 13px;"></span>
+                        <span>Assignments</span>
+                    </a>
+                </li>
+                <li style="margin-top: 4px;">
+                    <a href="{% url 'student_course_gradebook' course.id %}"
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            padding: 8px 9px;
+                            border-radius: 6px;
+                            font-size: 14px;
+                            text-decoration: none;
+                            {% if active_tab|default:'assignments' == 'grades' %}
+                                background: #f3e8ff;
+                                color: var(--maroon);
+                                font-weight: 600;
+                            {% else %}
+                                color: #374151;
+                            {% endif %}
+                        ">
+                        <span class="fa-solid fa-table-cells-large" style="font-size: 13px;"></span>
+                        <span>Grades</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>

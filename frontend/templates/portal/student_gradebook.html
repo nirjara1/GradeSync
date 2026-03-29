@@ -45,6 +45,11 @@
     .gb-b-late { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
     .gb-b-missing { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
     .gb-b-pending { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+    .gb-status-label { font-size: 14px; font-weight: 600; }
+    .gb-status-graded { color: #047857; }
+    .gb-status-missing { color: #b91c1c; }
+    .gb-status-submitted { color: #1d4ed8; }
+    .gb-status-upcoming { color: #6b7280; }
     .gb-score { font-variant-numeric: tabular-nums; font-weight: 600; }
     .gb-score-ungraded { color: #9ca3af; font-weight: 500; }
     .gb-feedback-cell { text-align: center; width: 52px; }
@@ -101,14 +106,24 @@
 {% endblock %}
 
 {% block content %}
+{% if gradebook_course_layout %}
+<div style="display: flex; gap: 24px; align-items: flex-start; max-width: 1200px; margin: 0 auto; padding: 0 8px;">
+    {% include "student_course_sidebar.html" %}
+    <div style="flex: 1; min-width: 0;">
+{% endif %}
 {{ feedback_payload|json_script:"gb-feedback-data" }}
 <div class="gb-wrap">
     <div class="gb-header">
+        {% if gradebook_course_layout %}
+        <h1>Grades</h1>
+        <p>{{ course.code }} — {{ course.title }}{% if course.term %} · {{ course.term }}{% endif %}</p>
+        {% else %}
         <h1>Gradebook</h1>
         <p>View due dates, submission status, and grades for all of your enrolled courses.</p>
+        {% endif %}
     </div>
 
-    {% if enrollments|length > 1 %}
+    {% if enrollments|length > 1 and not gradebook_course_layout %}
     <form method="get" class="gb-course-filter" action="{% url 'student_gradebook' %}">
         <label for="course-filter">Course</label>
         <select id="course-filter" name="course" onchange="this.form.submit()">
@@ -125,7 +140,7 @@
     {% if not sections %}
     <div class="gb-empty">
         <i class="fa-solid fa-clipboard-list" style="font-size: 40px; opacity: 0.35; margin-bottom: 12px;"></i>
-        <p style="margin: 0; font-size: 16px;">No graded assignments yet, or you are not enrolled in any courses with published work.</p>
+        <p style="margin: 0; font-size: 16px;">{% if gradebook_course_layout %}No published assignments in this course yet, or nothing is visible for your enrollment.{% else %}No graded assignments yet, or you are not enrolled in any courses with published work.{% endif %}</p>
     </div>
     {% endif %}
 
@@ -175,12 +190,20 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if row.status_key == 'graded' %}
+                                <span class="gb-status-label gb-status-graded">Graded</span>
+                            {% elif row.status_key == 'missing' %}
+                                <span class="gb-status-label gb-status-missing">Missing</span>
+                            {% elif row.status_key == 'submitted' %}
+                                <span class="gb-status-label gb-status-submitted">Submitted</span>
+                            {% elif row.status_key == 'upcoming' %}
+                                <span class="gb-status-label gb-status-upcoming">Not submitted</span>
+                            {% else %}
+                                <span class="gb-muted">—</span>
+                            {% endif %}
                             {% for b in row.status_badges %}
                                 {% if b == 'late' %}<span class="gb-badge gb-b-late">Late</span>{% endif %}
-                                {% if b == 'missing' %}<span class="gb-badge gb-b-missing">Missing</span>{% endif %}
-                                {% if b == 'pending' %}<span class="gb-badge gb-b-pending">Pending grade</span>{% endif %}
                             {% endfor %}
-                            {% if not row.status_badges %}<span class="gb-muted">—</span>{% endif %}
                         </td>
                         <td class="gb-score">
                             {% if row.score_num is not None %}
@@ -199,6 +222,12 @@
                             {% else %}
                             <span class="gb-muted">—</span>
                             {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="padding: 24px; text-align: center; color: #6b7280; font-size: 14px;">
+                            No assignments to show yet.
                         </td>
                     </tr>
                     {% endfor %}
@@ -224,6 +253,11 @@
     </section>
     {% endfor %}
 </div>
+
+{% if gradebook_course_layout %}
+    </div>
+</div>
+{% endif %}
 
 <div id="gb-feedback-overlay" class="gb-fb-overlay" aria-hidden="true">
     <div class="gb-fb-backdrop js-gb-fb-close" role="presentation"></div>
