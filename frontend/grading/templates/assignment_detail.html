@@ -446,7 +446,7 @@
                                         <button onclick="previewStudentSubmission('{{ submission.pk }}', '{% if submission.group %}Group: {% for m in submission.group.members.all %}{{ m.student.user.get_full_name|default:m.student.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}{{ submission.student.user.get_full_name|default:submission.student.user.username }}{% endif %}')" title="Preview Code" style="background: white; color: var(--gs-maroon); border: 1px solid var(--gs-border); padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                             <i class="fa-solid fa-eye"></i> Preview
                                         </button>
-                                        <a href="{% url 'grade_submission' submission.pk %}" style="background: var(--gs-maroon); color: white; text-decoration: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                        <a href="{% url 'grade_submission' submission.pk %}" target="_blank" style="background: var(--gs-maroon); color: white; text-decoration: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
                                             <i class="fa-solid fa-pen-to-square"></i> {% if submission.grade %}Edit{% else %}Grade{% endif %}
                                         </a>
                                         <a href="{% url 'download_submission' submission.pk %}" title="Download" style="color: var(--gs-text-muted); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gs-border); border-radius: 6px;">
@@ -468,7 +468,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h3 class="section-title-modern" style="margin: 0;"><i class="fa-solid fa-code" style="color: var(--gs-maroon);"></i> Preview: <span id="previewStudentName"></span></h3>
                     <div style="display: flex; gap: 10px;">
-                        <a id="previewGradeLink" href="#" class="btn-back" style="background: var(--gs-maroon); color: white; padding: 6px 16px; border-radius: 6px; font-size: 13px;">Grade This Submission</a>
+                        <a id="previewGradeLink" href="#" target="_blank" class="btn-back" style="background: var(--gs-maroon); color: white; padding: 6px 16px; border-radius: 6px; font-size: 13px;">Grade This Submission</a>
                         <button onclick="document.getElementById('profPreviewSection').style.display='none'" style="background: white; border: 1px solid var(--gs-border); padding: 6px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-times"></i></button>
                     </div>
                 </div>

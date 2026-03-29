@@ -344,7 +344,13 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', loadRoster);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadRoster();
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('add_student') === 'true') {
+            openModal('addStudentModal');
+        }
+    });
 </script>
 
 {% endblock %}
