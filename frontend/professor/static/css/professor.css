@@ -113,6 +113,36 @@ html {
     color: var(--text-main) !important;
 }
 
+/* FullCalendar Dark Mode Integration */
+[data-theme='dark'] .calendar-theme-wrapper {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+}
+
+[data-theme='dark'] .fc {
+    --fc-page-bg-color: var(--bg-card);
+    --fc-neutral-bg-color: var(--bg-main);
+    --fc-list-event-hover-bg-color: var(--bg-hover);
+    --fc-neutral-text-color: var(--text-main);
+    --fc-border-color: var(--border-color);
+    --fc-today-bg-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+}
+
+[data-theme='dark'] .fc-theme-standard td, 
+[data-theme='dark'] .fc-theme-standard th, 
+[data-theme='dark'] .fc-theme-standard .fc-scrollgrid {
+    border-color: var(--border-color) !important;
+}
+
+[data-theme='dark'] .fc .fc-toolbar-title {
+    color: var(--text-main) !important;
+}
+
+[data-theme='dark'] .fc .fc-list-day-cushion {
+    background-color: var(--bg-hover) !important;
+}
+
 
 /* Animations */
 @keyframes slideUpFade {
