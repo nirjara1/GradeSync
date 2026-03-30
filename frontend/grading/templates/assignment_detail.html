@@ -85,7 +85,7 @@
     .tab-btn.active {
         background: white;
         color: var(--gs-maroon);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
     .tab-panel {
@@ -149,7 +149,7 @@
         border: 1px solid #334155;
         border-radius: 12px;
         overflow: hidden;
-        background: #1e1e1e; /* Match Monaco Dark */
+        background: #1e1e1e;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
         margin-bottom: 24px;
     }
@@ -160,6 +160,16 @@
         margin-top: 12px;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         margin-bottom: 24px;
+    }
+
+    .file-tabs-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #2d3748;
+        padding: 4px 12px;
+        border-bottom: 1px solid #3d4654;
+        border-radius: 12px 12px 0 0;
     }
 
     .file-tab {
@@ -180,7 +190,7 @@
         padding: 30px;
         border-radius: 16px;
         border: 1px solid var(--gs-border);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         margin-bottom: 24px;
     }
 
@@ -192,16 +202,6 @@
         display: flex;
         align-items: center;
         gap: 10px;
-    }
-
-    .file-tabs-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #2d3748;
-        padding: 4px 12px;
-        border-bottom: 1px solid #3d4654;
-        border-radius: 12px 12px 0 0;
     }
 
     .action-row {
@@ -222,6 +222,53 @@
         font-weight: 600;
         font-size: 14px;
     }
+
+    /* Consolidated Dark Mode Implementation (Matches Class UI) */
+    [data-theme='dark'] {
+        --gs-border: var(--border-color);
+        --gs-bg-light: var(--bg-card);
+        --gs-text-main: var(--text-main);
+        --gs-text-muted: var(--text-muted);
+    }
+
+    [data-theme='dark'] .assignment-header,
+    [data-theme='dark'] .section-box,
+    [data-theme='dark'] .rubric-card,
+    [data-theme='dark'] .meta-item,
+    [data-theme='dark'] .action-row,
+    [data-theme='dark'] .tab-btn.active {
+        background: var(--bg-card) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-main) !important;
+    }
+
+    [data-theme='dark'] .tabs-nav,
+    [data-theme='dark'] .rubric-table th,
+    [data-theme='dark'] .rubric-table td,
+    [data-theme='dark'] div[style*="background: white"],
+    [data-theme='dark'] .section-box div[style*="background: #fdfdfd"] {
+        background: var(--bg-main) !important;
+        border-color: var(--border-color) !important;
+    }
+
+    [data-theme='dark'] .section-title-modern {
+        color: var(--text-main) !important;
+    }
+
+    [data-theme='dark'] .btn-back {
+        color: #fca5a5 !important;
+    }
+
+    /* Submissions logic colors */
+    .grade-needs-grading { color: #94a3b8; }
+    .grade-completed { color: #15803d; }
+    [data-theme='dark'] .grade-completed { color: #4ade80 !important; }
+
+    .status-awaiting { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    [data-theme='dark'] .status-awaiting { background: #451a03 !important; border-color: #78350f !important; color: #fef3c7 !important; }
+
+    .status-graded { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+    [data-theme='dark'] .status-graded { background: #064e3b !important; border-color: #065f46 !important; color: #d1fae5 !important; }
 </style>
 {% endblock %}
 
@@ -245,7 +292,7 @@
         </button>
         {% endif %}
         <button class="tab-btn" onclick="switchMainTab('history')">
-            <i class="fa-solid fa-{% if is_student %}clock-rotate-left{% else %}users-viewfinder{% endif %}"></i> 
+            <i class="fa-solid fa-{% if is_student %}clock-rotate-left{% else %}users-viewfinder{% endif %}"></i>
             {% if is_student %}History & Results{% else %}Student Submissions{% endif %}
         </button>
     </nav>
@@ -254,7 +301,8 @@
         <!-- Tab 1: Overview Panel -->
         <div id="panel-overview" class="tab-panel active">
             <div class="section-box">
-                <h3 class="section-title-modern"><i class="fa-solid fa-align-left" style="color: var(--gs-maroon);"></i>Instructions</h3>
+                <h3 class="section-title-modern"><i class="fa-solid fa-align-left"
+                        style="color: var(--gs-maroon);"></i>Instructions</h3>
                 <div style="color: var(--gs-text-main); line-height: 1.7; font-size: 15px;">
                     {{ assignment.description|default:"No specific instructions provided."|linebreaks }}
                 </div>
@@ -262,23 +310,30 @@
 
             {% if assignment.is_group_assignment and group_members %}
             <div class="section-box" style="background: #fdfdfd; border-color: #e2e8f0;">
-                <h3 class="section-title-modern"><i class="fa-solid fa-users" style="color: var(--gs-maroon);"></i>Group Members</h3>
+                <h3 class="section-title-modern"><i class="fa-solid fa-users" style="color: var(--gs-maroon);"></i>Group
+                    Members</h3>
                 <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px;">
                     {% for membership in group_members %}
-                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; min-width: 200px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                        <div style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--gs-maroon); font-weight: 700; font-size: 14px;">
+                    <div
+                        style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; min-width: 200px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <div
+                            style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--gs-maroon); font-weight: 700; font-size: 14px;">
                             {{ membership.student.user.username|slice:":1"|upper }}
                         </div>
                         <div>
-                            <div style="font-size: 14px; font-weight: 600; color: var(--gs-text-main);">{{ membership.student.user.get_full_name|default:membership.student.user.username }}</div>
-                            <div style="font-size: 11px; color: var(--gs-text-muted);">{{ membership.student.user.email }}</div>
+                            <div style="font-size: 14px; font-weight: 600; color: var(--gs-text-main);">{{
+                                membership.student.user.get_full_name|default:membership.student.user.username }}</div>
+                            <div style="font-size: 11px; color: var(--gs-text-muted);">{{ membership.student.user.email
+                                }}</div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
-                <div style="margin-top: 16px; padding: 10px 14px; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe; color: #1e40af; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                <div
+                    style="margin-top: 16px; padding: 10px 14px; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe; color: #1e40af; font-size: 13px; display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-circle-info"></i>
-                    <span>This is a <strong>Group Assignment</strong>. All members share the same submission and grade.</span>
+                    <span>This is a <strong>Group Assignment</strong>. All members share the same submission and
+                        grade.</span>
                 </div>
             </div>
             {% endif %}
@@ -287,15 +342,18 @@
             <div class="rubric-card">
                 <div class="rubric-header">
                     <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--gs-text-main);">
-                        <i class="fa-solid fa-list-check" style="color: var(--gs-maroon); margin-right: 8px;"></i>Grading Rubric
+                        <i class="fa-solid fa-list-check"
+                            style="color: var(--gs-maroon); margin-right: 8px;"></i>Grading Rubric
                     </h4>
-                    <span style="font-size: 13px; font-weight: 500; color: var(--gs-text-muted);">Total: {{ assignment.points }} points</span>
+                    <span style="font-size: 13px; font-weight: 500; color: var(--gs-text-muted);">Total: {{
+                        assignment.points }} points</span>
                 </div>
                 <table class="rubric-table">
                     <thead>
                         <tr>
                             <th>Criterion</th>
-                            <th style="text-align: right;">{% if rubric.is_weighted %}Max pts{% else %}Pts{% endif %}</th>
+                            <th style="text-align: right;">{% if rubric.is_weighted %}Max pts{% else %}Pts{% endif %}
+                            </th>
                             {% if rubric.is_weighted %}
                             <th style="text-align: right;">Weight</th>
                             <th style="text-align: right;">Assignment share</th>
@@ -308,14 +366,17 @@
                             <td>
                                 <strong>{{ row.criterion.name }}</strong>
                                 {% if row.criterion.description %}
-                                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--gs-text-muted); font-weight: normal;">{{ row.criterion.description }}</p>
+                                <p
+                                    style="margin: 4px 0 0 0; font-size: 12px; color: var(--gs-text-muted); font-weight: normal;">
+                                    {{ row.criterion.description }}</p>
                                 {% endif %}
                             </td>
                             <td style="text-align: right; font-weight: 600;">
                                 {{ row.criterion.max_points|floatformat:1 }}
                             </td>
                             {% if rubric.is_weighted %}
-                            <td style="text-align: right;">{% if row.criterion.weight != None %}{{ row.criterion.weight|floatformat:1 }}%{% else %}—{% endif %}</td>
+                            <td style="text-align: right;">{% if row.criterion.weight != None %}{{
+                                row.criterion.weight|floatformat:1 }}%{% else %}—{% endif %}</td>
                             <td style="text-align: right; font-weight: 600;">{{ row.display_points }} pts</td>
                             {% endif %}
                         </tr>
@@ -324,7 +385,8 @@
                 </table>
                 {% if not rubric.is_weighted and unweighted_points_sum != None %}
                 <p style="margin: 12px 0 0 0; font-size: 13px; color: var(--gs-text-muted);">
-                    Sum of allocations: <strong>{{ unweighted_points_sum|rubric_num }}</strong> / {{ assignment.points }} (must not exceed assignment total).
+                    Sum of allocations: <strong>{{ unweighted_points_sum|rubric_num }}</strong> / {{ assignment.points
+                    }} (must not exceed assignment total).
                 </p>
                 {% endif %}
             </div>
@@ -336,38 +398,69 @@
             {% if is_student %}
             {% if group_submission_locked %}
             <div class="section-box" style="text-align: center; padding: 48px 32px;">
-                <i class="fa-solid fa-users" style="font-size: 40px; color: var(--gs-maroon); opacity: 0.85; margin-bottom: 16px;"></i>
+                <i class="fa-solid fa-users"
+                    style="font-size: 40px; color: var(--gs-maroon); opacity: 0.85; margin-bottom: 16px;"></i>
                 <h3 class="section-title-modern" style="justify-content: center;">Group submission is locked</h3>
-                <p style="color: var(--gs-text-muted); font-size: 15px; max-width: 520px; margin: 0 auto 24px auto; line-height: 1.5;">
-                    Someone in your group already submitted for this assignment. Everyone shares that submission and grade. If you need to change it, ask your instructor or TA to reopen the group slot.
+                <p
+                    style="color: var(--gs-text-muted); font-size: 15px; max-width: 520px; margin: 0 auto 24px auto; line-height: 1.5;">
+                    Someone in your group already submitted for this assignment. Everyone shares that submission and
+                    grade. If you need to change it, ask your instructor or TA to reopen the group slot.
                 </p>
-                <button type="button" onclick="switchMainTab('history')" style="background: var(--gs-maroon); color: white; border: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;">
+                <button type="button" onclick="switchMainTab('history')"
+                    style="background: var(--gs-maroon); color: white; border: none; padding: 12px 28px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;">
                     View submission on History
                 </button>
             </div>
             {% else %}
             <div class="section-box">
-                <h3 class="section-title-modern"><i class="fa-solid fa-file-arrow-up" style="color: var(--gs-maroon);"></i>New Submission</h3>
+                <h3 class="section-title-modern"><i class="fa-solid fa-file-arrow-up"
+                        style="color: var(--gs-maroon);"></i>New Submission</h3>
                 <form id="submissionForm" method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     <p style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: 20px;">
-                        Upload your <strong>{% if assignment.allowed_language == 'java' %}Java (.java){% else %}Python (.py){% endif %}</strong> files or write code directly in the editor.
+                        Upload your <strong>{% if assignment.allowed_language == 'java' %}Java (.java){% else %}Python
+                            (.py){% endif %}</strong> files or write code directly in the editor.
                     </p>
-                    <div id="uploadCard" style="width: 100%; max-width: 400px; height: 120px; background: #fafafa; border-radius: 12px; border: 2px dashed #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease; margin-bottom: 24px;" onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#94a3b8';" onmouseout="this.style.background='#fafafa'; this.style.borderColor='#cbd5e1';">
-                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 32px; color: #94a3b8; margin-bottom: 8px;"></i>
-                        <span id="uploadLabel" style="font-size: 14px; color: var(--gs-maroon); text-align: center; padding: 0 15px; font-weight: 600;">Choose files to upload</span>
-                        <input type="file" id="id_file_path" name="file_path" style="display: none;" accept="{% if assignment.allowed_language == 'java' %}.java{% else %}.py{% endif %}" multiple onchange="handleFileSelect(this)">
+                    <div id="uploadCard"
+                        style="width: 100%; max-width: 400px; height: 120px; background: #fafafa; border-radius: 12px; border: 2px dashed #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease; margin-bottom: 24px;"
+                        onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#94a3b8';"
+                        onmouseout="this.style.background='#fafafa'; this.style.borderColor='#cbd5e1';">
+                        <i class="fa-solid fa-cloud-arrow-up"
+                            style="font-size: 32px; color: #94a3b8; margin-bottom: 8px;"></i>
+                        <span id="uploadLabel"
+                            style="font-size: 14px; color: var(--gs-maroon); text-align: center; padding: 0 15px; font-weight: 600;">Choose
+                            files to upload</span>
+                        <input type="file" id="id_file_path" name="file_path" style="display: none;"
+                            accept="{% if assignment.allowed_language == 'java' %}.java{% else %}.py{% endif %}"
+                            multiple onchange="handleFileSelect(this)">
                     </div>
                     <div style="margin-bottom: 24px;">
-                        <h4 class="section-title-modern"><i class="fa-solid fa-code" style="color: var(--gs-maroon);"></i>Code Editor</h4>
+                        <h4 class="section-title-modern"><i class="fa-solid fa-code"
+                                style="color: var(--gs-maroon);"></i>Code Editor</h4>
                         <div class="editor-wrapper">
-                            <div class="file-tabs-container" style="border: none; border-bottom: 1px solid #3d4654; border-radius: 12px 12px 0 0; padding: 4px 12px; display: flex; justify-content: space-between; align-items: center; background: #2d3748;">
-                                <div id="fileTabs" style="display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;"></div>
+                            <div class="file-tabs-container"
+                                style="border: none; border-bottom: 1px solid #3d4654; border-radius: 12px 12px 0 0; padding: 4px 12px; display: flex; justify-content: space-between; align-items: center; background: #2d3748;">
+                                <div id="fileTabs"
+                                    style="display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;"></div>
                                 <div style="display: flex; gap: 8px; align-items: center;">
-                                    <button type="button" onclick="createNewFile()" style="background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid #4a5568; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='#94a3b8';" onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='#4a5568';"><i class="fa-solid fa-plus" style="font-size: 10px;"></i> New File</button>
+                                    <button type="button" onclick="createNewFile()"
+                                        style="background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid #4a5568; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s;"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='#94a3b8';"
+                                        onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='#4a5568';"><i
+                                            class="fa-solid fa-plus" style="font-size: 10px;"></i> New File</button>
                                     <div style="width: 1px; height: 18px; background: #4a5568; margin: 0 4px;"></div>
-                                    <button type="button" id="runCodeBtn" onclick="runCode()" style="background: #059669; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.4);" onmouseover="this.style.background='#047857';" onmouseout="this.style.background='#059669';"><i id="runIcon" class="fa-solid fa-play" style="font-size: 10px;"></i><span id="runBtnText">Run</span></button>
-                                    <button type="button" id="runPublicTestsBtn" onclick="runPublicTests()" style="background: #2563eb; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);" onmouseover="this.style.background='#1d4ed8';" onmouseout="this.style.background='#2563eb';"><i id="testIcon" class="fa-solid fa-vial" style="font-size: 10px;"></i><span id="testBtnText">Test</span></button>
+                                    <button type="button" id="runCodeBtn" onclick="runCode()"
+                                        style="background: #059669; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.4);"
+                                        onmouseover="this.style.background='#047857';"
+                                        onmouseout="this.style.background='#059669';"><i id="runIcon"
+                                            class="fa-solid fa-play" style="font-size: 10px;"></i><span
+                                            id="runBtnText">Run</span></button>
+                                    <button type="button" id="runPublicTestsBtn" onclick="runPublicTests()"
+                                        style="background: #2563eb; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);"
+                                        onmouseover="this.style.background='#1d4ed8';"
+                                        onmouseout="this.style.background='#2563eb';"><i id="testIcon"
+                                            class="fa-solid fa-vial" style="font-size: 10px;"></i><span
+                                            id="testBtnText">Test</span></button>
                                 </div>
                             </div>
                             <span id="activeFileNameDisplay" style="display: none;"></span>
@@ -376,22 +469,45 @@
                     </div>
                     <div id="terminalPanel" class="terminal-wrapper" style="display: none; margin-bottom: 24px;">
                         <div style="display: flex; background: #1e293b; padding: 0 4px;">
-                            <button type="button" class="tab-btn active" onclick="switchOutputTab('terminal')" id="terminalTabBtn" style="padding: 10px 16px; font-size: 12px; background: transparent; color: white; border: none; border-bottom: 2px solid white; cursor: pointer;"><i class="fa-solid fa-terminal" style="margin-right: 6px;"></i>Terminal</button>
-                            <button type="button" class="tab-btn" onclick="switchOutputTab('testResults')" id="testResultsTabBtn" style="padding: 10px 16px; font-size: 12px; background: transparent; color: #94a3b8; border: none; cursor: pointer;"><i class="fa-solid fa-square-check" style="margin-right: 6px;"></i>Test Results</button>
+                            <button type="button" class="tab-btn active" onclick="switchOutputTab('terminal')"
+                                id="terminalTabBtn"
+                                style="padding: 10px 16px; font-size: 12px; background: transparent; color: white; border: none; border-bottom: 2px solid white; cursor: pointer;"><i
+                                    class="fa-solid fa-terminal" style="margin-right: 6px;"></i>Terminal</button>
+                            <button type="button" class="tab-btn" onclick="switchOutputTab('testResults')"
+                                id="testResultsTabBtn"
+                                style="padding: 10px 16px; font-size: 12px; background: transparent; color: #94a3b8; border: none; cursor: pointer;"><i
+                                    class="fa-solid fa-square-check" style="margin-right: 6px;"></i>Test
+                                Results</button>
                         </div>
-                        <div id="terminalContent" style="background: #0f172a; padding: 16px; min-height: 200px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 13px;"><div id="terminalOutput" style="color: #e2e8f0; white-space: pre-wrap;"></div><div id="terminalExitBadge" style="display: none; margin-top: 10px; padding: 4px 10px; border-radius: 4px; font-weight: bold; width: fit-content;"></div></div>
-                        <div id="testResultsContent" style="display: none; background: #0f172a; padding: 16px; min-height: 200px; max-height: 400px; overflow-y: auto;"><div id="testResultsList"></div></div>
+                        <div id="terminalContent"
+                            style="background: #0f172a; padding: 16px; min-height: 200px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 13px;">
+                            <div id="terminalOutput" style="color: #e2e8f0; white-space: pre-wrap;"></div>
+                            <div id="terminalExitBadge"
+                                style="display: none; margin-top: 10px; padding: 4px 10px; border-radius: 4px; font-weight: bold; width: fit-content;">
+                            </div>
+                        </div>
+                        <div id="testResultsContent"
+                            style="display: none; background: #0f172a; padding: 16px; min-height: 200px; max-height: 400px; overflow-y: auto;">
+                            <div id="testResultsList"></div>
+                        </div>
                     </div>
                     <input type="hidden" name="monaco_files" id="id_monaco_code">
                     <div style="display: flex; gap: 12px; margin-top: 24px;">
-                        <button type="submit" id="submitBtn" style="background: var(--gs-maroon); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 10px;"><span id="btnText">Submit Assignment</span><i id="loadingIcon" class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i></button>
-                        <button type="button" onclick="location.reload();" style="background: white; color: var(--gs-text-main); border: 1px solid var(--gs-border); padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">Cancel</button>
+                        <button type="submit" id="submitBtn"
+                            style="background: var(--gs-maroon); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 10px;"><span
+                                id="btnText">Submit Assignment</span><i id="loadingIcon"
+                                class="fa-solid fa-circle-notch fa-spin" style="display: none;"></i></button>
+                        <button type="button" onclick="location.reload();"
+                            style="background: white; color: var(--gs-text-main); border: 1px solid var(--gs-border); padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">Cancel</button>
                     </div>
                 </form>
             </div>
             {% endif %}
             {% else %}
-            <div class="section-box" style="text-align: center; color: var(--gs-text-muted); padding: 60px;"><i class="fa-solid fa-lock" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i><p>Instructors cannot submit work. Use the History tab to manage student submissions.</p></div>
+            <div class="section-box" style="text-align: center; color: var(--gs-text-muted); padding: 60px;"><i
+                    class="fa-solid fa-lock" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                <p>Instructors cannot submit work. Use the History tab to manage student submissions.</p>
+            </div>
             {% endif %}
         </div>
 
@@ -399,27 +515,57 @@
         <div id="panel-history" class="tab-panel">
             {% if latest_submission %}
             <div id="submission-section" class="section-box" style="scroll-margin-top: 100px;">
-                <h3 class="section-title-modern"><i class="fa-solid fa-check-circle" style="color: var(--gs-maroon);"></i>Latest Submission Status</h3>
-                <div style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-clock"></i><span>Submitted on {{ latest_submission.submission_time|date:"F j, Y, g:i A" }}</span></div>
+                <h3 class="section-title-modern"><i class="fa-solid fa-check-circle"
+                        style="color: var(--gs-maroon);"></i>Latest Submission Status</h3>
+                <div
+                    style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-clock"></i><span>Submitted on {{ latest_submission.submission_time|date:"F j,
+                        Y, g:i A" }}</span></div>
                 {% if latest_submission.grade %}
-                <div style="margin-bottom: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 16px;">
+                <div
+                    style="margin-bottom: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 16px;">
                     <div style="font-size: 15px; font-weight: 600; color: #166534;">Final Grade:</div>
-                    <div style="font-size: 24px; font-weight: 800; color: #15803d;">{{ latest_submission.grade.score|floatformat:"0" }} <span style="font-size: 14px; font-weight: 500; color: #166534; opacity: 0.7;">/ {{ assignment.points|floatformat:"0" }}</span></div>
+                    <div style="font-size: 24px; font-weight: 800; color: #15803d;">{{
+                        latest_submission.grade.score|floatformat:"0" }} <span
+                            style="font-size: 14px; font-weight: 500; color: #166534; opacity: 0.7;">/ {{
+                            assignment.points|floatformat:"0" }}</span></div>
                 </div>
                 {% else %}
-                <div style="margin-bottom: 24px; padding: 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #92400e; font-weight: 600;"><i class="fa-solid fa-hourglass-half"></i><span>Awaiting Grading</span></div>
+                <div
+                    style="margin-bottom: 24px; padding: 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #92400e; font-weight: 600;">
+                    <i class="fa-solid fa-hourglass-half"></i><span>Awaiting Grading</span></div>
                 {% endif %}
                 <div style="display: flex; gap: 12px;">
-                    <a href="{{ latest_submission.file_path.url }}" download target="_blank" style="color: var(--gs-maroon); text-decoration: none; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--gs-border); padding: 12px 20px; border-radius: 8px;"><i class="fa-solid fa-file-arrow-down"></i> Download Submitted Files</a>
-                    {% if is_student and not latest_submission.grade and not assignment.is_group_assignment %}<form id="deleteSubmissionForm" method="POST" action="{% url 'delete_submission' latest_submission.pk %}" style="display: none;">{% csrf_token %}</form><button type="button" onclick="if(confirm('Delete your latest submission?')) document.getElementById('deleteSubmissionForm').submit();" style="background: white; color: #dc2626; border: 1px solid #fecaca; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;"><i class="fa-solid fa-trash"></i> Delete Submission</button>{% endif %}
+                    <a href="{{ latest_submission.file_path.url }}" download target="_blank"
+                        style="color: var(--gs-maroon); text-decoration: none; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--gs-border); padding: 12px 20px; border-radius: 8px;"><i
+                            class="fa-solid fa-file-arrow-down"></i> Download Submitted Files</a>
+                    {% if is_student and not latest_submission.grade and not assignment.is_group_assignment %}
+                    <form id="deleteSubmissionForm" method="POST" action="{% url 'delete_submission' latest_submission.pk %}" 
+                          style="display: inline-block; margin: 0;">
+                        {% csrf_token %}
+                        <button type="button" onclick="handleDeleteSubmission()"
+                            style="background: white; color: #dc2626; border: 1px solid #fecaca; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-trash"></i> Delete Submission
+                        </button>
+                    </form>
+                    <script>
+                        function handleDeleteSubmission() {
+                            showGSConfirm('Are you sure you want to delete your submission? This action cannot be undone.').then(confirmed => {
+                                if (confirmed) document.getElementById('deleteSubmissionForm').submit();
+                            });
+                        }
+                    </script>
+                    {% endif %}
                 </div>
             </div>
 
             {% if is_student and can_preview_code %}
             <div class="section-box">
-                <h3 class="section-title-modern"><i class="fa-solid fa-eye" style="color: var(--gs-maroon);"></i>Submitted Code Preview</h3>
+                <h3 class="section-title-modern"><i class="fa-solid fa-eye"
+                        style="color: var(--gs-maroon);"></i>Submitted Code Preview</h3>
                 <div class="editor-wrapper">
-                    <div style="display: flex; gap: 4px; border-bottom: 1px solid #334155; padding: 4px 12px; background: #2d3748; border-radius: 12px 12px 0 0;" id="studentPreviewTabs"></div>
+                    <div style="display: flex; gap: 4px; border-bottom: 1px solid #334155; padding: 4px 12px; background: #2d3748; border-radius: 12px 12px 0 0;"
+                        id="studentPreviewTabs"></div>
                     <div id="monaco-editor-container-preview" style="width: 100%; height: 500px;"></div>
                 </div>
             </div>
@@ -429,51 +575,72 @@
             {% if not is_student %}
             <div class="section-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <h3 class="section-title-modern" style="margin: 0;"><i class="fa-solid fa-users-viewfinder" style="color: var(--gs-maroon);"></i>Student Submissions</h3>
-                    <a href="{% url 'grade_report' assignment.pk %}" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background-color: var(--gs-maroon); color: white; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600;"><i class="fa-solid fa-chart-bar"></i> Test Case Report</a>
+                    <h3 class="section-title-modern" style="margin: 0;"><i class="fa-solid fa-users-viewfinder"
+                            style="color: var(--gs-maroon);"></i>Student Submissions</h3>
+                    <a href="{% url 'grade_report' assignment.pk %}"
+                        style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background-color: var(--gs-maroon); color: white; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600;"><i
+                            class="fa-solid fa-chart-bar"></i> Test Case Report</a>
                 </div>
                 {% if can_reopen_group_submissions %}
                 <p style="font-size: 13px; color: var(--gs-text-muted); margin: -12px 0 20px 0; line-height: 1.45;">
-                    For group assignments, use <strong>Reopen Assignment</strong> on a row to remove that group’s submission so any member can submit again (shared grade applies to the whole group).
+                    For group assignments, use <strong>Reopen Assignment</strong> on a row to remove that group’s
+                    submission so any member can submit again (shared grade applies to the whole group).
                 </p>
                 {% endif %}
                 <div style="border: 1px solid var(--gs-border); border-radius: 12px; overflow: hidden;">
                     <table class="rubric-table">
-                        <thead style="background: #f8fafc;"><tr><th>Student</th><th>Submitted At</th><th>Grade</th><th style="text-align: center;">Actions</th></tr></thead>
+                        <thead style="background: #f8fafc;">
+                            <tr>
+                                <th>Student</th>
+                                <th>Submitted At</th>
+                                <th>Grade</th>
+                                <th style="text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             {% for submission in submissions %}
                             <tr>
                                 <td style="font-weight: 600;">
                                     {% if submission.group %}
-                                        <div style="display: flex; flex-direction: column;">
-                                            <span style="color: var(--gs-maroon); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800;">Group Submission</span>
-                                            <span title="Submitter: {{ submission.student.user.get_full_name|default:submission.student.user.username }}">
-                                                {% for member in submission.group.members.all %}
-                                                    {{ member.student.user.get_full_name|default:member.student.user.username }}{% if not forloop.last %}, {% endif %}
-                                                {% endfor %}
-                                            </span>
-                                        </div>
+                                    <div style="display: flex; flex-direction: column;">
+                                        <span style="color: var(--gs-maroon); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800;">Group Submission</span>
+                                        <span title="Submitter: {{ submission.student.user.get_full_name|default:submission.student.user.username }}">
+                                            {% for member in submission.group.members.all %}
+                                            {{ member.student.user.get_full_name|default:member.student.user.username }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </span>
+                                    </div>
                                     {% else %}
-                                        {{ submission.student.user.get_full_name|default:submission.student.user.username }}
+                                    {{ submission.student.user.get_full_name|default:submission.student.user.username }}
                                     {% endif %}
                                 </td>
                                 <td style="color: var(--gs-text-muted); font-size: 13px;">{{ submission.submission_time|date:"M j, g:i A" }}</td>
-                                <td style="font-weight: 700; color: {% if submission.grade %}#15803d{% else %}#94a3b8{% endif %};">{% if submission.grade %}{{ submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}{% else %}Needs Grading{% endif %}</td>
+                                <td style="font-weight: 700; color: {% if submission.grade %}#15803d{% else %}#94a3b8{% endif %};">
+                                    {% if submission.grade %}{{ submission.grade.score|floatformat:"0" }} / {{ assignment.points|floatformat:"0" }}{% else %}Needs Grading{% endif %}</td>
                                 <td style="text-align: center;">
                                     <div style="display: flex; gap: 8px; justify-content: center;">
-                                        <button onclick="previewStudentSubmission('{{ submission.pk }}', '{% if submission.group %}Group: {% for m in submission.group.members.all %}{{ m.student.user.get_full_name|default:m.student.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}{{ submission.student.user.get_full_name|default:submission.student.user.username }}{% endif %}')" title="Preview Code" style="background: white; color: var(--gs-maroon); border: 1px solid var(--gs-border); padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                        <button
+                                            onclick="previewStudentSubmission('{{ submission.pk }}', '{% if submission.group %}Group: {% for m in submission.group.members.all %}{{ m.student.user.get_full_name|default:m.student.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}{{ submission.student.user.get_full_name|default:submission.student.user.username }}{% endif %}')"
+                                            title="Preview Code"
+                                            style="background: white; color: var(--gs-maroon); border: 1px solid var(--gs-border); padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                             <i class="fa-solid fa-eye"></i> Preview
                                         </button>
-                                        <a href="{% url 'grade_submission' submission.pk %}" target="_blank" style="background: var(--gs-maroon); color: white; text-decoration: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                        <a href="{% url 'grade_submission' submission.pk %}" target="_blank"
+                                            style="background: var(--gs-maroon); color: white; text-decoration: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
                                             <i class="fa-solid fa-pen-to-square"></i> {% if submission.grade %}Edit{% else %}Grade{% endif %}
                                         </a>
-                                        <a href="{% url 'download_submission' submission.pk %}" title="Download" style="color: var(--gs-text-muted); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gs-border); border-radius: 6px;">
+                                        <a href="{% url 'download_submission' submission.pk %}" title="Download"
+                                            style="color: var(--gs-text-muted); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gs-border); border-radius: 6px;">
                                             <i class="fa-solid fa-download"></i>
                                         </a>
                                         {% if can_reopen_group_submissions and submission.group %}
-                                        <form method="post" action="{% url 'reopen_group_submission' assignment.id submission.group.id %}" style="display: inline; margin: 0;" onsubmit="return confirm('Remove this group submission? Students in the group will be able to submit again.');">
+                                        <form method="post"
+                                            action="{% url 'reopen_group_submission' assignment.id submission.group.id %}"
+                                            style="display: inline; margin: 0;"
+                                            onsubmit="return confirm('Remove this group submission? Students in the group will be able to submit again.');">
                                             {% csrf_token %}
-                                            <button type="submit" title="Delete group submission and allow a new one" style="background: white; color: #b45309; border: 1px solid #fde68a; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                                            <button type="submit" title="Delete group submission and allow a new one"
+                                                style="background: white; color: #b45309; border: 1px solid #fde68a; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;">
                                                 <i class="fa-solid fa-unlock"></i> Reopen Assignment
                                             </button>
                                         </form>
@@ -482,7 +649,11 @@
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="4" style="padding: 60px; text-align: center; color: var(--gs-text-muted); font-style: italic;">No submissions yet.</td></tr>
+                            <tr>
+                                <td colspan="4"
+                                    style="padding: 60px; text-align: center; color: var(--gs-text-muted); font-style: italic;">
+                                    No submissions yet.</td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -492,14 +663,20 @@
             <!-- Professor Preview Section (Hidden by default) -->
             <div id="profPreviewSection" class="section-box" style="display: none; margin-top: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h3 class="section-title-modern" style="margin: 0;"><i class="fa-solid fa-code" style="color: var(--gs-maroon);"></i> Preview: <span id="previewStudentName"></span></h3>
+                    <h3 class="section-title-modern" style="margin: 0;"><i class="fa-solid fa-code"
+                            style="color: var(--gs-maroon);"></i> Preview: <span id="previewStudentName"></span></h3>
                     <div style="display: flex; gap: 10px;">
-                        <a id="previewGradeLink" href="#" target="_blank" class="btn-back" style="background: var(--gs-maroon); color: white; padding: 6px 16px; border-radius: 6px; font-size: 13px;">Grade This Submission</a>
-                        <button onclick="document.getElementById('profPreviewSection').style.display='none'" style="background: white; border: 1px solid var(--gs-border); padding: 6px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-times"></i></button>
+                        <a id="previewGradeLink" href="#" target="_blank" class="btn-back"
+                            style="background: var(--gs-maroon); color: white; padding: 6px 16px; border-radius: 6px; font-size: 13px;">Grade
+                            This Submission</a>
+                        <button onclick="document.getElementById('profPreviewSection').style.display='none'"
+                            style="background: white; border: 1px solid var(--gs-border); padding: 6px 12px; border-radius: 6px; cursor: pointer;"><i
+                                class="fa-solid fa-times"></i></button>
                     </div>
                 </div>
                 <div class="editor-wrapper">
-                    <div style="display: flex; gap: 4px; border-bottom: 1px solid #334155; padding: 4px 12px; background: #2d3748; border-radius: 12px 12px 0 0;" id="profPreviewTabs"></div>
+                    <div style="display: flex; gap: 4px; border-bottom: 1px solid #334155; padding: 4px 12px; background: #2d3748; border-radius: 12px 12px 0 0;"
+                        id="profPreviewTabs"></div>
                     <div id="monaco-editor-container-prof-preview" style="width: 100%; height: 500px;"></div>
                 </div>
             </div>
@@ -508,14 +685,15 @@
     </div> <!-- End tab-panels -->
 
     <div class="action-row">
-        <a href="{% if request.user_role == 'FACULTY' %}{% url 'professor_course' assignment.course.id %}{% elif request.user_role == 'STUDENT' %}{% url 'student_course' assignment.course.id %}{% else %}{% url 'ga_course' assignment.course.id %}{% endif %}" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Assignments</a>
+        <a href="{% if request.user_role == 'FACULTY' %}{% url 'professor_course' assignment.course.id %}{% elif request.user_role == 'STUDENT' %}{% url 'student_course' assignment.course.id %}{% else %}{% url 'ga_course' assignment.course.id %}{% endif %}"
+            class="btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Assignments</a>
     </div>
 </div> <!-- End detail-container -->
- <!-- End detail-container -->
+<!-- End detail-container -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 <script>
-    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' } });
 
     let editorInstance = null, previewEditorInstance = null, profEditorInstance = null;
     let files = [], activeFileIndex = -1, profPreviewModels = [];
@@ -572,7 +750,17 @@
             if (files.length > 1) {
                 const close = document.createElement('i'); close.className = 'fa-solid fa-times'; close.style.fontSize = '10px';
                 close.style.opacity = '0.6';
-                close.onclick = (e) => { e.stopPropagation(); if (files.length <= 1) return; if (files[index].model) files[index].model.dispose(); files.splice(index, 1); switchTab(Math.max(0, index - 1)); };
+                close.onclick = (e) => { 
+                    e.stopPropagation(); 
+                    if (files.length <= 1) return; 
+                    showGSConfirm('Are you sure you want to delete this file? All unsaved changes will be lost.').then(confirmed => {
+                        if (confirmed) {
+                            if (files[index].model) files[index].model.dispose(); 
+                            files.splice(index, 1); 
+                            switchTab(Math.max(0, index - 1)); 
+                        }
+                    });
+                };
                 tab.appendChild(close);
             }
             tabsContainer.appendChild(tab);
@@ -581,26 +769,96 @@
 
     function createNewFile() {
         const ext = configLang === 'java' ? '.java' : '.py';
-        const fileName = prompt(`Enter new file name:`, `new_file${files.length + 1}${ext}`);
-        if (!fileName) return;
+        showGSConfirm('Enter new file name:', 'Create New File', true, `new_file${files.length + 1}${ext}`).then(fileName => {
+            if (!fileName) return;
 
-        // If no extension, add it
-        let finalName = fileName;
-        if (!finalName.endsWith('.py') && !finalName.endsWith('.java')) {
-            finalName += ext;
-        }
+            let finalName = fileName;
+            if (!finalName.endsWith('.py') && !finalName.endsWith('.java')) {
+                finalName += ext;
+            }
 
-        // Validate final extension
-        if (!finalName.endsWith(ext)) { alert(`Invalid extension. Assignment expects ${configLang} files.`); return; }
-        
-        addFile(finalName, '', configLang); 
-        switchTab(files.length - 1);
+            if (!finalName.endsWith(ext)) { alert(`Invalid extension. Assignment expects ${configLang} files.`); return; }
+
+            addFile(finalName, '', configLang);
+            switchTab(files.length - 1);
+        });
     }
 
-    require(['vs/editor/editor.main'], function(monaco) {
+    // Modal Confirmation Utility (Message, Title, Optional Input)
+    function showGSConfirm(message, title = 'Confirm Action', showInput = false, defaultValue = '') {
+        return new Promise((resolve) => {
+            let modal = document.getElementById('gsConfirmModal');
+            if (!modal) {
+                const modalHtml = `
+                    <div id="gsConfirmModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 9999;">
+                        <div class="modal-content" style="width: 400px; padding: 30px; text-align: center; border-radius: 16px; background: var(--gs-bg-light); border: 1px solid var(--gs-border); box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+                            <h3 id="gsConfirmTitle" style="margin: 0 0 10px 0; color: var(--gs-maroon); font-size: 20px; font-weight: 700;">Confirm Action</h3>
+                            <p id="gsConfirmMessage" style="margin: 0 0 20px 0; color: var(--gs-text-main); font-size: 15px; line-height: 1.5;"></p>
+                            <div id="gsConfirmInputContainer" style="display: none; margin-bottom: 20px;">
+                                <input id="gsConfirmInput" type="text" style="width: 100%; padding: 12px; border: 1px solid var(--gs-border); border-radius: 8px; background: white; color: var(--gs-text-main); font-size: 14px; box-sizing: border-box;">
+                            </div>
+                            <div style="display: flex; gap: 12px; justify-content: center;">
+                                <button id="gsConfirmCancel" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--gs-border); background: white; color: var(--gs-text-muted); cursor: pointer; font-weight: 600;">Cancel</button>
+                                <button id="gsConfirmYes" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: var(--gs-maroon); color: white; cursor: pointer; font-weight: 600;">Proceed</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                modal = document.getElementById('gsConfirmModal');
+            }
+
+            const titleEl = document.getElementById('gsConfirmTitle');
+            const msgEl = document.getElementById('gsConfirmMessage');
+            const inputContainer = document.getElementById('gsConfirmInputContainer');
+            const inputEl = document.getElementById('gsConfirmInput');
+            const yesBtn = document.getElementById('gsConfirmYes');
+            const noBtn = document.getElementById('gsConfirmCancel');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            
+            if (showInput) {
+                inputContainer.style.display = 'block';
+                inputEl.value = defaultValue;
+                setTimeout(() => inputEl.focus(), 50);
+            } else {
+                inputContainer.style.display = 'none';
+            }
+
+            modal.style.display = 'flex';
+
+            const cleanup = () => {
+                modal.style.display = 'none';
+                yesBtn.onclick = null;
+                noBtn.onclick = null;
+                inputEl.onkeydown = null;
+            };
+
+            const onConfirm = () => {
+                const val = showInput ? inputEl.value : true;
+                cleanup();
+                resolve(val);
+            };
+
+            const onCancel = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            yesBtn.onclick = onConfirm;
+            noBtn.onclick = onCancel;
+            inputEl.onkeydown = (e) => {
+                if (e.key === 'Enter') onConfirm();
+                if (e.key === 'Escape') onCancel();
+            };
+        });
+    }
+
+    require(['vs/editor/editor.main'], function (monaco) {
         window.monaco = monaco; // Global for helper functions
         let initialFiles = [];
-        try { initialFiles = JSON.parse(`{{ submission_files_json|escapejs }}` || '[]'); } catch(e) {}
+        try { initialFiles = JSON.parse(`{{ submission_files_json|escapejs }}` || '[]'); } catch (e) { }
         const submissionContainer = document.getElementById('monaco-editor-container-submission');
         if (submissionContainer) {
             editorInstance = monaco.editor.create(submissionContainer, {
@@ -631,7 +889,7 @@
             switchPreview(0);
         }
         // Initialized lazily for professor preview to avoid display:none issues
-        
+
         const urlParams = new URLSearchParams(window.location.search);
         const tab = urlParams.get('tab');
         if (tab) switchMainTab(tab);
@@ -639,59 +897,59 @@
     });
 
     async function previewStudentSubmission(submissionId, studentName) {
-        if (!window.monaco) { 
-            alert('Editor library still loading. Please wait a few seconds.'); 
-            return; 
+        if (!window.monaco) {
+            alert('Editor library still loading. Please wait a few seconds.');
+            return;
         }
-        
+
         const section = document.getElementById('profPreviewSection');
         const previewContainer = document.getElementById('monaco-editor-container-prof-preview');
         const tabsContainer = document.getElementById('profPreviewTabs');
-        
+
         try {
             // 1. Show section first so container has dimensions
             section.style.display = 'block';
             tabsContainer.innerHTML = '<div style="color: #94a3b8; padding: 10px; font-size: 13px;"><i class="fa-solid fa-spinner fa-spin"></i> Fetching student files...</div>';
             document.getElementById('previewStudentName').textContent = studentName;
-            
+
             // 2. Fetch data
             const resp = await fetch(`/grading/api/submission-files/${submissionId}/`);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-            
+
             const data = await resp.json();
             if (!data.files || data.files.length === 0) throw new Error('No source files found in this submission.');
-            
+
             document.getElementById('previewGradeLink').href = `/grading/submissions/${submissionId}/grade/`;
-            
+
             // 3. Initialize editor if needed
             if (!profEditorInstance && previewContainer) {
                 profEditorInstance = window.monaco.editor.create(previewContainer, {
-                    theme: 'vs-dark', readOnly: true, automaticLayout: true, fontSize: 13, 
+                    theme: 'vs-dark', readOnly: true, automaticLayout: true, fontSize: 13,
                     minimap: { enabled: false }, scrollbar: { alwaysConsumeMouseWheel: false },
                     padding: { top: 16 }
                 });
             }
-            
+
             // 4. Load Models
             if (profPreviewModels) {
                 profPreviewModels.forEach(m => m.model.dispose());
             }
-            
+
             profPreviewModels = data.files.map(f => ({
                 name: f.name,
                 model: window.monaco.editor.createModel(f.content, f.language)
             }));
-            
+
             // 5. Switch to first file
             switchProfPreview(0);
-            
+
             // 6. Force Layout
             setTimeout(() => {
                 if (profEditorInstance) profEditorInstance.layout();
             }, 100);
-            
+
             section.scrollIntoView({ behavior: 'smooth' });
-            
+
         } catch (e) {
             console.error('Preview error details:', e);
             tabsContainer.innerHTML = `<div style="color: #ef4444; padding: 10px; font-size: 13px;"><i class="fa-solid fa-circle-exclamation"></i> Error: ${e.message}</div>`;
@@ -743,7 +1001,7 @@
             const data = await resp.json();
             termOut.textContent = (data.stdout || '') + (data.stderr || '');
             if (!data.stdout && !data.stderr) termOut.textContent = '(no output)';
-        } catch(e) { termOut.textContent = 'Error: ' + e.message; }
+        } catch (e) { termOut.textContent = 'Error: ' + e.message; }
         finally { runBtn.disabled = false; runIcon.className = 'fa-solid fa-play'; runText.textContent = 'Run'; }
     }
 
@@ -755,10 +1013,18 @@
         testBtn.disabled = true; testIcon.className = 'fa-solid fa-spinner fa-spin'; testText.textContent = 'Testing...';
         try {
             const resp = await fetch('/grading/api/run-public-tests/', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                body: JSON.stringify({ code: editorInstance.getValue(), language: configLang, filename: files[activeFileIndex].name, files: files.map(f => ({ filename: f.name, code: f.model.getValue() })), assignment_id: {{ assignment.id }} })
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ 
+                    code: editorInstance.getValue(), 
+                    language: configLang, 
+                    filename: files[activeFileIndex].name, 
+                    files: files.map(f => ({ filename: f.name, code: f.model.getValue() })), 
+                    assignment_id: parseInt("{{ assignment.id|default:0 }}")
+                })
             });
-            const data = await resp.json(); list.innerHTML = '';
+            const data = await resp.json(); 
+            list.innerHTML = '';
             if (!data.results || data.results.length === 0) {
                 list.innerHTML = '<div style="color: #999; padding: 10px;">No public tests are configured for this assignment.</div>';
                 return;
@@ -796,11 +1062,11 @@
                     <div style="display:flex; gap:16px; flex-wrap:wrap;">
                         <div style="flex:1 1 250px;">
                             <div style="font-weight:600; margin-bottom:4px; color:#bfdbfe;">Expected Output</div>
-                            <pre style="background:#020617; border-radius:6px; padding:8px; max-height:160px; overflow:auto; white-space:pre-wrap;">${(r.expected_output || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+                            <pre style="background:#020617; border-radius:6px; padding:8px; max-height:160px; overflow:auto; white-space:pre-wrap;">${(r.expected_output || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
                         </div>
                         <div style="flex:1 1 250px;">
                             <div style="font-weight:600; margin-bottom:4px; color:#bfdbfe;">Your Output</div>
-                            <pre style="background:#020617; border-radius:6px; padding:8px; max-height:160px; overflow:auto; white-space:pre-wrap;">${(r.actual_output || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+                            <pre style="background:#020617; border-radius:6px; padding:8px; max-height:160px; overflow:auto; white-space:pre-wrap;">${(r.actual_output || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
                         </div>
                     </div>
                 `;
@@ -815,13 +1081,16 @@
                 wrapper.appendChild(body);
                 list.appendChild(wrapper);
             });
-        } catch(e) { list.innerHTML = '<div style="color: #f44336; padding: 10px;">Error: ' + e.message + '</div>'; }
-        finally { testBtn.disabled = false; testIcon.className = 'fa-solid fa-vial'; testText.textContent = 'Test'; }
+        } catch (e) { 
+            list.innerHTML = '<div style="color: #f44336; padding: 10px;">Error: ' + e.message + '</div>'; 
+        } finally { 
+            testBtn.disabled = false; testIcon.className = 'fa-solid fa-vial'; testText.textContent = 'Test'; 
+        }
     }
 
     const form = document.getElementById('submissionForm');
     if (form) {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             if (files.length === 0) { e.preventDefault(); alert('Please add at least one file.'); return; }
             document.getElementById('id_monaco_code').value = JSON.stringify(files.map(f => ({ name: f.name, content: f.model.getValue() })));
             const btn = document.getElementById('submitBtn'), load = document.getElementById('loadingIcon'), text = document.getElementById('btnText');

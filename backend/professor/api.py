@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from .models import Course, CourseMember, UserProfile, PendingEnrollment
 import json
 import csv
@@ -194,3 +195,36 @@ def remove_member_api(request, course_id):
         return JsonResponse({"error": "Course member not found"}, status=404)
         
     return JsonResponse({"error": "Invalid request parameters"}, status=400)
+
+@require_GET
+def search_students_api(request, course_id):
+    """
+    Returns up to 10 matching students by first name, last name, or email.
+    Used for the interactive "Add Student" modal search.
+    """
+    query = request.GET.get('q', '').strip()
+    if not query or len(query) < 2:
+        return JsonResponse({"results": []})
+        
+    current_user = get_user_from_request(request)
+    course = get_object_or_404(Course, id=course_id, professor=current_user)
+        
+    students = User.objects.filter(
+        profile__role='STUDENT'
+    ).filter(
+        Q(first_name__icontains=query) | 
+        Q(last_name__icontains=query) | 
+        Q(email__icontains=query)
+    ).exclude(
+        course_memberships__course=course  # don't return students already enrolled
+    ).distinct()[:10]
+    
+    results = []
+    for s in students:
+        results.append({
+            "id": s.id,
+            "name": f"{s.first_name} {s.last_name}".strip() or s.username,
+            "email": s.email
+        })
+        
+    return JsonResponse({"results": results})

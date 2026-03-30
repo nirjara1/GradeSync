@@ -332,24 +332,52 @@
                 }, 500);
             }
             
-            // --- Plagiarism Highlighter (Global Corpus Matching) ---
+            // --- Structural Plagiarism Highlighter ---
             let leftDecorations = {};
             let rightDecorations = {};
             
-            const minLength = 10;
+            const KEYWORDS = new Set([
+                'def', 'if', 'else', 'elif', 'while', 'for', 'return', 'class', 'try', 'except', 'finally',
+                'import', 'from', 'as', 'with', 'pass', 'break', 'continue', 'lambda', 'yield',
+                'public', 'private', 'protected', 'static', 'final', 'void', 'int', 'double', 'float',
+                'boolean', 'char', 'string', 'new', 'this', 'super', 'extends', 'implements', 'throws'
+            ]);
+
+            function normalizeLine(line) {
+                if (!line) return '';
+                // 1. Remove comments
+                let cleaned = line.replace(/\/\/.*|\#.*/g, '').replace(/\/\*.*?\*\//g, '');
+                
+                // 2. Tokenize (same regex as backend)
+                const tokens = cleaned.match(/[a-zA-Z_][a-zA-Z0-9_]*|==|!=|<=|>=|[=+\-*/(){}[\];.]|\d+/g) || [];
+                
+                // 3. Normalize identifiers
+                const normalized = tokens.map(t => {
+                    const low = t.toLowerCase();
+                    // If it's an identifier and NOT a keyword/number, mask it
+                    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(t) && !KEYWORDS.has(low)) {
+                        return '<ID>';
+                    }
+                    return low;
+                });
+                
+                return normalized.join(' ');
+            }
+
+            const minLength = 6; // Lower threshold since names are masked
             const subLinesSet = new Set();
             subFiles.forEach(f => {
                 f.content.split(/\r?\n/).forEach(line => {
-                    let trimmed = line.trim();
-                    if (trimmed.length >= minLength) subLinesSet.add(trimmed);
+                    let norm = normalizeLine(line);
+                    if (norm.length >= minLength) subLinesSet.add(norm);
                 });
             });
             
             const matchLinesSet = new Set();
             matchFiles.forEach(f => {
                 f.content.split(/\r?\n/).forEach(line => {
-                    let trimmed = line.trim();
-                    if (trimmed.length >= minLength) matchLinesSet.add(trimmed);
+                    let norm = normalizeLine(line);
+                    if (norm.length >= minLength) matchLinesSet.add(norm);
                 });
             });
             
@@ -361,7 +389,7 @@
                             options: {
                                 isWholeLine: true,
                                 className: 'plagiarism-highlight',
-                                marginClassName: 'plagiarism-highlight-margin' // highlight the line number gutter
+                                marginClassName: 'plagiarism-highlight-margin'
                             }
                         };
                     });
@@ -371,7 +399,8 @@
                     let matchL = [];
                     let linesL = editorL.getValue().split(/\r?\n/);
                     for (let i = 0; i < linesL.length; i++) {
-                        if (matchLinesSet.has(linesL[i].trim())) {
+                        let norm = normalizeLine(linesL[i]);
+                        if (norm && matchLinesSet.has(norm)) {
                             matchL.push(i + 1);
                         }
                     }
@@ -383,7 +412,8 @@
                     let matchR = [];
                     let linesR = editorR.getValue().split(/\r?\n/);
                     for (let i = 0; i < linesR.length; i++) {
-                        if (subLinesSet.has(linesR[i].trim())) {
+                        let norm = normalizeLine(linesR[i]);
+                        if (norm && subLinesSet.has(norm)) {
                             matchR.push(i + 1);
                         }
                     }
