@@ -285,7 +285,9 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
                     <a href="{% url 'edit_assignment' assignment.pk %}" title="Edit Assignment" class="action-icon">
                         <i class="fa-solid fa-pen"></i>
                     </a>
-                    <a href="{% url 'delete_assignment' assignment.pk %}" title="Delete Assignment" class="action-icon delete">
+                    <a href="{% url 'delete_assignment' assignment.pk %}" 
+                       onclick="return confirm('Are you sure you want to delete this assignment? All data including grades and submissions will be lost.');"
+                       title="Delete Assignment" class="action-icon delete">
                         <i class="fa-solid fa-trash"></i>
                     </a>
                 </div>
