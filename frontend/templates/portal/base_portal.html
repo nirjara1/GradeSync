@@ -113,13 +113,41 @@
                     localStorage.setItem('theme', 'light');
                     icon.classList.replace('fa-sun', 'fa-moon');
                     icon.style.transform = 'rotate(-360deg)';
+                    showThemeOverlay('light');
                 } else {
                     document.documentElement.setAttribute('data-theme', 'dark');
                     localStorage.setItem('theme', 'dark');
                     icon.classList.replace('fa-moon', 'fa-sun');
                     icon.style.transform = 'rotate(360deg)';
+                    showThemeOverlay('dark');
                 }
             });
+            
+            function showThemeOverlay(mode) {
+                const existing = document.getElementById('theme-overlay');
+                if (existing) existing.remove();
+
+                const overlay = document.createElement('div');
+                overlay.id = 'theme-overlay';
+                overlay.className = `theme-overlay-container ${mode === 'dark' ? 'theme-night-mode' : 'theme-day-mode'}`;
+
+                const icon = document.createElement('i');
+                icon.className = mode === 'dark' ? 'fa-solid fa-moon theme-overlay-icon' : 'fa-solid fa-sun theme-overlay-icon';
+
+                const text = document.createElement('div');
+                text.className = 'theme-overlay-text';
+                text.innerText = mode === 'dark' ? 'NIGHT MODE' : 'DAY MODE';
+
+                overlay.appendChild(icon);
+                overlay.appendChild(text);
+                document.body.appendChild(overlay);
+
+                setTimeout(() => {
+                    if (document.body.contains(overlay)) {
+                        overlay.remove();
+                    }
+                }, 1500);
+            }
         });
     </script>
 </body>
