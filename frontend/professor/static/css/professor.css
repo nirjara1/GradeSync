@@ -78,6 +78,10 @@ html {
     background-color: var(--maroon) !important;
 }
 
+[data-theme='dark'] .maroon-band {
+    background-color: #840029 !important;
+}
+
 [data-theme='dark'] .nav-item:hover {
     background-color: var(--bg-hover) !important;
 }
