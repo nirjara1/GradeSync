@@ -1060,3 +1060,37 @@ html {
     background-color: #d4edda;
     border-color: #c3e6cb;
 }
+
+/* Custom Search Dropdown */
+.search-dropdown {
+    position: absolute;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-top: 5px;
+    z-index: 1001;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.search-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s;
+    color: var(--text-main);
+}
+
+.search-item:last-child {
+    border-bottom: none;
+}
+
+.search-item:hover {
+    background-color: var(--bg-hover) !important;
+}
+
+[data-theme='dark'] .search-dropdown {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
