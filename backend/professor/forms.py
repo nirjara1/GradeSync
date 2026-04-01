@@ -3,6 +3,45 @@ from .models import Course, UserProfile
 from django.contrib.auth.models import User
 
 class CourseForm(forms.ModelForm):
+    SUBJECT_CODE_CHOICES = [
+        ('', 'Select subject code'),
+        ('ACCT', 'ACCT - Accounting'),
+        ('ARTS', 'ARTS - Art'),
+        ('BIOL', 'BIOL - Biology'),
+        ('BUSN', 'BUSN - Business'),
+        ('CHEM', 'CHEM - Chemistry'),
+        ('COMM', 'COMM - Communication'),
+        ('CSCI', 'CSCI - Computer Science'),
+        ('ECON', 'ECON - Economics'),
+        ('EDUC', 'EDUC - Education'),
+        ('ENGL', 'ENGL - English'),
+        ('FINA', 'FINA - Finance'),
+        ('GEOG', 'GEOG - Geography'),
+        ('HIST', 'HIST - History'),
+        ('MATH', 'MATH - Mathematics'),
+        ('MGMT', 'MGMT - Management'),
+        ('MKTG', 'MKTG - Marketing'),
+        ('MUSC', 'MUSC - Music'),
+        ('PHIL', 'PHIL - Philosophy'),
+        ('PHYS', 'PHYS - Physics'),
+        ('POLS', 'POLS - Political Science'),
+        ('PSYC', 'PSYC - Psychology'),
+        ('SOCI', 'SOCI - Sociology'),
+        ('STAT', 'STAT - Statistics'),
+        ('OTHER', 'OTHER - Not listed'),
+    ]
+
+    code = forms.ChoiceField(
+        choices=SUBJECT_CODE_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'input-field'}),
+    )
+    other_code = forms.CharField(
+        required=False,
+        max_length=20,
+        widget=forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Enter custom subject code'}),
+    )
+
     class Meta:
         model = Course
         fields = ['title', 'crn', 'term', 'section', 'grading_default', 'unweighted', 'visibility', 'published', 'code']
@@ -11,7 +50,6 @@ class CourseForm(forms.ModelForm):
             'crn': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Enter 5-digit CRN', 'pattern': r'\d{5}', 'maxlength': '5'}),
             'term': forms.HiddenInput(attrs={'id': 'id_term'}),
             'section': forms.TextInput(attrs={'class': 'input-field'}),
-            'code': forms.HiddenInput(),
             'grading_default': forms.CheckboxInput(attrs={'class': 'ui-toggle'}),
             'unweighted': forms.CheckboxInput(attrs={'class': 'ui-toggle'}),
             'visibility': forms.CheckboxInput(attrs={'class': 'ui-toggle'}),
@@ -20,8 +58,18 @@ class CourseForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['code'].required = False  # Make generic code optional
-        self.fields['code'].initial = 'GENERIC'
+        self.fields['code'].initial = ''
+
+    def clean_code(self):
+        code = (self.cleaned_data.get('code') or '').strip().upper()
+        other_code = (self.cleaned_data.get('other_code') or '').strip().upper()
+        if code == 'OTHER':
+            if not other_code:
+                raise forms.ValidationError("Please enter a subject code.")
+            return other_code
+        if not code:
+            raise forms.ValidationError("Please select a subject code.")
+        return code
         
     def clean_crn(self):
         crn = self.cleaned_data.get('crn')

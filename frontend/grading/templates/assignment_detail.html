@@ -345,8 +345,7 @@
                         <i class="fa-solid fa-list-check"
                             style="color: var(--gs-maroon); margin-right: 8px;"></i>Grading Rubric
                     </h4>
-                    <span style="font-size: 13px; font-weight: 500; color: var(--gs-text-muted);">Total: {{
-                        assignment.points }} points</span>
+                    <span style="font-size: 13px; font-weight: 500; color: var(--gs-text-muted);">Total: {{ assignment.points|default:"0"|floatformat:0 }} points</span>
                 </div>
                 <table class="rubric-table">
                     <thead>
@@ -375,8 +374,7 @@
                                 {{ row.criterion.max_points|floatformat:1 }}
                             </td>
                             {% if rubric.is_weighted %}
-                            <td style="text-align: right;">{% if row.criterion.weight != None %}{{
-                                row.criterion.weight|floatformat:1 }}%{% else %}—{% endif %}</td>
+                            <td style="text-align: right;">{% if row.criterion.weight != None %}{{ row.criterion.weight|floatformat:1 }}%{% else %}—{% endif %}</td>
                             <td style="text-align: right; font-weight: 600;">{{ row.display_points }} pts</td>
                             {% endif %}
                         </tr>
@@ -385,8 +383,7 @@
                 </table>
                 {% if not rubric.is_weighted and unweighted_points_sum != None %}
                 <p style="margin: 12px 0 0 0; font-size: 13px; color: var(--gs-text-muted);">
-                    Sum of allocations: <strong>{{ unweighted_points_sum|rubric_num }}</strong> / {{ assignment.points
-                    }} (must not exceed assignment total).
+                    Sum of allocations: <strong>{{ unweighted_points_sum|rubric_num }}</strong> / {{ assignment.points|default:"0"|floatformat:0 }} (must not exceed assignment total).
                 </p>
                 {% endif %}
             </div>

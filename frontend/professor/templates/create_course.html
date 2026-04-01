@@ -90,6 +90,16 @@
         opacity: 0.7;
     }
 
+    .input-field:invalid {
+        color: var(--text-muted);
+        opacity: 0.9;
+    }
+
+    .input-field option {
+        color: var(--text-main);
+        opacity: 1;
+    }
+
     /* Semester Buttons */
     .semester-btn-group {
         display: flex;
@@ -198,8 +208,6 @@
             <div class="header-accent-line"></div>
         </div>
 
-        <a href="#" class="import-link"><i class="fa-solid fa-file-import" style="margin-right: 6px;"></i>Import settings from a previous semester?</a>
-
         {% if form.errors %}
         <div style="margin-bottom: 25px; padding: 12px; background-color: rgba(211, 47, 47, 0.1); border-left: 4px solid #d32f2f; border-radius: 4px;">
             <p style="color: #d32f2f; font-size: 14px; margin: 0; font-weight: 600;"><i class="fa-solid fa-circle-exclamation" style="margin-right: 6px;"></i>Please correct the errors below.</p>
@@ -227,6 +235,22 @@
             </div>
 
             <div class="form-group">
+                <label for="{{ form.code.id_for_label }}">Subject Code</label>
+                {{ form.code }}
+                {% if form.code.errors %}
+                    <div class="error-text"><i class="fa-solid fa-circle-xmark"></i>{{ form.code.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group" id="otherCodeGroup" style="display: none;">
+                <label for="{{ form.other_code.id_for_label }}">Other Subject Code</label>
+                {{ form.other_code }}
+                {% if form.other_code.errors %}
+                    <div class="error-text"><i class="fa-solid fa-circle-xmark"></i>{{ form.other_code.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
                 <label>Semester</label>
                 {{ form.term }} <!-- Hidden input now -->
                 <div class="semester-btn-group">
@@ -248,8 +272,6 @@
                 {% endif %}
             </div>
 
-            {{ form.code }}
-
             <div class="form-actions">
                 <a href="{% url 'professor_dashboard' %}" class="btn-cancel" style="text-decoration:none; text-align:center;">Cancel</a>
                 <button type="submit" class="btn-finish" id="submitBtn">Finish</button>
@@ -265,6 +287,9 @@
         const crnInput = document.querySelector('input[name="crn"]');
         const crnError = document.getElementById('crnError');
         const termError = document.getElementById('termError');
+        const codeSelect = document.getElementById('id_code');
+        const otherCodeGroup = document.getElementById('otherCodeGroup');
+        const otherCodeInput = document.getElementById('id_other_code');
         const form = document.getElementById('createCourseForm');
         
         // Semester button logic
@@ -309,6 +334,21 @@
             });
         }
 
+        function toggleOtherCodeInput() {
+            if (!codeSelect || !otherCodeGroup || !otherCodeInput) return;
+            const isOther = codeSelect.value === 'OTHER';
+            otherCodeGroup.style.display = isOther ? 'block' : 'none';
+            if (!isOther) {
+                otherCodeInput.value = '';
+                otherCodeInput.style.borderColor = '';
+            }
+        }
+
+        if (codeSelect) {
+            codeSelect.addEventListener('change', toggleOtherCodeInput);
+            toggleOtherCodeInput();
+        }
+
         // Prevent submission if invalid
         if (form) {
             form.addEventListener('submit', function(e) {
@@ -325,6 +365,13 @@
                 if (termInput && !termInput.value) {
                     termError.style.display = 'flex';
                     isValid = false;
+                }
+
+                if (codeSelect && codeSelect.value === 'OTHER' && otherCodeInput && !otherCodeInput.value.trim()) {
+                    otherCodeInput.style.borderColor = '#d32f2f';
+                    isValid = false;
+                } else if (otherCodeInput) {
+                    otherCodeInput.style.borderColor = '';
                 }
 
                 if (!isValid) {
