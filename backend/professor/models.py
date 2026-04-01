@@ -21,13 +21,13 @@ class Course(models.Model):
         return (self.code or '').strip().upper() == 'GENERIC'
 
     def code_section_label(self):
-        """Catalog code + section for UI (e.g. CS101-01). Omits placeholder GENERIC — uses section only."""
+        """Catalog code + level for UI (e.g. CSCI2002)."""
         code = (self.code or '').strip()
         sec = (self.section or '').strip()
         if code.upper() == 'GENERIC':
             return sec
         if sec:
-            return f'{code}-{sec}'
+            return f'{code}{sec}'
         return code
 
     def code_title_label(self):
@@ -53,16 +53,19 @@ class Course(models.Model):
         return ''
 
     def dashboard_card_title(self):
-        """Course dashboard cards: 'Course Name - Year - CRN 12345'."""
-        title = (self.title or '').strip() or 'Course'
-        year = self.dashboard_year_label()
+        """Course cards: 'CODE-CRN-TERM - TITLE' with graceful fallbacks."""
+        code = (self.code or '').strip()
+        if code.upper() == 'GENERIC':
+            code = ''
         crn = (self.crn or '').strip()
-        parts = [title]
-        if year:
-            parts.append(year)
-        if crn:
-            parts.append(f'CRN {crn}')
-        return ' - '.join(parts)
+        term = (self.term or '').strip()
+        title = (self.title or '').strip() or 'Course'
+
+        left_parts = [p for p in [code, crn, term] if p]
+        left = '-'.join(left_parts)
+        if left:
+            return f'{left} - {title}'
+        return title
 
     def __str__(self):
         cs = self.code_section_label()

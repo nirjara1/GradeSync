@@ -15,6 +15,7 @@ urlpatterns = [
     path('classes/<int:course_id>/', professor_course_view, name='professor_course'),
     path('classes/<int:course_id>/students/', course_students_view, name='course_students'),
     path('classes/<int:course_id>/archive/', views.archive_course, name='archive_course'),
+    path('classes/<int:course_id>/unarchive/', views.unarchive_course, name='unarchive_course'),
     
     # API endpoints
     path('api/courses/<int:course_id>/students/', api.add_students_api, name='api_add_students'),

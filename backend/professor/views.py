@@ -80,6 +80,21 @@ def archive_course(request, course_id):
     return redirect('professor_dashboard')
 
 @login_required
+def unarchive_course(request, course_id):
+    """Move a course back to active classes (only the professor can unarchive). POST only."""
+    if request.method != 'POST':
+        return redirect('professor_dashboard')
+    user = get_user_from_request(request)
+    course = Course.objects.filter(professor=user, id=course_id).first()
+    if not course:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("You can only unarchive your own courses.")
+    course.is_archived = False
+    course.save()
+    messages.success(request, f"'{course.title}' has been restored to Active Classes.")
+    return redirect('professor_dashboard')
+
+@login_required
 def profile(request):
     user = get_user_from_request(request)
     request.session['active_role'] = 'INSTRUCTOR'

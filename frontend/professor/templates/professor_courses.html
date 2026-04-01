@@ -32,7 +32,7 @@
                 
                 <div style="flex: 1;">
                     <h3 style="margin: 0 0 5px 0; color: var(--maroon); font-size: 18px;">{{ course.dashboard_card_title }}</h3>
-                    <p style="margin: 0; color: #555; font-size: 14px;"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Section:</strong> {{ course.section }}</p>
+                    <p style="margin: 0; color: #555; font-size: 14px;"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Course Level:</strong> {{ course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #888; font-size: 13px;">{{ course.students.count }} Students Enrolled</p>
                 </div>
                 
@@ -48,6 +48,7 @@
         <h3 style="margin-top: 10px; color: #6b7280;">Archived Courses</h3>
         <div class="courses-list" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; opacity: 0.8;">
             {% for course in archived_courses %}
+            <div style="position: relative;">
             <a href="{% url 'professor_course' course.id %}" class="course-list-item" style="display: flex; align-items: center; background: #f3f4f6; border-radius: 8px; padding: 20px; border: 1px solid #e5e7eb; text-decoration: none; color: inherit; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative;">
                 
                 <img src="{% if course.image_url %}{{ course.image_url }}{% else %}{% static 'images/Dashboard Pic.png' %}{% endif %}"
@@ -60,7 +61,7 @@
                         <i class="fa-solid fa-box-archive" style="font-size: 14px; margin-right: 6px; color: #6b7280;"></i>
                         {{ course.dashboard_card_title }}
                     </h3>
-                    <p style="margin: 0; color: #6b7280; font-size: 14px;"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Section:</strong> {{ course.section }}</p>
+                    <p style="margin: 0; color: #6b7280; font-size: 14px;"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Course Level:</strong> {{ course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #9ca3af; font-size: 13px;">{{ course.students.count }} Students Enrolled</p>
                 </div>
                 
@@ -68,6 +69,13 @@
                     <i class="fa-solid fa-chevron-right" style="font-size: 20px;"></i>
                 </div>
             </a>
+            <form method="post" action="{% url 'unarchive_course' course.id %}" style="position: absolute; top: 12px; right: 12px; margin: 0;" onsubmit="return confirm('Restore this class to Active Courses?');">
+                {% csrf_token %}
+                <button type="submit" style="border: 1px solid #d1d5db; background: #fff; color: #374151; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 6px 10px; cursor: pointer;">
+                    <i class="fa-solid fa-box-open" style="margin-right: 5px;"></i>Unarchive
+                </button>
+            </form>
+            </div>
             {% endfor %}
         </div>
         {% endif %}

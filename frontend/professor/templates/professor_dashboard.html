@@ -344,6 +344,12 @@
                         <p class="course-term">{{ course.term }}</p>
                     </div>
                 </a>
+                <form method="post" action="{% url 'unarchive_course' course.id %}" style="margin: 0;" onsubmit="return confirm('Restore this class to Active Classes?');">
+                    {% csrf_token %}
+                    <button type="submit" class="archive-btn" title="Restore to Active Classes">
+                        <i class="fa-solid fa-box-open"></i> Unarchive
+                    </button>
+                </form>
                 {% endfor %}
             </div>
         </div>

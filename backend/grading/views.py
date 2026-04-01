@@ -604,12 +604,26 @@ def edit_assignment(request, pk):
                                     CourseGroupMember(group=cg, student_id=gm.student_id) for gm in grp.members.all()
                                 ])
                     else:
-                        # Switched to Individual
-                        if assignment.is_group_assignment:
-                            assignment.is_group_assignment = False
-                            assignment.save()
-                            # Delete groups when switching to individual
-                            assignment.assignment_groups.all().delete()
+                        # Switched to Individual: normalize legacy group submissions so student resubmission works.
+                        assignment.is_group_assignment = False
+                        assignment.save(update_fields=['is_group_assignment'])
+
+                        # Keep at most one latest submission per student, and convert it to individual.
+                        legacy_group_submissions = (
+                            Submission.objects.filter(assignment=assignment, group__isnull=False)
+                            .order_by('-submission_time', '-id')
+                        )
+                        seen_student_ids = set()
+                        for legacy_sub in legacy_group_submissions:
+                            if not legacy_sub.student_id or legacy_sub.student_id in seen_student_ids:
+                                legacy_sub.delete()
+                                continue
+                            legacy_sub.group = None
+                            legacy_sub.save(update_fields=['group'])
+                            seen_student_ids.add(legacy_sub.student_id)
+
+                        # Delete assignment groups after submissions have been normalized.
+                        assignment.assignment_groups.all().delete()
                     
                     # Process test cases JSON
                     test_cases_json = request.POST.get('test_cases_json', '')

@@ -35,8 +35,13 @@ def get_effective_submission_for_student(assignment: Assignment, student: Studen
         group = resolve_assignment_group_for_student(assignment, student)
         if not group:
             return None
-        return Submission.objects.filter(assignment=assignment, group=group).first()
-    return Submission.objects.filter(assignment=assignment, student=student).first()
+        return Submission.objects.filter(assignment=assignment, group=group).order_by('-submission_time', '-id').first()
+    # In individual mode, only consider individual submissions (group is null).
+    return (
+        Submission.objects.filter(assignment=assignment, student=student, group__isnull=True)
+        .order_by('-submission_time', '-id')
+        .first()
+    )
 
 
 def can_view_submission(user, submission: Submission) -> bool:

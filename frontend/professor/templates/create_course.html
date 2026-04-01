@@ -265,8 +265,9 @@
             </div>
 
             <div class="form-group">
-                <label for="{{ form.section.id_for_label }}">Section (Optional)</label>
+                <label for="{{ form.section.id_for_label }}">Course Level</label>
                 {{ form.section }}
+                <div class="error-text crn-client-error" id="levelError"><i class="fa-solid fa-circle-xmark"></i>Course level must be exactly 4 digits.</div>
                 {% if form.section.errors %}
                     <div class="error-text"><i class="fa-solid fa-circle-xmark"></i>{{ form.section.errors.0 }}</div>
                 {% endif %}
@@ -287,6 +288,8 @@
         const crnInput = document.querySelector('input[name="crn"]');
         const crnError = document.getElementById('crnError');
         const termError = document.getElementById('termError');
+        const levelInput = document.querySelector('input[name="section"]');
+        const levelError = document.getElementById('levelError');
         const codeSelect = document.getElementById('id_code');
         const otherCodeGroup = document.getElementById('otherCodeGroup');
         const otherCodeInput = document.getElementById('id_other_code');
@@ -334,6 +337,22 @@
             });
         }
 
+        if (levelInput) {
+            levelInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 4) {
+                    this.value = this.value.slice(0, 4);
+                }
+                if (this.value.length > 0 && this.value.length !== 4) {
+                    levelError.style.display = 'flex';
+                    this.style.borderColor = '#d32f2f';
+                } else {
+                    levelError.style.display = 'none';
+                    this.style.borderColor = '';
+                }
+            });
+        }
+
         function toggleOtherCodeInput() {
             if (!codeSelect || !otherCodeGroup || !otherCodeInput) return;
             const isOther = codeSelect.value === 'OTHER';
@@ -364,6 +383,12 @@
                 // Check Term
                 if (termInput && !termInput.value) {
                     termError.style.display = 'flex';
+                    isValid = false;
+                }
+
+                if (levelInput && levelInput.value.length !== 4) {
+                    levelError.style.display = 'flex';
+                    levelInput.style.borderColor = '#d32f2f';
                     isValid = false;
                 }
 

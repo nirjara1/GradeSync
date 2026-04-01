@@ -49,7 +49,7 @@ class CourseForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'e.g. Database System'}),
             'crn': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Enter 5-digit CRN', 'pattern': r'\d{5}', 'maxlength': '5'}),
             'term': forms.HiddenInput(attrs={'id': 'id_term'}),
-            'section': forms.TextInput(attrs={'class': 'input-field'}),
+            'section': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Enter 4-digit course level', 'pattern': r'\d{4}', 'maxlength': '4'}),
             'grading_default': forms.CheckboxInput(attrs={'class': 'ui-toggle'}),
             'unweighted': forms.CheckboxInput(attrs={'class': 'ui-toggle'}),
             'visibility': forms.CheckboxInput(attrs={'class': 'ui-toggle'}),
@@ -59,6 +59,8 @@ class CourseForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['code'].initial = ''
+        self.fields['section'].label = 'Course Level'
+        self.fields['section'].required = True
 
     def clean_code(self):
         code = (self.cleaned_data.get('code') or '').strip().upper()
@@ -79,6 +81,14 @@ class CourseForm(forms.ModelForm):
             if len(crn) != 5:
                 raise forms.ValidationError("CRN must be exactly 5 digits.")
         return crn
+
+    def clean_section(self):
+        level = (self.cleaned_data.get('section') or '').strip()
+        if not level:
+            raise forms.ValidationError("Course level is required.")
+        if not level.isdigit() or len(level) != 4:
+            raise forms.ValidationError("Course level must be exactly 4 digits.")
+        return level
 
 class UserRegistrationForm(forms.Form):
     full_name = forms.CharField(
