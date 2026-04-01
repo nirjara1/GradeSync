@@ -8,8 +8,8 @@ class CourseForm(forms.ModelForm):
         fields = ['title', 'crn', 'term', 'section', 'grading_default', 'unweighted', 'visibility', 'published', 'code']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'e.g. Database System'}),
-            'crn': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Enter 5-digit CRN'}),
-            'term': forms.TextInput(attrs={'class': 'input-field'}),
+            'crn': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Enter 5-digit CRN', 'pattern': r'\d{5}', 'maxlength': '5'}),
+            'term': forms.HiddenInput(attrs={'id': 'id_term'}),
             'section': forms.TextInput(attrs={'class': 'input-field'}),
             'code': forms.HiddenInput(),
             'grading_default': forms.CheckboxInput(attrs={'class': 'ui-toggle'}),
@@ -22,6 +22,15 @@ class CourseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['code'].required = False  # Make generic code optional
         self.fields['code'].initial = 'GENERIC'
+        
+    def clean_crn(self):
+        crn = self.cleaned_data.get('crn')
+        if crn:
+            if not crn.isdigit():
+                raise forms.ValidationError("CRN must contain only numbers.")
+            if len(crn) != 5:
+                raise forms.ValidationError("CRN must be exactly 5 digits.")
+        return crn
 
 class UserRegistrationForm(forms.Form):
     full_name = forms.CharField(

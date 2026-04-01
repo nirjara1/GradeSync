@@ -1,86 +1,125 @@
 {% extends 'base_professor.html' %}
 
-{% block content %}
+{% block extra_css %}
 <style>
-    /* Override default main-content background to show the independent card */
-    .main-content {
-        background-color: #e3e3e3 !important;
-        box-shadow: none !important;
-        padding: 40px !important;
+    .create-class-wrapper {
         display: flex;
         justify-content: center;
         align-items: flex-start;
+        padding-top: 20px;
     }
 
     .create-class-card {
-        background-color: var(--white);
-        padding: 30px 50px 40px 50px;
-        border-radius: 4px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        background: var(--bg-card);
+        padding: 40px 50px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         width: 100%;
         max-width: 650px;
+        border: 1px solid var(--border-color);
     }
 
     .card-header {
         text-align: center;
-        margin-bottom: 25px;
+        margin-bottom: 30px;
     }
 
     .card-header h2 {
         color: var(--maroon);
         font-size: 28px;
-        font-weight: bold;
-        margin: 0 0 10px 0;
+        font-weight: 700;
+        margin: 0 0 15px 0;
     }
 
     .header-accent-line {
-        height: 4px;
+        height: 3px;
         background-color: var(--maroon);
-        width: 100%;
+        width: 60px;
+        margin: 0 auto;
+        border-radius: 3px;
     }
 
     .import-link {
         display: block;
         text-align: center;
-        color: #1a56cc;
+        color: var(--maroon);
         text-decoration: none;
         font-size: 14px;
+        font-weight: 600;
         margin-bottom: 30px;
+        transition: opacity 0.2s;
     }
 
     .import-link:hover {
+        opacity: 0.8;
         text-decoration: underline;
     }
 
-    /* Grid Layout for Inputs */
-    .input-grid {
-        display: grid;
-        grid-template-columns: 120px 1fr;
-        gap: 15px 20px;
-        align-items: center;
-        margin-bottom: 30px;
+    .form-group {
+        margin-bottom: 25px;
     }
 
-    .input-label {
-        font-weight: bold;
+    .form-group label {
+        display: block;
+        font-weight: 600;
         font-size: 15px;
-        color: #000;
+        color: var(--text-main);
+        margin-bottom: 8px;
     }
 
     .input-field {
         width: 100%;
-        background-color: #dfdfdf;
-        border: none;
-        border-radius: 6px;
-        padding: 10px 15px;
-        font-size: 14px;
-        color: #333;
+        background-color: var(--bg-main);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 15px;
+        color: var(--text-main);
         outline: none;
         box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-field:focus {
+        border-color: var(--maroon);
+        box-shadow: 0 0 0 3px rgba(132, 0, 41, 0.1);
     }
 
     .input-field::placeholder {
-        color: #999;
+        color: var(--text-muted);
+        opacity: 0.7;
+    }
+
+    /* Semester Buttons */
+    .semester-btn-group {
+        display: flex;
+        gap: 12px;
+    }
+
+    .semester-btn {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-main);
+        color: var(--text-main);
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+
+    .semester-btn:hover {
+        background-color: var(--bg-hover);
+        border-color: var(--maroon);
+    }
+
+    .semester-btn.selected {
+        background-color: var(--maroon);
+        color: #fff;
+        border-color: var(--maroon);
+        box-shadow: 0 4px 10px rgba(132, 0, 41, 0.2);
     }
 
     /* Actions */
@@ -88,85 +127,211 @@
         display: flex;
         justify-content: flex-end;
         gap: 15px;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
     }
 
     .btn-cancel {
-        background-color: #ccc;
-        color: #555;
-        border: none;
-        padding: 10px 25px;
-        border-radius: 6px;
+        background-color: transparent;
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
+        padding: 12px 28px;
+        border-radius: 8px;
         font-size: 15px;
-        font-weight: bold;
+        font-weight: 600;
         cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-main);
     }
 
     .btn-finish {
         background-color: var(--maroon);
         color: white;
         border: none;
-        padding: 10px 25px;
-        border-radius: 6px;
+        padding: 12px 28px;
+        border-radius: 8px;
         font-size: 15px;
-        font-weight: bold;
+        font-weight: 600;
         cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(132, 0, 41, 0.2);
+    }
+
+    .btn-finish:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 15px rgba(132, 0, 41, 0.3);
+    }
+    
+    .btn-finish:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .error-text {
+        color: #d32f2f;
+        font-size: 13px;
+        margin-top: 6px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .crn-client-error {
+        display: none;
     }
 </style>
+{% endblock %}
 
-<div class="create-class-card">
-    <div class="card-header">
-        <h2>Create New Class</h2>
-        <div class="header-accent-line"></div>
-    </div>
+{% block content %}
+<div class="create-class-wrapper">
+    <div class="create-class-card">
+        <div class="card-header">
+            <h2>Create New Class</h2>
+            <div class="header-accent-line"></div>
+        </div>
 
-    <a href="#" class="import-link">Import settings from a previous semester?</a>
+        <a href="#" class="import-link"><i class="fa-solid fa-file-import" style="margin-right: 6px;"></i>Import settings from a previous semester?</a>
 
-    {% if form.errors %}
-    <div style="margin-bottom: 20px;">
-        <p style="color: red; font-size: 14px; text-align: center;">Please correct the errors below.</p>
-    </div>
-    {% endif %}
+        {% if form.errors %}
+        <div style="margin-bottom: 25px; padding: 12px; background-color: rgba(211, 47, 47, 0.1); border-left: 4px solid #d32f2f; border-radius: 4px;">
+            <p style="color: #d32f2f; font-size: 14px; margin: 0; font-weight: 600;"><i class="fa-solid fa-circle-exclamation" style="margin-right: 6px;"></i>Please correct the errors below.</p>
+        </div>
+        {% endif %}
 
-    <form method="POST">
-        {% csrf_token %}
+        <form method="POST" id="createCourseForm">
+            {% csrf_token %}
 
-        <div class="input-grid">
-            <div class="input-label">Class Name</div>
-            <div>
+            <div class="form-group">
+                <label for="{{ form.title.id_for_label }}">Class Name</label>
                 {{ form.title }}
-                {% if form.title.errors %}<div style="color:red; font-size:12px; margin-top:4px;">{{ form.title.errors
-                    }}</div>{% endif %}
+                {% if form.title.errors %}
+                    <div class="error-text"><i class="fa-solid fa-circle-xmark"></i>{{ form.title.errors.0 }}</div>
+                {% endif %}
             </div>
 
-            <div class="input-label">CRN</div>
-            <div>
+            <div class="form-group">
+                <label for="{{ form.crn.id_for_label }}">CRN</label>
                 {{ form.crn }}
-                {% if form.crn.errors %}<div style="color:red; font-size:12px; margin-top:4px;">{{ form.crn.errors }}
-                </div>{% endif %}
+                <div class="error-text crn-client-error" id="crnError"><i class="fa-solid fa-circle-xmark"></i>CRN must be exactly 5 digits.</div>
+                {% if form.crn.errors %}
+                    <div class="error-text"><i class="fa-solid fa-circle-xmark"></i>{{ form.crn.errors.0 }}</div>
+                {% endif %}
             </div>
 
-            <div class="input-label">Semester</div>
-            <div>
-                {{ form.term }}
-                {% if form.term.errors %}<div style="color:red; font-size:12px; margin-top:4px;">{{ form.term.errors }}
-                </div>{% endif %}
+            <div class="form-group">
+                <label>Semester</label>
+                {{ form.term }} <!-- Hidden input now -->
+                <div class="semester-btn-group">
+                    <button type="button" class="semester-btn" data-value="Spring">Spring</button>
+                    <button type="button" class="semester-btn" data-value="Summer">Summer</button>
+                    <button type="button" class="semester-btn" data-value="Fall">Fall</button>
+                </div>
+                <div class="error-text crn-client-error" id="termError"><i class="fa-solid fa-circle-xmark"></i>Please select a semester.</div>
+                {% if form.term.errors %}
+                    <div class="error-text"><i class="fa-solid fa-circle-xmark"></i>{{ form.term.errors.0 }}</div>
+                {% endif %}
             </div>
 
-            <div class="input-label">Section</div>
-            <div>
+            <div class="form-group">
+                <label for="{{ form.section.id_for_label }}">Section (Optional)</label>
                 {{ form.section }}
-                {% if form.section.errors %}<div style="color:red; font-size:12px; margin-top:4px;">{{
-                    form.section.errors }}</div>{% endif %}
+                {% if form.section.errors %}
+                    <div class="error-text"><i class="fa-solid fa-circle-xmark"></i>{{ form.section.errors.0 }}</div>
+                {% endif %}
             </div>
 
             {{ form.code }}
-        </div>
 
-        <div class="form-actions">
-            <a href="{% url 'professor_dashboard' %}" class="btn-cancel"
-                style="text-decoration:none; text-align:center;">Cancel</a>
-            <button type="submit" class="btn-finish">Finish</button>
-        </div>
-    </form>
+            <div class="form-actions">
+                <a href="{% url 'professor_dashboard' %}" class="btn-cancel" style="text-decoration:none; text-align:center;">Cancel</a>
+                <button type="submit" class="btn-finish" id="submitBtn">Finish</button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const termInput = document.getElementById('id_term');
+        const semesterBtns = document.querySelectorAll('.semester-btn');
+        const crnInput = document.querySelector('input[name="crn"]');
+        const crnError = document.getElementById('crnError');
+        const termError = document.getElementById('termError');
+        const form = document.getElementById('createCourseForm');
+        
+        // Semester button logic
+        semesterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // remove selected from all
+                semesterBtns.forEach(b => b.classList.remove('selected'));
+                // add selected to clicked
+                this.classList.add('selected');
+                // update hidden input
+                termInput.value = this.getAttribute('data-value');
+                // clear error
+                termError.style.display = 'none';
+            });
+        });
+
+        // Initialize button state from existing value (if editing or form submitted with error)
+        if (termInput && termInput.value) {
+            const selectedBtn = document.querySelector(`.semester-btn[data-value="${termInput.value}"]`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('selected');
+            }
+        }
+
+        // CRN Validation strictly allowing only numbers and exactly 5 digits
+        if (crnInput) {
+            crnInput.addEventListener('input', function(e) {
+                // Remove any non-numeric characters immediately
+                this.value = this.value.replace(/[^0-9]/g, '');
+                
+                if (this.value.length > 5) {
+                    this.value = this.value.slice(0, 5);
+                }
+
+                if (this.value.length > 0 && this.value.length !== 5) {
+                    crnError.style.display = 'flex';
+                    this.style.borderColor = '#d32f2f';
+                } else {
+                    crnError.style.display = 'none';
+                    this.style.borderColor = '';
+                }
+            });
+        }
+
+        // Prevent submission if invalid
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                let isValid = true;
+                
+                // Check CRN
+                if (crnInput && crnInput.value.length !== 5) {
+                    crnError.style.display = 'flex';
+                    crnInput.style.borderColor = '#d32f2f';
+                    isValid = false;
+                }
+                
+                // Check Term
+                if (termInput && !termInput.value) {
+                    termError.style.display = 'flex';
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
