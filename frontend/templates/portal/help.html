@@ -8,6 +8,7 @@
     <title>GradeSync - Help</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/logout-confirmation.css' %}">
     <style>
         /* Base styles */
         :root {
@@ -213,7 +214,11 @@
     <div class="sub-header">
         <div class="app-title">GradeSync</div>
         <div class="user-info">
-            Welcome, <a href="{% url 'user_profile' %}" style="color: inherit; font-weight: 600; text-decoration: none;">{{ display_name|default:request.user.username }}</a> <a href="{% url 'logout' %}" class="logout-link">LOG OUT?</a>
+            Welcome, <a href="{% url 'user_profile' %}" style="color: inherit; font-weight: 600; text-decoration: none;">{{ display_name|default:request.user.username }}</a>
+            <form method="post" action="{% url 'logout' %}" style="display:inline;" class="js-logout-form">
+                {% csrf_token %}
+                <button type="button" class="logout-link js-logout-trigger" style="background:none; border:none; padding:0; cursor:pointer; font:inherit;">LOG OUT?</button>
+            </form>
         </div>
     </div>
 
@@ -252,6 +257,8 @@
             </div>
         </section>
     </main>
+    {% include "shared/logout_confirmation_modal.html" %}
+    <script src="{% static 'js/logout-confirmation.js' %}"></script>
 </body>
 
 </html>

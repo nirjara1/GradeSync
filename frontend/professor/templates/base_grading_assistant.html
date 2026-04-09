@@ -9,6 +9,7 @@
     <!-- Use FontAwesome for sidebar icons to match screenshot -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.0">
+    <link rel="stylesheet" href="{% static 'css/logout-confirmation.css' %}">
 </head>
 
 <body>
@@ -27,9 +28,9 @@
             <div class="user-controls">
                 <span class="username">Welcome, <a href="{% url 'user_profile' %}" class="username-bold">{{ display_name }}</a></span>
                 <div class="nav-separator"></div>
-                <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                <form method="post" action="{% url 'logout' %}" style="display: inline;" class="js-logout-form">
                     {% csrf_token %}
-                    <button type="submit" class="logout-link"
+                    <button type="button" class="logout-link js-logout-trigger"
                         style="background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; font-size: inherit;">LOG
                         OUT?</button>
                 </form>
@@ -77,6 +78,8 @@
         </main>
     </div>
 
+    {% include "shared/logout_confirmation_modal.html" %}
+    <script src="{% static 'js/logout-confirmation.js' %}"></script>
 </body>
 
 </html>
