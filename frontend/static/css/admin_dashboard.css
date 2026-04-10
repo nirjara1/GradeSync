@@ -112,58 +112,58 @@ body {
 
 /* ── SIDEBAR ── */
 .sidebar {
-    width: 120px;
     background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-    padding: 24px 0;
+    width: 200px;
+    padding: 30px 15px;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
     height: fit-content;
-    border-right: none;
+    position: sticky;
+    top: 30px;
 }
 
 .nav-item {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 12px 10px;
-    color: #1f2937;
+    color: #6b7280;
     text-decoration: none;
-    font-size: 13px;
+    font-family: 'Inter', system-ui, sans-serif;
+    gap: 15px;
+    font-size: 16px;
     font-weight: 500;
-    gap: 8px;
-    transition: all 0.2s;
-    border-left: 3px solid transparent;
-    font-family: 'Inter', sans-serif;
-    text-align: center;
+    padding: 12px 20px;
+    border-radius: 8px; /* Maroon pill shape */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .nav-item i {
-    font-size: 24px;
-    transition: color 0.2s;
-    color: #1f2937;
+    font-size: 20px;
+    width: 24px;
+    text-align: center;
+    transition: transform 0.3s;
 }
 
 .nav-item:hover {
-    background-color: #f9fafb;
-    color: #860029;
+    color: #840029;
+    background-color: rgba(132, 0, 41, 0.05);
+    transform: translateX(4px);
 }
 
 .nav-item:hover i {
-    color: #860029;
+    transform: scale(1.1);
 }
 
 .nav-item.active {
-    color: #860029;
-    border-left-color: #860029;
+    color: #ffffff;
+    background-color: #840029;
+    box-shadow: 0 4px 10px rgba(132, 0, 41, 0.3);
 }
 
 .nav-item.active i {
-    color: #860029;
+    color: #ffffff;
 }
 
 /* ── MAIN CONTENT ── */

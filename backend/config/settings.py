@@ -42,6 +42,7 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", '3.151.189.18']
 
 INSTALLED_APPS = [
     'items',
+    'admin_panel',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -79,6 +80,7 @@ TEMPLATES = [
             FRONTEND_DIR / 'professor' / 'templates',
             FRONTEND_DIR / 'grading' / 'templates',
             FRONTEND_DIR / 'items' / 'templates',
+            BASE_DIR / 'admin_panel' / 'templates',
         ],
         'APP_DIRS': True,
         'OPTIONS': {

@@ -1,0 +1,408 @@
+{% extends "base_professor.html" %}
+
+{% block title %}AI Deep Dive | GradeSync{% endblock %}
+
+{% block extra_css %}
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Monaco Editor -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+
+<style>
+    body {
+        margin: 0;
+        background-color: #f3f4f6;
+        font-family: 'Inter', -apple-system, sans-serif;
+    }
+    .compare-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 60px); 
+        margin: 0;
+        padding: 0;
+    }
+    .compare-header {
+        background: white;
+        padding: 15px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .back-btn {
+        padding: 6px 12px;
+        background: #f3f4f6;
+        color: #4b5563;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        transition: 0.2s;
+    }
+    .back-btn:hover {
+        background: #e5e7eb;
+        color: #111827;
+    }
+    .page-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+    .analysis-summary {
+        background: #fff5f5;
+        border: 1px solid #feb2b2;
+        padding: 10px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #c53030;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .compare-body {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+    
+    .editor-pane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #e5e7eb;
+        background: #1e1e1e;
+    }
+    .editor-pane:last-of-type {
+        border-right: none;
+    }
+    
+    .pane-header {
+        background: #252526;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border-bottom: 1px solid #444;
+    }
+    .student-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,0.1);
+        padding: 4px 10px;
+        border-radius: 4px;
+        color: #e5e7eb;
+        font-size: 13px;
+        font-weight: 600;
+        width: fit-content;
+    }
+    
+    .tabs-container {
+        display: flex;
+        overflow-x: auto;
+        background: #2d2d2d;
+        flex-shrink: 0;
+        min-height: 42px;
+    }
+    .tabs-container::-webkit-scrollbar {
+        height: 4px;
+    }
+    .tabs-container::-webkit-scrollbar-thumb {
+        background: #555;
+    }
+    .file-tab {
+        padding: 8px 16px;
+        background: transparent;
+        border: none;
+        border-right: 1px solid #444;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 13px;
+        font-family: inherit;
+        white-space: nowrap;
+        transition: 0.2s;
+    }
+    .file-tab:hover {
+        background: #333;
+        color: #d1d5db;
+    }
+    .file-tab.active {
+        background: #1e1e1e;
+        color: #fff;
+        border-bottom: 2px solid #ef4444; 
+    }
+    
+    .editor-container {
+        flex: 1;
+        position: relative;
+    }
+    
+    /* Heatmap Sidebar */
+    .heatmap-pane {
+        width: 60px;
+        background: #2d2d2d;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid #444;
+        padding: 10px 0;
+        align-items: center;
+        overflow-y: auto;
+    }
+    .heatmap-pane::-webkit-scrollbar {
+        width: 4px;
+    }
+    .heatmap-block {
+        width: 40px;
+        height: 6px;
+        margin-bottom: 2px;
+        border-radius: 1px;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+    .heatmap-block:hover {
+        transform: scale(1.2);
+        z-index: 10;
+    }
+    
+    /* Monaco Decorations */
+    .ai-high-likelihood {
+        background: rgba(220, 38, 38, 0.2) !important;
+    }
+    .ai-high-likelihood-margin {
+        background: #dc2626 !important;
+        width: 5px !important;
+        margin-left: 3px !important;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="compare-container">
+    <div class="compare-header">
+        <div class="header-title-wrapper">
+            <a href="{% url 'grade_submission' submission.id %}" class="back-btn">
+                <i class="fa-solid fa-arrow-left" style="margin-right: 4px;"></i> Back to Grading
+            </a>
+            <h1 class="page-title">AI Deep Dive</h1>
+        </div>
+        <div class="analysis-summary">
+            <i class="fa-solid fa-robot"></i>
+            <div>
+                <strong>{{ submission.ai_likelihood_score|default:"0.0" }}% AI Probability</strong> — The model is {{ submission.ai_likelihood_score|default:"0" }}% confident this submission matches AI patterns. 
+            </div>
+        </div>
+    </div>
+    
+    <div class="compare-body">
+        <!-- LEFT: Raw Code -->
+        <div class="editor-pane">
+            <div class="pane-header">
+                <div class="student-badge">
+                    <i class="fa-solid fa-code"></i>
+                    Raw Code (Reference)
+                </div>
+                <div style="font-size: 12px; color: #a1a1aa; margin-top: 4px;">
+                    Unaltered student submission
+                </div>
+            </div>
+            <div class="tabs-container" id="leftTabs"></div>
+            <div id="leftEditor" class="editor-container"></div>
+        </div>
+        
+        <!-- RIGHT: AI Evidence -->
+        <div class="editor-pane">
+            <div class="pane-header">
+                <div class="student-badge" style="background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220,38,38,0.3); color: #fca5a5;">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                    AI Evidence Overlay
+                </div>
+                <div style="font-size: 12px; color: #fca5a5; opacity: 0.8; margin-top: 4px;">
+                    Red highlights indicate high-confidence AI segments (>0.85)
+                </div>
+            </div>
+            <div class="tabs-container" id="rightTabs"></div>
+            <div id="rightEditor" class="editor-container"></div>
+        </div>
+
+        <!-- Heatmap -->
+        <div class="heatmap-pane" id="heatmap">
+            <div style="font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 10px;">Heatmap</div>
+        </div>
+    </div>
+</div>
+
+{{ sub_files|json_script:"subFilesData" }}
+{{ ai_segments|json_script:"aiSegmentsData" }}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const subFiles = JSON.parse(document.getElementById('subFilesData').textContent);
+        const aiSegments = JSON.parse(document.getElementById('aiSegmentsData').textContent);
+        
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+        require(['vs/editor/editor.main'], function () {
+            
+            function getIcon(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                if (ext === 'py') return '<i class="fa-brands fa-python" style="color: #4B8BBE;"></i>';
+                if (ext === 'java') return '<i class="fa-brands fa-java" style="color: #f89820;"></i>';
+                return '<i class="fa-regular fa-file-code" style="color: #888;"></i>';
+            }
+            
+            function determineLang(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                if (ext === 'py') return 'python';
+                if (ext === 'java') return 'java';
+                return 'plaintext';
+            }
+
+            let leftModels = subFiles.map(f => monaco.editor.createModel(f.content, determineLang(f.name)));
+            let rightModels = subFiles.map(f => monaco.editor.createModel(f.content, determineLang(f.name)));
+
+            const leftEditor = monaco.editor.create(document.getElementById('leftEditor'), {
+                model: leftModels[0],
+                theme: 'vs-dark',
+                automaticLayout: true,
+                readOnly: true,
+                fontSize: 14,
+                minimap: { enabled: false },
+                padding: { top: 16 }
+            });
+
+            const rightEditor = monaco.editor.create(document.getElementById('rightEditor'), {
+                model: rightModels[0],
+                theme: 'vs-dark',
+                automaticLayout: true,
+                readOnly: true,
+                fontSize: 14,
+                minimap: { enabled: true },
+                padding: { top: 16 }
+            });
+
+            // Synchronize Scrolling
+            let isSyncingLeftScroll = false;
+            let isSyncingRightScroll = false;
+
+            leftEditor.onDidScrollChange((e) => {
+                if (!isSyncingLeftScroll && !isSyncingRightScroll) {
+                    isSyncingLeftScroll = true;
+                    rightEditor.setScrollTop(e.scrollTop);
+                    isSyncingLeftScroll = false;
+                }
+            });
+
+            rightEditor.onDidScrollChange((e) => {
+                if (!isSyncingLeftScroll && !isSyncingRightScroll) {
+                    isSyncingRightScroll = true;
+                    leftEditor.setScrollTop(e.scrollTop);
+                    isSyncingRightScroll = false;
+                }
+            });
+
+            // Tabs
+            function setupTabs(containerId, models, editor, otherEditor) {
+                const container = document.getElementById(containerId);
+                subFiles.forEach((file, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = `file-tab ${index === 0 ? 'active' : ''}`;
+                    btn.innerHTML = `${getIcon(file.name)} &nbsp; ${file.name}`;
+                    btn.onclick = () => {
+                        Array.from(container.children).forEach(c => c.classList.remove('active'));
+                        btn.classList.add('active');
+                        editor.setModel(models[index]);
+                        // Switch other editor too if same file
+                        if (otherEditor) {
+                             const otherCont = document.getElementById(containerId === 'leftTabs' ? 'rightTabs' : 'leftTabs');
+                             Array.from(otherCont.children).forEach((c, idx) => {
+                                 if (idx === index) c.classList.add('active');
+                                 else c.classList.remove('active');
+                             });
+                             otherEditor.setModel(containerId === 'leftTabs' ? rightModels[index] : leftModels[index]);
+                        }
+                        updateDecorations();
+                    };
+                    container.appendChild(btn);
+                });
+            }
+
+            setupTabs('leftTabs', leftModels, leftEditor, rightEditor);
+            setupTabs('rightTabs', rightModels, rightEditor, leftEditor);
+
+            // Decorations & Heatmap
+            let rightDecorations = [];
+            
+            function updateDecorations() {
+                const decs = [];
+                const heatmap = document.getElementById('heatmap');
+                // Clear heatmap but keep title
+                while (heatmap.childNodes.length > 1) {
+                    heatmap.removeChild(heatmap.lastChild);
+                }
+
+                // Filter and sort high-confidence segments
+                const highLikely = aiSegments
+                    .filter(s => s.ai_score >= 0.85)
+                    .sort((a, b) => a.line_start - b.line_start);
+
+                // Merge overlapping or adjacent segments to prevent "shades of red" (opacity stacking)
+                const merged = [];
+                if (highLikely.length > 0) {
+                    let current = { ...highLikely[0] };
+                    for (let i = 1; i < highLikely.length; i++) {
+                        if (highLikely[i].line_start <= current.line_end + 1) {
+                            current.line_end = Math.max(current.line_end, highLikely[i].line_end);
+                            current.ai_score = Math.max(current.ai_score, highLikely[i].ai_score);
+                        } else {
+                            merged.push(current);
+                            current = { ...highLikely[i] };
+                        }
+                    }
+                    merged.push(current);
+                }
+                
+                merged.forEach(seg => {
+                    decs.push({
+                        range: new monaco.Range(seg.line_start, 1, seg.line_end, 1),
+                        options: {
+                            isWholeLine: true,
+                            className: 'ai-high-likelihood',
+                            marginClassName: 'ai-high-likelihood-margin'
+                        }
+                    });
+                });
+
+                // For the heatmap, we still want to show blocks, but let's make them a single red if > 0.7
+                // and maybe hide or gray out the others if that's what the user prefers?
+                // The user said "Don't highlight dimmer red and brighter red". 
+                // Let's only show the blocks that reached the threshold.
+                aiSegments.forEach(seg => {
+                    if (seg.ai_score < 0.85) return; // Skip non-AI blocks in heatmap per "Just highlight part that looks like written by AI"
+
+                    const block = document.createElement('div');
+                    block.className = 'heatmap-block';
+                    block.style.backgroundColor = '#dc2626'; // Solid red
+                    block.title = `Score: ${(seg.ai_score * 100).toFixed(1)}% (Lines ${seg.line_start}-${seg.line_end})`;
+                    block.onclick = () => {
+                        rightEditor.revealLineInCenter(seg.line_start);
+                        leftEditor.revealLineInCenter(seg.line_start);
+                    };
+                    heatmap.appendChild(block);
+                });
+
+                rightDecorations = rightEditor.deltaDecorations(rightDecorations, decs);
+            }
+
+            updateDecorations();
+        });
+    });
+</script>
+{% endblock %}
