@@ -14,6 +14,7 @@ urlpatterns = [
     path('assignments/<int:pk>/gradebook/', views.gradebook_view, name='gradebook'),
     path('submissions/<int:pk>/grade/', views.grade_submission_view, name='grade_submission'),
     path('submissions/<int:submission_id>/compare/', views.compare_submissions_view, name='compare_submissions'),
+    path('submissions/<int:submission_id>/ai-deep-dive/', views.ai_deep_dive_view, name='ai_deep_dive'),
     path('submissions/<int:pk>/download/', views.download_submission_view, name='download_submission'),
     path('submissions/<int:pk>/delete/', views.delete_submission_view, name='delete_submission'),
     path('assignments/<int:assignment_id>/groups/<int:group_id>/reopen/', views.reopen_group_submission_view, name='reopen_group_submission'),

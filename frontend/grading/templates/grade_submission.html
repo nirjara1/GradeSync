@@ -983,6 +983,12 @@
                             <div style="font-size:12px; color:#777; margin-top:5px; font-style: italic;">
                                 {{ submission.ai_explanation|default:"Analysis pending or unavailable." }}
                             </div>
+
+                            {% if submission.ai_likelihood_score != None %}
+                            <a href="{% url 'ai_deep_dive' submission.id %}" target="_blank" style="display:block; text-align:center; margin-top:10px; width:100%; padding:6px 0; background-color:#111827; color:white; border:none; border-radius:6px; font-size:12px; font-weight:600; text-decoration:none; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
+                                <i class="fa-solid fa-robot"></i> AI Deep Dive
+                            </a>
+                            {% endif %}
                         </div>
 
                         <!-- Plagiarism block -->

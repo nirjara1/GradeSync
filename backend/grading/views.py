@@ -2710,3 +2710,57 @@ def compare_submissions_view(request, submission_id):
     }
     
     return render(request, 'compare_submissions.html', context)
+
+@login_required
+def ai_deep_dive_view(request, submission_id):
+    submission = get_object_or_404(Submission, id=submission_id)
+    course = submission.assignment.course
+    
+    user = get_user_from_request(request)
+    if not is_course_instructor(user, course, request):
+        return HttpResponseForbidden("Not authorized to view AI deep dive.")
+        
+    def get_source_files(sub):
+        files = []
+        if not sub.file_path or not hasattr(sub.file_path, 'name'):
+            return files
+            
+        file_name = sub.file_path.name.lower()
+        sub.file_path.open('rb')
+        content = sub.file_path.read()
+        sub.file_path.close()
+        
+        if file_name.endswith('.zip'):
+            try:
+                import io
+                with zipfile.ZipFile(io.BytesIO(content), 'r') as zf:
+                    for zip_info in zf.infolist():
+                        if zip_info.is_dir() or zip_info.filename.startswith('__MACOSX'):
+                            continue
+                        name = zip_info.filename
+                        lower_name = name.lower()
+                        if lower_name.endswith('.py') or lower_name.endswith('.java'):
+                            try:
+                                text = zf.read(name).decode('utf-8', errors='ignore')
+                                files.append({'name': name, 'content': text})
+                            except Exception:
+                                pass
+            except Exception:
+                pass
+        elif file_name.endswith('.py') or file_name.endswith('.java') or file_name.endswith('.js'):
+            text = content.decode('utf-8', errors='ignore')
+            base_name = os.path.basename(sub.file_path.name)
+            files.append({'name': base_name, 'content': text})
+        return files
+
+    sub_files = get_source_files(submission)
+    
+    context = {
+        'submission': submission,
+        'sub_files': sub_files,
+        'ai_segments': submission.ai_segments or [],
+        'assignment': submission.assignment,
+        'course': course
+    }
+    
+    return render(request, 'ai_detail.html', context)

@@ -192,6 +192,7 @@ class Submission(models.Model):
     ai_likelihood_score = models.FloatField(null=True, blank=True)
     ai_confidence_score = models.FloatField(null=True, blank=True)
     ai_explanation = models.TextField(blank=True)
+    ai_segments = models.JSONField(null=True, blank=True)
     
     plagiarism_score = models.FloatField(null=True, blank=True)
     plagiarism_confidence_score = models.FloatField(null=True, blank=True)

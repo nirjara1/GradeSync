@@ -1,0 +1,116 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}GradeSync Admin{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}?v=6.3">
+    {% block extrastyle %}{% endblock %}
+    
+    <!-- Dark Mode Load Script -->
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+</head>
+<body>
+
+    <!-- ── MAIN MAROON HEADER ── -->
+    <header class="main-header">
+        <a href="{% url 'admin:index' %}" class="header-brand" style="text-decoration: none;">
+            <img class="header-logo" src="{% static 'images/logo.png' %}" alt="GradeSync Logo">
+        </a>
+    </header>
+
+    <!-- ── SECONDARY WHITE BAR ── -->
+    <div class="sub-header">
+        <a href="{% url 'admin:index' %}" class="app-title" style="font-family: 'Inter', sans-serif; color: #860029; font-weight: 800; font-size: 18px; letter-spacing: 0.5px; text-decoration: none;">GradeSync</a>
+        <div class="user-info" style="margin-left: auto;">
+            {% if user.is_authenticated %}
+                Welcome, <strong>{{ user.username }}</strong> 
+                <form method="post" action="{% url 'admin:logout' %}" style="display:inline-block; margin:0; padding:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-link" style="background:none; border:none; padding:0; cursor:pointer; font-family:inherit;">LOG OUT?</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── MAIN LAYOUT ── -->
+    <div class="portal-main">
+
+        <!-- ── SIDEBAR ── -->
+        <aside class="sidebar">
+            <a href="{% url 'admin:index' %}" class="nav-item {% block nav_dash %}{% endblock %}">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'admin:auth_user_changelist' %}" class="nav-item {% block nav_accounts %}{% endblock %}">
+                <i class="fa-solid fa-users"></i>
+                <span>Accounts</span>
+            </a>
+            <a href="{% url 'admin:student_cwid' %}" class="nav-item {% block nav_student_cwid %}{% endblock %}">
+                <i class="fa-solid fa-id-card"></i>
+                <span>Student CWID</span>
+            </a>
+            <a href="{% url 'admin:items_programminglanguage_changelist' %}" class="nav-item {% block nav_lang %}{% endblock %}">
+                <i class="fa-solid fa-code"></i>
+                <span>Languages</span>
+            </a>
+            <a href="{% url 'admin:execution_environment' %}" class="nav-item {% block nav_env %}{% endblock %}">
+                <i class="fa-solid fa-server"></i>
+                <span>Environment</span>
+            </a>
+            <a href="{% url 'admin:database_maintenance' %}" class="nav-item {% block nav_db %}{% endblock %}">
+                <i class="fa-solid fa-database"></i>
+                <span>Database</span>
+            </a>
+            <a href="{% url 'admin:admin_logentry_changelist' %}" class="nav-item {% block nav_audit %}{% endblock %}">
+                <i class="fa-solid fa-list-check"></i>
+                <span>Audit Logs</span>
+            </a>
+            <a href="{% url 'admin:archive_class' %}" class="nav-item {% block nav_archive %}{% endblock %}">
+                <i class="fa-solid fa-box-archive"></i>
+                <span>Archive</span>
+            </a>
+        </aside>
+
+        <!-- ── MAIN CONTENT ── -->
+        <main class="content-area">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeBtn = document.getElementById('themeToggleBtn');
+            const icon = themeBtn.querySelector('i');
+            
+            // Set initial icon based on applied theme
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                icon.classList.replace('fa-moon', 'fa-sun');
+            }
+
+            themeBtn.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                if (currentTheme === 'dark') {
+                    document.documentElement.removeAttribute('data-theme');
+                    localStorage.setItem('theme', 'light');
+                    icon.classList.replace('fa-sun', 'fa-moon');
+                    icon.style.transform = 'rotate(-360deg)';
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                    icon.classList.replace('fa-moon', 'fa-sun');
+                    icon.style.transform = 'rotate(360deg)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

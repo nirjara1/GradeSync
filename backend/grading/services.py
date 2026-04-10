@@ -108,7 +108,30 @@ def run_submission_analysis(submission_id) -> dict:
                         submission.ai_likelihood_score = likelihood_pct
                         submission.ai_confidence_score = conf_pct
                         submission.ai_explanation = explanation
-                        logger.info(f"AI Detection Result: {likelihood_pct}% (confidence {conf_pct}%)")
+                        
+                        # Granular sliding window analysis (5-line windows, stride 1)
+                        lines = code_str.split('\n')
+                        segments = []
+                        if len(lines) >= 5:
+                            for i in range(len(lines) - 4):
+                                window = "\n".join(lines[i:i+5])
+                                # use predict() instead of predict_with_confidence for raw probability
+                                score = ai_engine.predict(window)
+                                segments.append({
+                                    "line_start": i + 1,
+                                    "line_end": i + 5,
+                                    "ai_score": round(score, 4)
+                                })
+                        elif lines:
+                            # For very short files, run on whatever exists
+                            score = ai_engine.predict(code_str)
+                            segments.append({
+                                "line_start": 1,
+                                "line_end": len(lines),
+                                "ai_score": round(score, 4)
+                            })
+                        submission.ai_segments = segments
+                        logger.info(f"AI Detection Result: {likelihood_pct}% (confidence {conf_pct}%) with {len(segments)} segments")
                     else:
                         logger.warning(f"AI Model not found at {model_path}")
                         submission.ai_likelihood_score = None
@@ -138,7 +161,7 @@ def run_submission_analysis(submission_id) -> dict:
                         else:
                             logger.warning(f"Corpus submission {other_sub.id} has no extractable code (files: {other_file_count})")
                             
-                    sim_engine = SimilarityEngine(n=3)
+                    sim_engine = SimilarityEngine()
                     sim_results = sim_engine.check_similarity_from_texts(code_str, corpus_texts)
                     
                     if sim_results:
@@ -188,7 +211,7 @@ def run_submission_analysis(submission_id) -> dict:
                 submission.plagiarism_match_info = "Plagiarism analysis unavailable."
                 
             submission.save(update_fields=[
-                'ai_likelihood_score', 'ai_confidence_score', 'ai_explanation',
+                'ai_likelihood_score', 'ai_confidence_score', 'ai_explanation', 'ai_segments',
                 'plagiarism_score', 'plagiarism_confidence_score', 'plagiarism_match_info',
                 'plagiarism_match'
             ])

@@ -275,20 +275,16 @@ html {
 }
 
 /* SIDEBAR */
+/* SIDEBAR */
 .sidebar {
     background-color: var(--white);
-    width: 200px;
-    /* Slightly wider */
-    padding: 30px 15px;
-    /* Add horizontal padding for bubble pills */
+    width: 260px;
+    padding: 24px 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    /* Closer together since they have padding */
+    gap: 0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    /* Softer shadow */
     border-radius: 12px;
-    /* Smooth corners */
     height: fit-content;
     position: sticky;
     top: 30px;
@@ -297,44 +293,44 @@ html {
 .nav-item {
     display: flex;
     align-items: center;
-    /* Row layout instead of column */
     text-decoration: none;
-    color: var(--text-muted);
-    gap: 15px;
-    font-size: 16px;
+    color: var(--text-main);
+    gap: 12px;
+    font-size: 14px;
     font-weight: 500;
-    padding: 12px 20px;
-    border-radius: 8px;
-    /* Pill shape */
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    /* Smooth spring */
+    padding: 12px 24px;
+    border-radius: 0;
+    border-left: 4px solid transparent;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
 .nav-item i {
-    font-size: 20px;
-    /* Smaller row icons */
+    font-size: 18px;
     width: 24px;
     text-align: center;
-    transition: transform 0.3s;
+    color: #6b7280;
+    transition: color 0.2s ease;
 }
 
 .nav-item:hover {
-    color: var(--maroon);
-    background-color: rgba(132, 0, 41, 0.05);
-    /* Light maroon bg */
-    transform: translateX(4px);
-    /* Slide right slightly */
+    background-color: #f3f4f6;
+    color: #1f2937;
 }
 
 .nav-item:hover i {
-    transform: scale(1.1);
+    color: #4b5563;
 }
 
 .nav-item.active {
-    color: var(--white);
-    background-color: var(--maroon);
-    box-shadow: 0 4px 10px rgba(132, 0, 41, 0.3);
-    /* Glowing maroon shadow */
+    color: var(--text-main);
+    background-color: #f9fafb;
+    border-left-color: var(--maroon);
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.nav-item.active i {
+    color: var(--maroon);
 }
 
 /* MAIN CONTENT */

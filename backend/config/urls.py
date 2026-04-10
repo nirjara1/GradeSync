@@ -2,7 +2,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.contrib.auth.decorators import login_required
 from professor import views as professor_views
-from items.admin import gradesync_admin
+from admin_panel.admin import gradesync_admin
 from portal import views as portal_views
 
 urlpatterns = [
