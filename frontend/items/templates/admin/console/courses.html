@@ -1,0 +1,73 @@
+{% extends "admin/console/base_console.html" %}
+
+{% block console_content %}
+<h1 class="page-title">{{ page_title }}</h1>
+<hr class="page-rule">
+
+{% if messages %}
+<div class="console-messages" role="status">
+    {% for message in messages %}
+    <div class="console-message console-message-{{ message.tags|default:'info' }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<p class="console-page-intro">All <strong>course shells</strong> from the faculty app are listed below. Edit <strong>term</strong>, <strong>faculty owner</strong>, and <strong>archive</strong> state, then click <strong>Save</strong> on that row.</p>
+
+<div class="accounts-table-container courses-console-table-wrap">
+    <table class="accounts-table courses-console-table">
+        <thead>
+            <tr>
+                <th scope="col">Course shell</th>
+                <th scope="col">CRN</th>
+                <th scope="col">Term</th>
+                <th scope="col">Faculty (owner)</th>
+                <th scope="col">Archive</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for course in courses %}
+            <tr class="{% if course.is_archived %}courses-row-archived{% endif %}">
+                <td class="col-name">
+                    <div class="courses-shell-title">{{ course.code_title_label }}</div>
+                    <div class="muted courses-shell-meta">ID {{ course.pk }}{% if course.published %} · published{% endif %}{% if course.visibility %} · visible{% endif %}</div>
+                </td>
+                <td>{{ course.crn|default:"—" }}</td>
+                <td>
+                    <label class="sr-only" for="term-{{ course.pk }}">Term</label>
+                    <input type="text" name="term" id="term-{{ course.pk }}" class="courses-term-input" value="{{ course.term }}" maxlength="50" required form="course-form-{{ course.pk }}" aria-label="Term for {{ course.code_title_label }}">
+                </td>
+                <td>
+                    <label class="sr-only" for="prof-{{ course.pk }}">Faculty</label>
+                    <select name="professor_id" id="prof-{{ course.pk }}" class="courses-faculty-select" form="course-form-{{ course.pk }}" aria-label="Faculty owner for {{ course.code_title_label }}">
+                        {% for u in faculty_users %}
+                        <option value="{{ u.pk }}" {% if u.pk == course.professor_id %}selected{% endif %}>{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <label class="sr-only" for="arch-{{ course.pk }}">Archive state</label>
+                    <select name="archive_state" id="arch-{{ course.pk }}" class="courses-archive-select" form="course-form-{{ course.pk }}" aria-label="Archive state for {{ course.code_title_label }}">
+                        <option value="active" {% if not course.is_archived %}selected{% endif %}>Active</option>
+                        <option value="archived" {% if course.is_archived %}selected{% endif %}>Archived</option>
+                    </select>
+                </td>
+                <td class="col-actions">
+                    <form method="post" id="course-form-{{ course.pk }}" class="courses-save-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_course">
+                        <input type="hidden" name="course_id" value="{{ course.pk }}">
+                        <button type="submit" class="roles-save-btn">Save</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">No courses yet. Faculty can create shells from the professor dashboard.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

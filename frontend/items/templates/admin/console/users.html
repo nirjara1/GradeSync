@@ -1,0 +1,14 @@
+{% extends "admin/console/base_console.html" %}
+
+{% block console_content %}
+<h1 class="page-title">{{ page_title }}</h1>
+<hr class="page-rule">
+
+<nav class="console-page-toolbar" aria-label="User management shortcuts">
+    <a href="{% url 'admin:auth_user_changelist' %}" class="console-action-btn"><i class="fa-solid fa-address-card" aria-hidden="true"></i> Accounts (Django)</a>
+    <a href="{% url 'admin:create_student' %}" class="console-action-btn console-action-btn-primary"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create student</a>
+    <a href="{% url 'admin:student_cwid' %}" class="console-action-btn"><i class="fa-solid fa-id-card" aria-hidden="true"></i> Student CWID</a>
+</nav>
+
+<p class="console-page-intro">User directory, provisioning, and account controls will live in this view. Use the actions above for existing workflows until they are merged into this page.</p>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "admin/console/base_console.html" %}
+
+{% block console_content %}
+<h1 class="page-title">{{ page_title }}</h1>
+<hr class="page-rule">
+
+{% if messages %}
+<div class="console-messages" role="status">
+    {% for message in messages %}
+    <div class="console-message console-message-{{ message.tags|default:'info' }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<p class="console-page-intro">Assign each user a <strong>portal role</strong>. Changes take effect on next request (middleware uses Django <code>is_staff</code> / <code>is_superuser</code> for admin access, and <code>UserProfile.role</code> for faculty vs student dashboards).</p>
+
+<section class="roles-permissions-summary" aria-labelledby="perm-summary-heading">
+    <h2 id="perm-summary-heading" class="roles-section-title">What each role can do</h2>
+    <ul class="roles-perm-list">
+        <li><strong>Student</strong> — Student dashboard, submissions, enrollments; cannot access faculty course tools or Django admin.</li>
+        <li><strong>Instructor</strong> — Faculty dashboard, create/manage courses and assignments, rosters; cannot access Django admin by default.</li>
+        <li><strong>Admin</strong> — Full Django admin and GradeSync admin console (<code>is_staff</code>). Superuser accounts are labeled separately and can only be changed by another superuser.</li>
+    </ul>
+</section>
+
+<div class="accounts-table-container roles-user-table-wrap">
+    <table class="accounts-table roles-user-table">
+        <thead>
+            <tr>
+                <th scope="col">User</th>
+                <th scope="col">Email</th>
+                <th scope="col">Current role</th>
+                <th scope="col">Assign role</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in role_rows %}
+            <tr>
+                <td class="col-name">
+                    {{ row.full_name }}
+                    <div class="roles-username muted">{{ row.username }}{% if row.is_superuser %} <span class="roles-badge roles-badge-super">superuser</span>{% elif row.is_staff_only %} <span class="roles-badge roles-badge-staff">staff</span>{% endif %}</div>
+                </td>
+                <td>{{ row.email }}</td>
+                <td>{{ row.effective_label }}</td>
+                <td class="col-actions">
+                    {% if row.can_edit %}
+                    <form method="post" class="roles-assign-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="set_portal_role">
+                        <input type="hidden" name="user_id" value="{{ row.user.pk }}">
+                        <label class="sr-only" for="role-{{ row.user.pk }}">Role for {{ row.username }}</label>
+                        <select name="portal_role" id="role-{{ row.user.pk }}" class="roles-role-select">
+                            {% for value, label in portal_role_choices %}
+                            <option value="{{ value }}" {% if row.form_role == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="roles-save-btn">Save</button>
+                    </form>
+                    {% else %}
+                    <span class="muted">Superuser — only a superuser may change this account.</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No users found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

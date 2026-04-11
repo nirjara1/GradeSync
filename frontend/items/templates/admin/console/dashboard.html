@@ -1,0 +1,52 @@
+{% extends "admin/console/base_console.html" %}
+
+{% block console_content %}
+<h1 class="page-title">{{ page_title }}</h1>
+<hr class="page-rule">
+
+<section class="dashboard-metrics" aria-label="Key metrics">
+    <div class="dashboard-metrics-grid">
+        <article class="metric-card">
+            <div class="metric-card-label">Total users</div>
+            <div class="metric-card-value" data-metric="total_users">{{ metrics.total_users }}</div>
+            <p class="metric-card-hint">Django user accounts</p>
+        </article>
+        <article class="metric-card">
+            <div class="metric-card-label">Active courses</div>
+            <div class="metric-card-value" data-metric="active_courses">{{ metrics.active_courses }}</div>
+            <p class="metric-card-hint">Not archived (faculty course records)</p>
+        </article>
+        <article class="metric-card">
+            <div class="metric-card-label">Submission volume</div>
+            <div class="metric-card-value" data-metric="submission_total">{{ metrics.submission_total }}</div>
+            <p class="metric-card-hint">{{ metrics.submissions_recent }} in last {{ metrics.recent_period_days }} days</p>
+        </article>
+        <article class="metric-card">
+            <div class="metric-card-label">Grading turnaround</div>
+            <div class="metric-card-value" data-metric="grading_turnaround">{{ turnaround_display }}</div>
+            <p class="metric-card-hint">Avg submit → grade ({{ metrics.recent_period_days }}d window)</p>
+        </article>
+        <article class="metric-card">
+            <div class="metric-card-label">Plagiarism flags</div>
+            <div class="metric-card-value" data-metric="plagiarism_flags">{{ metrics.plagiarism_flags }}</div>
+            <p class="metric-card-hint">Submissions with score &gt; 0 or match text</p>
+        </article>
+        <article class="metric-card metric-card-wide">
+            <div class="metric-card-label">System alerts</div>
+            {% if system_alerts %}
+            <ul class="system-alerts-list">
+                {% for alert in system_alerts %}
+                <li class="system-alert-item {% if alert.severity %}{{ alert.severity }}{% endif %}">
+                    <span class="system-alert-title">{{ alert.title }}</span>
+                    {% if alert.body %}<span class="system-alert-body">{{ alert.body }}</span>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="metric-card-value metric-card-value-muted">No active alerts</div>
+            <p class="metric-card-hint">Maintenance windows and notices will appear here when wired to the API.</p>
+            {% endif %}
+        </article>
+    </div>
+</section>
+{% endblock %}

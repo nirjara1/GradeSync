@@ -1,0 +1,20 @@
+{% extends "admin/console/base_console.html" %}
+
+{% block console_content %}
+<h1 class="page-title">{{ page_title }}</h1>
+<hr class="page-rule">
+
+<p class="console-page-intro">General console preferences and support links will live here.</p>
+
+<details class="console-advanced-panel">
+    <summary class="console-advanced-summary">Advanced settings</summary>
+    <div class="console-advanced-body">
+        <p class="metric-card-hint">Low-level Django admin and maintenance tools.</p>
+        <ul class="console-advanced-links">
+            <li><a href="{% url 'admin:index' %}">Model admin index</a></li>
+            <li><a href="{% url 'admin:database_maintenance' %}">Database maintenance</a></li>
+            <li><a href="{% url 'admin:archive_class' %}">Archive class</a></li>
+        </ul>
+    </div>
+</details>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% comment %}
+Shared admin console nav (eight routes). Active state from resolver url_name.
+{% endcomment %}
+{% with url_name=request.resolver_match.url_name|default:'' %}
+<aside class="sidebar console-sidebar" aria-label="Admin navigation">
+    <a href="{% url 'admin:console_dashboard' %}" class="nav-item console-nav-item {% if url_name == 'console_dashboard' %}active{% endif %}"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Reports &amp; alerts</span></a>
+    <a href="{% url 'admin:console_users' %}" class="nav-item console-nav-item {% if url_name == 'console_users' %}active{% endif %}"><i class="fa-solid fa-users" aria-hidden="true"></i><span>Users</span></a>
+    <a href="{% url 'admin:console_courses' %}" class="nav-item console-nav-item {% if url_name == 'console_courses' %}active{% endif %}"><i class="fa-solid fa-book" aria-hidden="true"></i><span>Courses</span></a>
+    <a href="{% url 'admin:console_roles' %}" class="nav-item console-nav-item {% if url_name == 'console_roles' %}active{% endif %}"><i class="fa-solid fa-user-shield" aria-hidden="true"></i><span>Roles &amp; permissions</span></a>
+    <a href="{% url 'admin:console_environments' %}" class="nav-item console-nav-item {% if url_name == 'console_environments' %}active{% endif %}"><i class="fa-solid fa-microchip" aria-hidden="true"></i><span>Environments</span></a>
+    <a href="{% url 'admin:console_audit' %}" class="nav-item console-nav-item {% if url_name == 'console_audit' %}active{% endif %}"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i><span>Audit &amp; health</span></a>
+    <a href="{% url 'admin:console_integrity' %}" class="nav-item console-nav-item {% if url_name == 'console_integrity' %}active{% endif %}"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>Integrity</span></a>
+    <a href="{% url 'admin:console_settings' %}" class="nav-item console-nav-item {% if url_name == 'console_settings' %}active{% endif %}"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>Settings</span></a>
+</aside>
+{% endwith %}

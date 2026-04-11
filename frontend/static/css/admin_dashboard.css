@@ -1214,3 +1214,491 @@ input:checked+.slider:before {
         padding: 24px 20px;
     }
 }
+
+/* ── ADMIN CONSOLE (sidebar + wide content) ── */
+.portal-main.console-layout {
+    max-width: 1680px;
+    align-items: flex-start;
+}
+
+.sidebar.console-sidebar {
+    width: 260px;
+    align-items: stretch;
+    padding: 12px;
+    gap: 4px;
+}
+
+.console-nav-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.console-nav-section.console-nav-legacy {
+    margin-top: 12px;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.console-nav-heading {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9ca3af;
+    padding: 8px 10px 6px;
+}
+
+.nav-item.console-nav-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 10px 12px;
+    gap: 12px;
+    font-size: 13.5px;
+    border-left-width: 3px;
+    border-radius: 8px;
+}
+
+.nav-item.console-nav-item i {
+    font-size: 18px;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.nav-item.console-nav-item span {
+    line-height: 1.25;
+}
+
+.console-placeholder-lead {
+    font-size: 15px;
+    color: #4b5563;
+    line-height: 1.55;
+    margin-bottom: 20px;
+    max-width: 52rem;
+}
+
+.console-checklist {
+    margin-left: 1.25rem;
+    color: #374151;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+@media (max-width: 960px) {
+    .portal-main.console-layout {
+        flex-direction: column;
+        padding: 20px 16px;
+        gap: 16px;
+    }
+
+    .sidebar.console-sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .nav-item.console-nav-item {
+        flex: 1 1 auto;
+        min-width: calc(50% - 8px);
+        justify-content: flex-start;
+    }
+}
+
+/* ── CONSOLE PAGE TOOLBARS & DASHBOARD METRICS ── */
+.console-page-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.console-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #374151;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.console-action-btn:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+.console-action-btn-primary {
+    background: #860029;
+    color: #fff;
+    border-color: #6b001f;
+}
+
+.console-action-btn-primary:hover {
+    background: #6b001f;
+    color: #fff;
+}
+
+.console-page-intro {
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.55;
+    max-width: 42rem;
+}
+
+.console-advanced-panel {
+    margin-top: 24px;
+    max-width: 36rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fafafa;
+}
+
+.console-advanced-summary {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    color: #374151;
+    list-style: none;
+}
+
+.console-advanced-summary::-webkit-details-marker {
+    display: none;
+}
+
+.console-advanced-body {
+    padding: 0 16px 16px;
+}
+
+.console-advanced-links {
+    margin: 8px 0 0 1.1rem;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.console-advanced-links a {
+    color: #860029;
+    font-weight: 600;
+}
+
+.dashboard-metrics {
+    margin-top: 8px;
+}
+
+.dashboard-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.metric-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 18px 20px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.metric-card-wide {
+    grid-column: span 3;
+    min-height: auto;
+}
+
+.metric-card-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+}
+
+.metric-card-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.15;
+}
+
+.metric-card-value-muted {
+    font-size: 20px;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+.metric-card-hint {
+    font-size: 12.5px;
+    color: #6b7280;
+    margin-top: auto;
+    line-height: 1.4;
+}
+
+.metric-card-hint code {
+    font-size: 11px;
+    background: #e5e7eb;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.system-alerts-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.system-alert-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.system-alert-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: #111827;
+}
+
+.system-alert-body {
+    font-size: 13px;
+    color: #4b5563;
+}
+
+@media (max-width: 1100px) {
+    .dashboard-metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .metric-card-wide {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 640px) {
+    .dashboard-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-card-wide {
+        grid-column: span 1;
+    }
+}
+
+/* ── ROLES & PERMISSIONS CONSOLE ── */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.console-messages {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.console-message {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.console-message-success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.console-message-error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.console-message-warning {
+    background: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.console-message-info,
+.console-message-debug {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+}
+
+.roles-permissions-summary {
+    margin-bottom: 24px;
+    max-width: 48rem;
+}
+
+.roles-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 10px;
+}
+
+.roles-perm-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #4b5563;
+}
+
+.roles-perm-list li {
+    margin-bottom: 6px;
+}
+
+.roles-user-table-wrap {
+    overflow-x: auto;
+}
+
+.roles-username {
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.muted {
+    color: #6b7280;
+}
+
+.roles-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+.roles-badge-super {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.roles-badge-staff {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.roles-assign-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.roles-role-select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 13px;
+    min-width: 130px;
+    background: #fff;
+}
+
+.roles-save-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    background: #860029;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.roles-save-btn:hover {
+    background: #6b001f;
+}
+
+@media (max-width: 720px) {
+    .roles-assign-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .roles-role-select {
+        width: 100%;
+    }
+}
+
+/* ── COURSES CONSOLE ── */
+.courses-console-table-wrap {
+    overflow-x: auto;
+}
+
+.courses-shell-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: #111827;
+}
+
+.courses-shell-meta {
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.courses-row-archived .courses-shell-title {
+    color: #6b7280;
+}
+
+.courses-term-input {
+    width: 100%;
+    min-width: 8rem;
+    max-width: 14rem;
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.courses-faculty-select,
+.courses-archive-select {
+    min-width: 11rem;
+    max-width: 18rem;
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fff;
+}
+
+.courses-save-form {
+    margin: 0;
+}

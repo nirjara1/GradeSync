@@ -27,6 +27,14 @@ class GradeSyncAdminSite(admin.AdminSite):
         from django.urls import path
         urls = super().get_urls()
         custom_urls = [
+            path('dashboard/', self.admin_view(self.console_dashboard_view), name='console_dashboard'),
+            path('users/', self.admin_view(self.console_users_view), name='console_users'),
+            path('courses/', self.admin_view(self.console_courses_view), name='console_courses'),
+            path('roles/', self.admin_view(self.console_roles_view), name='console_roles'),
+            path('environments/', self.admin_view(self.console_environments_view), name='console_environments'),
+            path('audit/', self.admin_view(self.console_audit_view), name='console_audit'),
+            path('integrity/', self.admin_view(self.console_integrity_view), name='console_integrity'),
+            path('settings/', self.admin_view(self.console_settings_view), name='console_settings'),
             path('execution-environment/', self.admin_view(self.execution_environment_view), name='execution_environment'),
             path('archive-class/', self.admin_view(self.archive_class_view), name='archive_class'),
             path('database-maintenance/', self.admin_view(self.database_maintenance_view), name='database_maintenance'),
@@ -34,6 +42,38 @@ class GradeSyncAdminSite(admin.AdminSite):
             path('create-student/', self.admin_view(self.create_student_view), name='create_student'),
         ]
         return custom_urls + urls
+
+    def console_dashboard_view(self, request):
+        from admin_dashboard import views as console_views
+        return console_views.console_dashboard(request, self)
+
+    def console_users_view(self, request):
+        from admin_dashboard import views as console_views
+        return console_views.console_users(request, self)
+
+    def console_courses_view(self, request):
+        from admin_dashboard import views as console_views
+        return console_views.console_courses(request, self)
+
+    def console_roles_view(self, request):
+        from admin_dashboard import views as console_views
+        return console_views.console_roles(request, self)
+
+    def console_environments_view(self, request):
+        from admin_dashboard import views as console_views
+        return console_views.console_environments(request, self)
+
+    def console_audit_view(self, request):
+        from admin_dashboard import views as console_views
+        return console_views.console_audit(request, self)
+
+    def console_integrity_view(self, request):
+        from admin_dashboard import views as console_views
+        return console_views.console_integrity(request, self)
+
+    def console_settings_view(self, request):
+        from admin_dashboard import views as console_views
+        return console_views.console_settings(request, self)
 
     def database_maintenance_view(self, request):
         from .models import DatabaseSettings

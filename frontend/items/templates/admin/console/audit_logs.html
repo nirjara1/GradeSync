@@ -1,0 +1,12 @@
+{% extends "admin/console/base_console.html" %}
+
+{% block console_content %}
+<h1 class="page-title">{{ page_title }}</h1>
+<hr class="page-rule">
+
+<nav class="console-page-toolbar" aria-label="Audit shortcuts">
+    <a href="{% url 'admin:admin_logentry_changelist' %}" class="console-action-btn console-action-btn-primary"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Django admin log entries</a>
+</nav>
+
+<p class="console-page-intro">Autograding health, job requeue, and extended audit trails will be added here. Admin log entries cover model changes logged by Django.</p>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "admin/console/base_console.html" %}
+
+{% block console_content %}
+<h1 class="page-title">{{ page_title }}</h1>
+<hr class="page-rule">
+
+<nav class="console-page-toolbar" aria-label="Environment shortcuts">
+    <a href="{% url 'admin:execution_environment' %}" class="console-action-btn console-action-btn-primary"><i class="fa-solid fa-server" aria-hidden="true"></i> Execution environment</a>
+    <a href="{% url 'admin:items_programminglanguage_changelist' %}" class="console-action-btn"><i class="fa-solid fa-code" aria-hidden="true"></i> Programming languages</a>
+</nav>
+
+<p class="console-page-intro">Runner limits, uploads, and LMS-related settings will be consolidated here. The execution environment form remains the source of truth until this page owns those fields.</p>
+{% endblock %}
