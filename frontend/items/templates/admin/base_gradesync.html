@@ -42,6 +42,7 @@
             <a href="{% url 'admin:index' %}" class="nav-item {% block nav_dash %}{% endblock %}"><i class="fa-solid fa-gauge"></i>Dashboard</a>
             <a href="{% url 'admin:auth_user_changelist' %}" class="nav-item {% block nav_accounts %}{% endblock %}"><i class="fa-solid fa-users"></i>Accounts</a>
             <a href="{% url 'admin:student_cwid' %}" class="nav-item {% block nav_student_cwid %}{% endblock %}"><i class="fa-solid fa-id-card"></i>Student CWID</a>
+            <a href="{% url 'admin:create_student' %}" class="nav-item {% block nav_create_student %}{% endblock %}"><i class="fa-solid fa-user-plus"></i>Create student</a>
             <a href="{% url 'admin:items_programminglanguage_changelist' %}" class="nav-item {% block nav_lang %}{% endblock %}"><i class="fa-solid fa-code"></i>Languages</a>
             <a href="{% url 'admin:execution_environment' %}" class="nav-item {% block nav_env %}{% endblock %}"><i class="fa-solid fa-server"></i>Environment</a>
             <a href="{% url 'admin:database_maintenance' %}" class="nav-item {% block nav_db %}{% endblock %}"><i class="fa-solid fa-database"></i>Database</a>

@@ -31,6 +31,7 @@ class GradeSyncAdminSite(admin.AdminSite):
             path('archive-class/', self.admin_view(self.archive_class_view), name='archive_class'),
             path('database-maintenance/', self.admin_view(self.database_maintenance_view), name='database_maintenance'),
             path('student-cwid/', self.admin_view(self.student_cwid_view), name='student_cwid'),
+            path('create-student/', self.admin_view(self.create_student_view), name='create_student'),
         ]
         return custom_urls + urls
 
@@ -188,6 +189,101 @@ class GradeSyncAdminSite(admin.AdminSite):
         )
         return render(request, 'admin/items/student_cwid.html', context)
 
+    def create_student_view(self, request):
+        """Staff-only: provision a student with CWID and send welcome / password-setup email."""
+        from django.conf import settings as dj_settings
+        from django.db.utils import ProgrammingError
+        from django.shortcuts import render, redirect
+        from django.contrib import messages
+        from grading.models import Student, StudentOnboarding
+        from grading.student_invite import create_student_account, resend_welcome_email
+
+        if request.method == 'POST':
+            try:
+                StudentOnboarding.objects.exists()
+            except ProgrammingError:
+                messages.error(
+                    request,
+                    'Database is missing required tables (e.g. grading_studentonboarding). '
+                    'Run migrations: docker compose exec web python manage.py migrate',
+                )
+                return redirect('admin:create_student')
+
+            action = request.POST.get('action')
+            if action == 'resend':
+                sid = request.POST.get('student_id')
+                try:
+                    sid_int = int(sid)
+                except (TypeError, ValueError):
+                    messages.error(request, 'Invalid student.')
+                else:
+                    result = resend_welcome_email(student_id=sid_int)
+                    if result.get('ok'):
+                        if result.get('email_sent'):
+                            messages.success(
+                                request,
+                                'Welcome email sent. Docker dev: open http://localhost:8025 (Mailpit) to read it.',
+                            )
+                        else:
+                            err = (result.get('email_error') or 'unknown error')[:800]
+                            messages.warning(
+                                request,
+                                f'Email was not delivered. Fix SMTP settings and resend again. Detail: {err}',
+                            )
+                    else:
+                        messages.error(request, result.get('error') or 'Could not resend email.')
+                return redirect('admin:create_student')
+
+            full_name = (request.POST.get('full_name') or '').strip()
+            email = (request.POST.get('email') or '').strip()
+            auto_cwid = request.POST.get('auto_cwid') == 'on'
+            manual_cwid = (request.POST.get('cwid') or '').strip() if not auto_cwid else None
+
+            result = create_student_account(full_name=full_name, email=email, manual_cwid=manual_cwid)
+            if not result.get('ok'):
+                messages.error(request, result.get('error') or 'Could not create student.')
+            else:
+                cwid = result.get('cwid')
+                if result.get('email_sent'):
+                    messages.success(
+                        request,
+                        f"Student created. CWID: {cwid}. Welcome email sent to {email}. "
+                        f'(Docker dev: read it at http://localhost:8025 if using Mailpit.)',
+                    )
+                else:
+                    err = (result.get('email_error') or 'unknown error')[:800]
+                    messages.warning(
+                        request,
+                        f"Student created. CWID: {cwid}. Welcome email failed: {err}. "
+                        f'Fix email settings and use Resend below.',
+                    )
+            return redirect('admin:create_student')
+
+        recent_rows = []
+        migration_needed = False
+        try:
+            StudentOnboarding.objects.exists()
+        except ProgrammingError:
+            migration_needed = True
+        recent = list(
+            Student.objects.select_related('user').order_by('-enrollment_date', '-id')[:30]
+        )
+        if migration_needed:
+            recent_rows = [{'student': s, 'onboarding': None} for s in recent]
+        else:
+            for s in recent:
+                ob = StudentOnboarding.objects.filter(student=s).first()
+                recent_rows.append({'student': s, 'onboarding': ob})
+
+        context = dict(
+            self.each_context(request),
+            title='Create student account',
+            recent_rows=recent_rows,
+            migration_needed=migration_needed,
+            site_url=getattr(dj_settings, 'SITE_URL', ''),
+        )
+        return render(request, 'admin/items/create_student.html', context)
+
 
 # Replace the default admin site
 gradesync_admin = GradeSyncAdminSite(name='admin')
@@ -267,7 +363,28 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 gradesync_admin.register(UserProfile, UserProfileAdmin)
 
-from grading.models import Student
+from grading.models import Student, StudentOnboarding
+
+
+class StudentOnboardingAdmin(admin.ModelAdmin):
+    list_display = ('student', 'welcome_email_sent_at', 'last_error_short', 'created_at')
+    search_fields = ('student__user__email', 'student__user__username', 'student__cwid')
+
+    @admin.display(description='Last email error')
+    def last_error_short(self, obj):
+        err = (obj.welcome_email_last_error or '').strip()
+        if not err:
+            return '—'
+        return (err[:100] + '…') if len(err) > 100 else err
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+gradesync_admin.register(StudentOnboarding, StudentOnboardingAdmin)
 
 
 class GradeSyncStudentAdmin(admin.ModelAdmin):

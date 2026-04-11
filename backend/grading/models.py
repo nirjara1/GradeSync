@@ -18,6 +18,27 @@ class Student(models.Model):
     def __str__(self):
         return self.user.get_full_name() or self.user.username
 
+
+class StudentOnboarding(models.Model):
+    """Tracks admin-provisioned student welcome email delivery (CWID + password setup link)."""
+
+    student = models.OneToOneField(
+        Student,
+        on_delete=models.CASCADE,
+        related_name='onboarding',
+    )
+    welcome_email_sent_at = models.DateTimeField(null=True, blank=True)
+    welcome_email_last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Student onboarding'
+        verbose_name_plural = 'Student onboarding'
+
+    def __str__(self):
+        return f'Onboarding for {self.student}'
+
+
 class Assignment(models.Model):
     STATUS_CHOICES = [
         ('draft', 'Draft'),

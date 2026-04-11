@@ -16,6 +16,13 @@ services:
     volumes:
       - redis_data:/data
 
+  # Catches outbound mail in dev (SMTP → web UI). Open http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
   web:
     build:
       context: .
@@ -28,6 +35,15 @@ services:
       - EXECUTION_TIMEOUT_SECONDS=10
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      # Email: defaults target Mailpit (docker-compose service). Override in .env for real SMTP.
+      - SITE_URL=${SITE_URL:-http://localhost}
+      - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
+      - EMAIL_HOST=${EMAIL_HOST:-mailpit}
+      - EMAIL_PORT=${EMAIL_PORT:-1025}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-0}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-GradeSync <noreply@gradesync.local>}
     volumes:
       - ./backend:/app
       - ./app/data:/app/data
@@ -43,7 +59,9 @@ services:
     depends_on:
       - db
       - redis
-    command: python manage.py runserver 0.0.0.0:8000
+      - mailpit
+    # Apply migrations on start so new tables (e.g. StudentOnboarding) exist after git pull
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
 
   celery_worker:
     build:

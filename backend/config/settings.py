@@ -172,6 +172,24 @@ LOGIN_REDIRECT_URL = 'professor_dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
 
+# Email (welcome / password setup for admin-provisioned students)
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name, 'true' if default else 'false').strip().lower()
+    if raw in ('1', 'true', 'yes', 'on'):
+        return True
+    if raw in ('0', 'false', 'no', 'off', ''):
+        return False
+    return default
+
+
+EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', default=True)
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'GradeSync <noreply@localhost>')
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 

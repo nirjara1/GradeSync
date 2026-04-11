@@ -1,0 +1,175 @@
+{% extends "admin/base_gradesync.html" %}
+{% load static %}
+
+{% block title %}Create student | GradeSync Admin{% endblock %}
+{% block nav_create_student %}active{% endblock %}
+
+{% block extrastyle %}
+<style>
+    .cs-card {
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px 28px;
+        max-width: 560px; margin-bottom: 28px;
+    }
+    .cs-card h2 { margin: 0 0 8px 0; font-size: 18px; color: #111827; }
+    .cs-hint { font-size: 13px; color: #6b7280; margin: 0 0 20px 0; line-height: 1.5; }
+    .cs-field { margin-bottom: 16px; }
+    .cs-field label { display: block; font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 6px; }
+    .cs-field input[type="text"], .cs-field input[type="email"] {
+        width: 100%; max-width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+        font-size: 14px; box-sizing: border-box;
+    }
+    .cs-check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #374151; }
+    .cs-actions { margin-top: 20px; }
+    .cs-btn {
+        background: #840029; color: #fff; border: none; padding: 10px 20px; border-radius: 8px;
+        font-weight: 600; font-size: 14px; cursor: pointer;
+    }
+    .cs-table-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
+    .cs-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .cs-table th {
+        text-align: left; padding: 10px 12px; background: #f9fafb; font-weight: 700;
+        font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #374151;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .cs-table td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    .cs-table tr:last-child td { border-bottom: none; }
+    .cs-mini { font-size: 12px; color: #6b7280; max-width: 280px; word-break: break-word; }
+    .cs-resend { margin: 0; }
+    .cs-resend button {
+        background: #fff; border: 1px solid #d1d5db; color: #374151; padding: 6px 12px;
+        border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .cs-resend button:hover { border-color: #840029; color: #840029; }
+    code { font-size: 12px; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="accounts-header">
+    <h1 class="page-title">Create student account</h1>
+    <hr class="page-rule">
+</div>
+
+{% if migration_needed %}
+<div class="alert" style="padding: 14px 16px; border-radius: 8px; margin-bottom: 16px; background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d; font-size: 14px;">
+    <strong>Database migration required.</strong> The <code>grading_studentonboarding</code> table is missing.
+    From your project root run:
+    <code style="display:block; margin-top:8px; padding:8px; background:#fff; border-radius:6px;">docker compose exec web python manage.py migrate</code>
+    Or restart the web container if it is configured to run <code>migrate</code> on startup.
+</div>
+{% endif %}
+
+{% if messages %}
+<div class="messages" style="margin-bottom: 16px;">
+    {% for message in messages %}
+    <div class="alert" style="padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; background: {% if message.tags == 'error' %}#fef2f2{% elif message.tags == 'warning' %}#fffbeb{% else %}#f0fdf4{% endif %}; color: #111;">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="cs-card">
+    <h2>New student</h2>
+    <p class="cs-hint">
+        Creates a <strong>student</strong> login (email as username), assigns an 8-digit CWID (auto or manual),
+        and emails a password setup link. The link uses Django’s password reset flow at
+        <code>{{ site_url }}/accounts/reset/…</code>. Set <code>SITE_URL</code> in your environment so the link matches how users open the site (e.g. <code>http://localhost</code> behind Docker).
+    </p>
+    <form method="post" action="{% url 'admin:create_student' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+        <div class="cs-field">
+            <label for="id_full_name">Full name</label>
+            <input type="text" name="full_name" id="id_full_name" required placeholder="e.g. Jane Student" maxlength="150">
+        </div>
+        <div class="cs-field">
+            <label for="id_email">Email</label>
+            <input type="email" name="email" id="id_email" required placeholder="student@school.edu" autocomplete="email">
+        </div>
+        <div class="cs-field">
+            <label class="cs-check">
+                <input type="checkbox" name="auto_cwid" id="id_auto_cwid" checked>
+                Automatically generate 8-digit CWID
+            </label>
+        </div>
+        <div class="cs-field" id="cwidRow" style="display: none;">
+            <label for="id_cwid">CWID (8 digits)</label>
+            <input type="text" name="cwid" id="id_cwid" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="12345678">
+        </div>
+        <div class="cs-actions">
+            <button type="submit" class="cs-btn">Create &amp; send welcome email</button>
+        </div>
+    </form>
+</div>
+
+<h2 style="font-size: 16px; color: #374151; margin-bottom: 12px;">Recently provisioned students</h2>
+<p class="cs-hint" style="max-width: 720px;">
+    <strong>Docker dev:</strong> welcome mail is sent via SMTP to <strong>Mailpit</strong>. Open
+    <a href="http://localhost:8025" target="_blank" rel="noopener">http://localhost:8025</a>
+    to read messages (not your real inbox). If you still use <code>EMAIL_BACKEND=console</code> in <code>.env</code>,
+    mail only appears in <code>docker compose logs web</code> — remove that line to use Mailpit.
+</p>
+<p class="cs-hint" style="max-width: 720px;">If sending failed, check the error text in the table below, fix settings, then use <strong>Resend welcome</strong>.</p>
+
+<div class="cs-table-wrap">
+    {% if recent_rows %}
+    <table class="cs-table">
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Email</th>
+                <th>CWID</th>
+                <th>Welcome sent / status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in recent_rows %}
+            {% with s=row.student o=row.onboarding %}
+            <tr>
+                <td><strong>{{ s.user.get_full_name|default:s.user.username }}</strong></td>
+                <td>{{ s.user.email }}</td>
+                <td style="font-family: ui-monospace, monospace;">{{ s.cwid|default:"—" }}</td>
+                <td>
+                    {% if o and o.welcome_email_sent_at %}
+                        {{ o.welcome_email_sent_at|date:"M j, Y g:i a" }}
+                    {% elif o and o.welcome_email_last_error %}
+                        <span class="cs-mini" style="color:#b45309;" title="{{ o.welcome_email_last_error }}">Failed: {{ o.welcome_email_last_error|truncatechars:100 }}</span>
+                    {% elif not o %}
+                        <span class="cs-mini">No email log yet — try Resend</span>
+                    {% else %}
+                        <span class="cs-mini">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if s.cwid %}
+                    <form method="post" action="{% url 'admin:create_student' %}" class="cs-resend" onsubmit="return confirm('Resend welcome email?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="resend">
+                        <input type="hidden" name="student_id" value="{{ s.pk }}">
+                        <button type="submit">Resend welcome</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="padding: 24px; color: #6b7280; margin: 0;">No student records yet.</p>
+    {% endif %}
+</div>
+
+<script>
+    (function() {
+        var auto = document.getElementById('id_auto_cwid');
+        var row = document.getElementById('cwidRow');
+        function sync() {
+            row.style.display = auto.checked ? 'none' : 'block';
+        }
+        if (auto) { auto.addEventListener('change', sync); sync(); }
+    })();
+</script>
+{% endblock %}
