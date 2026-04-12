@@ -55,7 +55,7 @@ services:
       # when we pass this path to `docker run -v ...` from inside this container.
       - /tmp/gradesync_sandbox:/tmp/gradesync_sandbox
     ports:
-      - "80:8000"
+      - "8000:8000"
     depends_on:
       - db
       - redis
