@@ -37,9 +37,17 @@ DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 
 ALLOWED_HOSTS = ["gradesyncapp.com", "www.gradesyncapp.com", "localhost", "127.0.0.1", "0.0.0.0", '3.151.189.18']
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://gradesyncapp.com",
+    "https://www.gradesyncapp.com",
+]
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 # Application definition
-
 INSTALLED_APPS = [
     'items',
     'admin_dashboard',
