@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.models import User
 from .models import Department, Employee
@@ -334,32 +335,54 @@ gradesync_admin.register(Employee)
 
 # Also register Django's built-in auth models so Users/Groups are manageable
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 
 
+class GradeSyncUserChangeForm(forms.ModelForm):
+    """Edit form: identity fields only; password is changed via the separate reset screen."""
+
+    class Meta:
+        model = User
+        fields = ("username", "first_name", "last_name", "email")
+
+
+class GradeSyncUserCreationForm(UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        fields = ("username", "first_name", "last_name", "email")
+
+
 class GradeSyncUserAdmin(UserAdmin):
     """
-    Platform superuser (is_superuser) must be provisioned only via createsuperuser /
-    shell on a secure host — not through the admin UI. Staff may still manage
-    faculty/student accounts (is_staff, groups, etc.).
+    Superuser flag cannot be granted or cleared here (see save_model).
+    Staff/active/permissions are managed elsewhere (e.g. Roles console), not on this form.
     """
 
+    form = GradeSyncUserChangeForm
+    add_form = GradeSyncUserCreationForm
+    readonly_fields = ()
+
     fieldsets = (
-        (None, {"fields": ("username", "password")}),
+        (None, {"fields": ("username",)}),
         (_("Personal info"), {"fields": ("first_name", "last_name", "email")}),
+    )
+
+    add_fieldsets = (
         (
-            _("Permissions"),
+            None,
             {
+                "classes": ("wide",),
                 "fields": (
-                    "is_active",
-                    "is_staff",
-                    "groups",
-                    "user_permissions",
+                    "username",
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "password1",
+                    "password2",
                 ),
             },
         ),
-        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
     )
 
     def save_model(self, request, obj, form, change):

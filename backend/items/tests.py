@@ -29,6 +29,24 @@ class GradeSyncUserAdminSuperuserTests(TestCase):
         names = _fieldset_field_names(GradeSyncUserAdmin, self.request, target)
         self.assertNotIn("is_superuser", names)
 
+    def test_change_form_fieldsets_minimal_identity_only(self):
+        target = User.objects.create_user("target2", password="pw")
+        names = _fieldset_field_names(GradeSyncUserAdmin, self.request, target)
+        self.assertEqual(
+            set(names),
+            {"username", "first_name", "last_name", "email"},
+        )
+        for hidden in (
+            "password",
+            "is_active",
+            "is_staff",
+            "groups",
+            "user_permissions",
+            "last_login",
+            "date_joined",
+        ):
+            self.assertNotIn(hidden, names)
+
     def test_add_form_fieldsets_exclude_is_superuser(self):
         names = _fieldset_field_names(GradeSyncUserAdmin, self.request, None)
         self.assertNotIn("is_superuser", names)

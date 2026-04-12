@@ -9,8 +9,6 @@
 </div>
 
 <div class="form-container">
-    <p class="form-help-text">Update the user's details, role, and permissions below.</p>
-    
     <form method="post" id="{{ opts.model_name }}_form" novalidate>
         {% csrf_token %}
         
@@ -50,6 +48,17 @@
                 {% endfor %}
             </fieldset>
         {% endfor %}
+
+        <fieldset class="module aligned">
+            <h2>Password</h2>
+            <div class="form-row">
+                <div class="field-box field-password-reset">
+                    <label>Password</label>
+                    <p class="password-reset-hint">You cannot view the current password.</p>
+                    <a href="{% url 'admin:auth_user_password_change' original.pk %}" class="password-reset-link">Reset password</a>
+                </div>
+            </div>
+        </fieldset>
 
         <div class="submit-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px;">
             {% if has_delete_permission %}
