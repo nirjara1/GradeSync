@@ -35,7 +35,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret')
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", '3.151.189.18']
+ALLOWED_HOSTS = ["gradesyncapp.com", "www.gradesyncapp.com", "localhost", "127.0.0.1", "0.0.0.0", '3.151.189.18']
 
 
 # Application definition
