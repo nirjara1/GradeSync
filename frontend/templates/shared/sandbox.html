@@ -2,26 +2,26 @@
 {% load static %}
 
 {% block content %}
-<div class="main-content" style="padding: 30px;">
+<div class="main-content" style="padding: 30px; background: var(--bg-main); color: var(--text-main); border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);">
     <!-- Sandbox Header -->
     <div style="margin-bottom: 25px;">
-        <h2 class="page-title" style="margin: 0; color: #333; font-size: 28px; font-weight: 600;">Code Sandbox</h2>
-        <p style="margin: 5px 0 0 0; color: #666; font-size: 15px;">
+        <h2 class="page-title" style="margin: 0; color: var(--text-main, #333); font-size: 28px; font-weight: 600;">Code Sandbox</h2>
+        <p style="margin: 5px 0 0 0; color: var(--text-muted, #666); font-size: 15px;">
             Write, execute, and test Python or Java code securely.
         </p>
     </div>
 
-    <hr style="border: none; border-top: 2px solid #333; margin: 20px 0 30px 0;">
+    <hr style="border: none; border-top: 2px solid var(--border-color); margin: 20px 0 30px 0;">
 
     <div style="display: flex; gap: 20px; flex-wrap: wrap;">
         <!-- Left Column: Code Editor -->
         <div style="flex: 2; min-width: 600px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #333;">Editor</h3>
+                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--text-main, #333);">Editor</h3>
                 
                 <div style="display: flex; gap: 15px; align-items: center;">
                     <!-- Language Selection -->
-                    <select id="languageSelect" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: white; cursor: pointer;">
+                    <select id="languageSelect" style="padding: 6px 12px; border: 1px solid var(--border-color, #ccc); border-radius: 4px; font-size: 14px; background: var(--bg-card, white); color: var(--text-main, #333); cursor: pointer;">
                         <option value="python">Python 3</option>
                         <option value="java">Java 17</option>
                     </select>
@@ -38,7 +38,7 @@
             </div>
 
             <div id="sandbox-editor-container"
-                style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); background: white;">
+                style="width: 100%; height: 500px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); background: var(--bg-card, white);">
             </div>
         </div>
 
@@ -46,9 +46,9 @@
         <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px;">
             
             <!-- Standard Input Card -->
-            <div style="background: white; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden;">
-                <div style="background: #f8f9fa; padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
-                    <h4 style="margin: 0; font-size: 15px; color: #333; font-weight: 600;"><i class="fa-solid fa-keyboard" style="margin-right: 8px; color: #666;"></i> Standard Input</h4>
+            <div style="background: var(--bg-card, white); border-radius: 8px; border: 1px solid var(--border-color, #e0e0e0); box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden;">
+                <div style="background: var(--bg-main, #f8f9fa); padding: 12px 15px; border-bottom: 1px solid var(--border-color, #e0e0e0);">
+                    <h4 style="margin: 0; font-size: 15px; color: var(--text-main, #333); font-weight: 600;"><i class="fa-solid fa-keyboard" style="margin-right: 8px; color: var(--text-muted, #666);"></i> Standard Input</h4>
                 </div>
                 
                 <div style="padding: 15px;">
@@ -59,7 +59,7 @@
                             Manual Input
                         </button>
                         <button type="button" class="input-toggle" id="btnUploadInput" onclick="toggleInputType('upload')"
-                            style="flex: 1; padding: 8px; background: white; color: #555; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            style="flex: 1; padding: 8px; background: var(--bg-card, white); color: var(--text-main, #555); border: 1px solid var(--border-color, #ccc); border-radius: 4px; font-size: 13px; cursor: pointer; transition: all 0.2s;">
                             Upload File
                         </button>
                     </div>
@@ -67,16 +67,16 @@
                     <!-- Manual Textarea -->
                     <div id="manualInputSection">
                         <textarea id="sandboxStdin" placeholder="Enter input data here... (Simulates keyboard input / stdin)"
-                            style="width: 100%; height: 180px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 13px; resize: none; box-sizing: border-box;"></textarea>
+                            style="width: 100%; height: 180px; padding: 10px; border: 1px solid var(--border-color, #ccc); border-radius: 4px; font-family: monospace; font-size: 13px; resize: none; box-sizing: border-box; background: var(--bg-main, white); color: var(--text-main, #333);"></textarea>
                     </div>
 
                     <!-- File Upload Input -->
                     <div id="uploadInputSection" style="display: none; height: 180px;">
                         <div id="sandboxUploadCard"
-                            style="height: 100%; background: #fafafa; border-radius: 6px; border: 2px dashed #ddd; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease;"
-                            onmouseover="this.style.background='#f0f0f0'; this.style.borderColor='#bbb';"
-                            onmouseout="this.style.background='#fafafa'; this.style.borderColor='#ddd';">
-                            <i class="fa-solid fa-file-arrow-up" style="font-size: 32px; color: #999; margin-bottom: 12px;"></i>
+                            style="height: 100%; background: var(--bg-main, #fafafa); border-radius: 6px; border: 2px dashed var(--border-color, #ddd); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease;"
+                            onmouseover="this.style.borderColor='var(--maroon)';"
+                            onmouseout="this.style.borderColor='var(--border-color, #ddd)';">
+                            <i class="fa-solid fa-file-arrow-up" style="font-size: 32px; color: var(--text-muted, #999); margin-bottom: 12px;"></i>
                             <span id="sandboxUploadLabel"
                                 style="font-size: 13px; color: var(--maroon); text-align: center; padding: 0 15px; font-weight: 500;">Select Test Dataset File</span>
                             <input type="file" id="sandboxInputFile" style="display: none;" accept=".txt,.csv,.json" onchange="handleSandboxFileSelect(this)">
@@ -86,18 +86,18 @@
             </div>
 
             <!-- Execution Status -->
-            <div id="sandboxStatusCard" style="display: none; background: white; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden;">
-                <div style="background: #f8f9fa; padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
-                    <h4 style="margin: 0; font-size: 15px; color: #333; font-weight: 600;"><i class="fa-solid fa-chart-line" style="margin-right: 8px; color: #666;"></i> Execution Result</h4>
+            <div id="sandboxStatusCard" style="display: none; background: var(--bg-card, white); border-radius: 8px; border: 1px solid var(--border-color, #e0e0e0); box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden;">
+                <div style="background: var(--bg-main, #f8f9fa); padding: 12px 15px; border-bottom: 1px solid var(--border-color, #e0e0e0);">
+                    <h4 style="margin: 0; font-size: 15px; color: var(--text-main, #333); font-weight: 600;"><i class="fa-solid fa-chart-line" style="margin-right: 8px; color: var(--text-muted, #666);"></i> Execution Result</h4>
                 </div>
                 <div style="padding: 15px;">
                      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <span style="color: #666; font-size: 13px;">Status:</span>
+                        <span style="color: var(--text-muted, #666); font-size: 13px;">Status:</span>
                         <span id="sandboxExitStatus" style="font-weight: 600; font-size: 13px;">-</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
-                        <span style="color: #666; font-size: 13px;">Time:</span>
-                        <span id="sandboxExecTime" style="font-weight: 600; font-size: 13px; color: #555;">-</span>
+                        <span style="color: var(--text-muted, #666); font-size: 13px;">Time:</span>
+                        <span id="sandboxExecTime" style="font-weight: 600; font-size: 13px; color: var(--text-main, #555);">-</span>
                     </div>
                 </div>
             </div>
@@ -107,10 +107,10 @@
 
     <!-- Terminal Output -->
     <div style="margin-top: 25px;">
-        <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #333;">Terminal Output</h3>
+        <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: var(--text-main, #333);">Terminal Output</h3>
         
         <div id="sandboxTerminalPanel"
-            style="border: 1px solid #333; border-radius: 6px; background: #1a1a2e; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            style="border: 1px solid var(--border-color, #333); border-radius: 6px; background: #1a1a2e; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             
             <!-- Terminal Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; background: #16213e; padding: 8px 12px; border-bottom: 1px solid #333;">
@@ -161,7 +161,7 @@
             sandboxEditor = monaco.editor.create(document.getElementById('sandbox-editor-container'), {
                 value: defaultPrograms['python'],
                 language: 'python',
-                theme: 'vs-light',
+                theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'vs-dark' : 'vs-light',
                 automaticLayout: true,
                 fontSize: 14,
                 minimap: { enabled: false },
@@ -198,9 +198,9 @@
             btnManual.style.borderColor = 'var(--maroon)';
             
             btnUpload.className = 'input-toggle';
-            btnUpload.style.background = 'white';
-            btnUpload.style.color = '#555';
-            btnUpload.style.borderColor = '#ccc';
+            btnUpload.style.background = 'var(--bg-card, white)';
+            btnUpload.style.color = 'var(--text-main, #555)';
+            btnUpload.style.borderColor = 'var(--border-color, #ccc)';
 
             secManual.style.display = 'block';
             secUpload.style.display = 'none';
@@ -211,9 +211,9 @@
             btnUpload.style.borderColor = 'var(--maroon)';
 
             btnManual.className = 'input-toggle';
-            btnManual.style.background = 'white';
-            btnManual.style.color = '#555';
-            btnManual.style.borderColor = '#ccc';
+            btnManual.style.background = 'var(--bg-card, white)';
+            btnManual.style.color = 'var(--text-main, #555)';
+            btnManual.style.borderColor = 'var(--border-color, #ccc)';
 
             secManual.style.display = 'none';
             secUpload.style.display = 'block';
@@ -238,9 +238,9 @@
 
             reader.onload = function(e) {
                 uploadedFileContent = e.target.result;
-                document.getElementById('sandboxUploadLabel').innerHTML = `<strong style="color: #333;">${file.name}</strong><br><span style="font-size:11px; color: #666;">Ready to use as Standard Input</span>`;
+                document.getElementById('sandboxUploadLabel').innerHTML = `<strong style="color: var(--text-main, #333);">${file.name}</strong><br><span style="font-size:11px; color: var(--text-muted, #666);">Ready to use as Standard Input</span>`;
                 document.getElementById('sandboxUploadCard').style.borderColor = 'var(--maroon)';
-                document.getElementById('sandboxUploadCard').style.background = '#fffafb';
+                document.getElementById('sandboxUploadCard').style.background = 'var(--bg-hover, #fffafb)';
             };
             reader.readAsText(file);
         }
