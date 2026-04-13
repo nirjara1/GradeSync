@@ -23,7 +23,7 @@ Step 2: Create an User from account option from navigation bar. Assign the user 
 Step 3: Admin will create an username and password for the user. Use that login credentials to login as professor or student.
 
 ## Open Locally
-- Student_login: http://localhost
+- Student_login: http://localhost:8000
 - Professor_login: http://localhost/professor
 - Admin_login: http://localhost/admin/
 
