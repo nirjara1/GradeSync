@@ -169,6 +169,29 @@
             gap: 24px;
         }
 
+        .form-alert {
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid transparent;
+        }
+
+        .form-alert.error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+
+        .field-errors {
+            margin-top: 8px;
+            color: #991b1b;
+            font-size: 13px;
+            font-weight: 500;
+            list-style: none;
+            padding-left: 0;
+        }
+
         /* Floating Labels Input Group */
         .input-group {
             position: relative;
@@ -365,17 +388,54 @@
 
         <form class="login-form" method="post" action="{% url 'login' %}">
             {% csrf_token %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="form-alert {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                {% for error in form.non_field_errors %}
+                    <div class="form-alert error">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+
             <div class="input-group">
-                <input type="text" id="username" name="username" placeholder=" " required autocomplete="username">
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder=" "
+                    required
+                    autocomplete="username"
+                    value="{{ form.username.value|default_if_none:'' }}"
+                >
                 <label for="username">Email or Username</label>
+                {% if form.username.errors %}
+                    <ul class="field-errors">
+                        {% for error in form.username.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
 
             <div class="input-group">
                 <input type="password" id="password" name="password" placeholder=" " required
                     autocomplete="current-password">
                 <label for="password">Password</label>
+                {% if form.password.errors %}
+                    <ul class="field-errors">
+                        {% for error in form.password.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
 
+            {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
             <button type="submit" class="login-btn">LOGIN</button>
         </form>
 

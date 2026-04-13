@@ -336,3 +336,9 @@ class CustomLoginView(LoginView):
             pass
         # ── Fallback: LOGIN_REDIRECT_URL defined in settings.py ─────────────
         return super().get_success_url()
+
+    def form_invalid(self, form):
+        # Show a clear top-level message when credentials are incorrect.
+        if form.non_field_errors():
+            messages.error(self.request, "Invalid username or password.")
+        return super().form_invalid(form)
