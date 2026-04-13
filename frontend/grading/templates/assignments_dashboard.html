@@ -33,9 +33,6 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
                 <a href="{% url 'course_create_assignment' course.id %}" class="add-assignment-btn"
                     style="text-decoration: none;"><i class="fa-solid fa-plus"></i> Add Assignment</a>
             </div>
-            {% else %}
-            <a href="{% url 'create_assignment' %}" class="add-assignment-btn"
-                style="text-decoration: none;"><i class="fa-solid fa-plus"></i> Add Assignment</a>
             {% endif %}
         {% endif %}
 </div>
