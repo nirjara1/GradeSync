@@ -9,6 +9,85 @@
     <!-- Use FontAwesome for sidebar icons to match screenshot -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.0">
+    <style>
+        .logout-confirm-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(17, 17, 17, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+            padding: 16px;
+            backdrop-filter: blur(1.5px);
+        }
+
+        .logout-confirm-overlay.show {
+            display: flex;
+        }
+
+        .logout-confirm-modal {
+            width: min(100%, 430px);
+            border-radius: 12px;
+            border: 1px solid #d8b36a;
+            background: #ffffff;
+            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .logout-confirm-header {
+            background: #7b0d2e;
+            color: #fff;
+            font-weight: 700;
+            padding: 12px 18px;
+            border-bottom: 2px solid #d8b36a;
+        }
+
+        .logout-confirm-body {
+            color: #222222;
+            background: #ffffff;
+            padding: 16px 18px;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.45;
+        }
+
+        .logout-confirm-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 0 18px 18px;
+        }
+
+        .logout-btn-cancel,
+        .logout-btn-confirm {
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            border: 1px solid transparent;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+        }
+
+        .logout-btn-cancel {
+            background: #f7f7f7;
+            color: #1f1f1f;
+            border-color: #b9b9b9;
+        }
+
+        .logout-btn-confirm {
+            background: #7b0d2e;
+            color: #fff;
+            border-color: #7b0d2e;
+        }
+
+        .logout-btn-cancel:hover,
+        .logout-btn-confirm:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
+        }
+    </style>
 </head>
 
 <body>
@@ -76,6 +155,70 @@
             {% endblock %}
         </main>
     </div>
+
+    <div id="logoutConfirmOverlay" class="logout-confirm-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="logoutConfirmTitle" aria-hidden="true">
+        <div class="logout-confirm-modal">
+            <div id="logoutConfirmTitle" class="logout-confirm-header">Confirm Logout</div>
+            <div class="logout-confirm-body">
+                Are you sure you want to log out?
+            </div>
+            <div class="logout-confirm-actions">
+                <button type="button" id="logoutCancelBtn" class="logout-btn-cancel">Cancel</button>
+                <button type="button" id="logoutConfirmBtn" class="logout-btn-confirm">Log Out</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoutForm = document.querySelector('.user-controls form[action*="logout"]');
+            const logoutOverlay = document.getElementById('logoutConfirmOverlay');
+            const logoutCancelBtn = document.getElementById('logoutCancelBtn');
+            const logoutConfirmBtn = document.getElementById('logoutConfirmBtn');
+
+            let isLogoutConfirmed = false;
+
+            function openLogoutModal() {
+                logoutOverlay.classList.add('show');
+                logoutOverlay.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeLogoutModal() {
+                logoutOverlay.classList.remove('show');
+                logoutOverlay.setAttribute('aria-hidden', 'true');
+            }
+
+            if (logoutForm && logoutOverlay && logoutCancelBtn && logoutConfirmBtn) {
+                logoutForm.addEventListener('submit', (event) => {
+                    if (!isLogoutConfirmed) {
+                        event.preventDefault();
+                        openLogoutModal();
+                    }
+                });
+
+                logoutCancelBtn.addEventListener('click', closeLogoutModal);
+
+                logoutConfirmBtn.addEventListener('click', () => {
+                    isLogoutConfirmed = true;
+                    closeLogoutModal();
+                    logoutForm.submit();
+                });
+
+                logoutOverlay.addEventListener('click', (event) => {
+                    if (event.target === logoutOverlay) {
+                        closeLogoutModal();
+                    }
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape' && logoutOverlay.classList.contains('show')) {
+                        closeLogoutModal();
+                    }
+                });
+            }
+        });
+    </script>
 
 </body>
 
