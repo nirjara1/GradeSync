@@ -18,17 +18,17 @@
 [data-theme='dark'] {
     --maroon: #b31b46;
     --gold: #fdb913;
-    --light-gray: #333333;
-    --white: #1e1e1e;
-    --bg-main: #121212;
-    --bg-card: #1e1e1e;
-    --bg-header: #1e1e1e;
-    --bg-hover: rgba(255, 255, 255, 0.05);
-    --text-main: #e0e0e0;
-    --text-muted: #9e9e9e;
-    --border-color: #333333;
-    --red-link: #ff6b6b;
-    --divider-color: #333333;
+    --light-gray: #334155;
+    --white: #1e293b;
+    --bg-main: #0f172a;   /* Soft slate dark background */
+    --bg-card: #1e293b;   /* Slightly lighter slate for cards */
+    --bg-header: #1e293b;
+    --bg-hover: rgba(255, 255, 255, 0.06);
+    --text-main: #f8fafc; /* Crisp but soft white text */
+    --text-muted: #94a3b8; /* Easy-to-read muted slate text */
+    --border-color: #334155; /* Visible but subtle borders */
+    --red-link: #f87171;
+    --divider-color: #334155;
 }
 
 body,
