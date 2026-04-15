@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Optional, Tuple
 from django.db.models import Q
 from django.utils import timezone
 
-from grading.models import Assignment, Submission
+from grading.models import Assignment, CriterionGrade, Submission
 
 if TYPE_CHECKING:
     from grading.models import Student
@@ -113,6 +113,24 @@ def build_student_course_gradebook_section(
     for s in subs:
         sub_by_aid[s.assignment_id] = s
 
+    rubric_rows_by_submission_id: dict[int, list[dict[str, Any]]] = {}
+    if subs:
+        criterion_grades = (
+            CriterionGrade.objects.filter(submission__in=subs)
+            .select_related("criterion")
+            .order_by("criterion__order", "criterion_id")
+        )
+        for cg in criterion_grades:
+            c = cg.criterion
+            rubric_rows_by_submission_id.setdefault(cg.submission_id, []).append(
+                {
+                    "name": c.name,
+                    "earned": float(cg.points_earned or 0),
+                    "max": float(c.max_points or 0),
+                    "weight": float(c.weight) if c.weight is not None else None,
+                }
+            )
+
     pct, earned, possible = course_grade_totals(assignments, sub_by_aid)
 
     rows = []
@@ -143,7 +161,12 @@ def build_student_course_gradebook_section(
             status_badges.append("late")
 
         feedback_text = (grade.feedback or "").strip() if grade else ""
-        has_feedback = bool(feedback_text)
+        rubric_scores = (
+            rubric_rows_by_submission_id.get(sub.id, [])
+            if sub
+            else []
+        )
+        has_feedback = bool(feedback_text or rubric_scores)
 
         score_num = float(grade.score) if grade else None
         if has_feedback and grade:
@@ -152,6 +175,7 @@ def build_student_course_gradebook_section(
                 "body": feedback_text,
                 "instructor": _instructor_name(course.professor),
                 "gradedAt": _feedback_time_label(grade.graded_at),
+                "rubricScores": rubric_scores,
             }
 
         rows.append(
