@@ -314,8 +314,17 @@
                     {% for row in grade_data %}
                     <tr data-student-id="{{ row.id }}">
                         <td class="sticky-col first-col border-end px-4">
+                            {% if row.has_submission %}
+                            <a href="{% url 'grade_submission' row.submission_id %}" class="text-decoration-none">
+                                <div class="fw-bold text-dark" style="color: var(--gs-maroon) !important;">
+                                    {{ row.name }} <i class="fas fa-external-link-alt ms-1" style="font-size: 10px;"></i>
+                                </div>
+                                <div class="small text-muted" style="font-size: 12px;">{{ row.email }}</div>
+                            </a>
+                            {% else %}
                             <div class="fw-bold text-dark">{{ row.name }}</div>
                             <div class="small text-muted" style="font-size: 12px;">{{ row.email }}</div>
+                            {% endif %}
                         </td>
                         {% for result in row.test_results %}
                         <td class="text-center px-2">
