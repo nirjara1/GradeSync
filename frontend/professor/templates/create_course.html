@@ -265,6 +265,15 @@
             </div>
 
             <div class="form-group">
+                <label for="{{ form.year.id_for_label }}">Year</label>
+                {{ form.year }}
+                <div class="error-text crn-client-error" id="yearError"><i class="fa-solid fa-circle-xmark"></i>Year must be exactly 4 digits.</div>
+                {% if form.year.errors %}
+                    <div class="error-text"><i class="fa-solid fa-circle-xmark"></i>{{ form.year.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
                 <label for="{{ form.section.id_for_label }}">Course Level</label>
                 {{ form.section }}
                 <div class="error-text crn-client-error" id="levelError"><i class="fa-solid fa-circle-xmark"></i>Course level must be exactly 4 digits.</div>
@@ -288,6 +297,8 @@
         const crnInput = document.querySelector('input[name="crn"]');
         const crnError = document.getElementById('crnError');
         const termError = document.getElementById('termError');
+        const yearInput = document.querySelector('input[name="year"]');
+        const yearError = document.getElementById('yearError');
         const levelInput = document.querySelector('input[name="section"]');
         const levelError = document.getElementById('levelError');
         const codeSelect = document.getElementById('id_code');
@@ -353,6 +364,22 @@
             });
         }
 
+        if (yearInput) {
+            yearInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 4) {
+                    this.value = this.value.slice(0, 4);
+                }
+                if (this.value.length > 0 && this.value.length !== 4) {
+                    yearError.style.display = 'flex';
+                    this.style.borderColor = '#d32f2f';
+                } else {
+                    yearError.style.display = 'none';
+                    this.style.borderColor = '';
+                }
+            });
+        }
+
         function toggleOtherCodeInput() {
             if (!codeSelect || !otherCodeGroup || !otherCodeInput) return;
             const isOther = codeSelect.value === 'OTHER';
@@ -383,6 +410,12 @@
                 // Check Term
                 if (termInput && !termInput.value) {
                     termError.style.display = 'flex';
+                    isValid = false;
+                }
+
+                if (yearInput && yearInput.value.length !== 4) {
+                    yearError.style.display = 'flex';
+                    yearInput.style.borderColor = '#d32f2f';
                     isValid = false;
                 }
 
