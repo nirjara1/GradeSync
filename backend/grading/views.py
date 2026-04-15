@@ -1203,22 +1203,36 @@ def grade_submission_view(request, pk):
                     total = final_score_weighted_rubric(criteria, earned_by_id, assignment.points)
                 else:
                     total = final_score_unweighted_rubric(criteria, earned_by_id, assignment.points)
+                # Keep gradebook sources in sync: rubric scores must persist to Grade.
+                if grade:
+                    grade.score = total
+                    grade.feedback = feedback
+                    grade.save(update_fields=['score', 'feedback'])
+                else:
+                    Grade.objects.create(
+                        submission=submission,
+                        score=total,
+                        feedback=feedback,
+                    )
 
-            pct_note = ''
-            if rubric.is_weighted and assignment.points:
-                try:
-                    p_pct = (float(total) / float(assignment.points)) * 100.0
-                    pct_note = ' (%.1f%% of assignment)' % p_pct
-                except (ValueError, ZeroDivisionError):
-                    pass
-            messages.success(
-                request,
-                "Grade saved. Score: %s / %s%s"
-                % (total, assignment.points, pct_note),
-            )
-            if next_submission:
-                return redirect('grade_submission', pk=next_submission.pk)
-            return redirect('gradebook', pk=assignment.pk)
+                submission.status = 'graded'
+                submission.save(update_fields=['status'])
+
+                pct_note = ''
+                if rubric.is_weighted and assignment.points:
+                    try:
+                        p_pct = (float(total) / float(assignment.points)) * 100.0
+                        pct_note = ' (%.1f%% of assignment)' % p_pct
+                    except (ValueError, ZeroDivisionError):
+                        pass
+                messages.success(
+                    request,
+                    "Grade saved. Score: %s / %s%s"
+                    % (total, assignment.points, pct_note),
+                )
+                if next_submission:
+                    return redirect('grade_submission', pk=next_submission.pk)
+                return redirect('gradebook', pk=assignment.pk)
         # Single score (no rubric)
         score = request.POST.get('score', '').strip()
         if score == '':
