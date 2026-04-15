@@ -516,16 +516,16 @@
                         style="color: var(--gs-maroon);"></i>Latest Submission Status</h3>
                 <div
                     style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-clock"></i><span>Submitted on {{ latest_submission.submission_time|date:"F j,
-                        Y, g:i A" }}</span></div>
+                    <i class="fa-solid fa-clock"></i><span>Submitted on {{ latest_submission.submission_time|date:"F j, Y, g:i A" }}</span>
+                </div>
                 {% if latest_submission.grade %}
                 <div
                     style="margin-bottom: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 16px;">
                     <div style="font-size: 15px; font-weight: 600; color: #166534;">Final Grade:</div>
-                    <div style="font-size: 24px; font-weight: 800; color: #15803d;">{{
-                        latest_submission.grade.score|floatformat:"0" }} <span
-                            style="font-size: 14px; font-weight: 500; color: #166534; opacity: 0.7;">/ {{
-                            assignment.points|floatformat:"0" }}</span></div>
+                    <div style="font-size: 24px; font-weight: 800; color: #15803d;">
+                        {{ latest_submission.grade.score|floatformat:"0" }}
+                        <span style="font-size: 14px; font-weight: 500; color: #166534; opacity: 0.7;">/ {{ assignment.points|floatformat:"0" }}</span>
+                    </div>
                 </div>
                 {% else %}
                 <div
