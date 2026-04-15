@@ -59,7 +59,6 @@
                                 <tr>
                                     <th>Test Case</th>
                                     <th>Status</th>
-                                    <th>Points</th>
                                     <th>Execution Time</th>
                                     <th>Details</th>
                                 </tr>
@@ -80,13 +79,6 @@
                                                 <span class="badge bg-danger" style="font-size: 12px;">✗ FAILED</span>
                                             {% endif %}
                                         </td>
-                                        <td style="font-weight: 600; min-width: 100px;">
-                                            {% if result.passed %}
-                                                <span style="color: #28a745;">+{{ result.points_earned }} pts</span>
-                                            {% else %}
-                                                <span style="color: #dc3545;">0 pts (of {{ result.test_case.points_awarded }})</span>
-                                            {% endif %}
-                                        </td>
                                         <td>
                                             <small class="text-muted">{{ result.execution_time|floatformat:3 }}s</small>
                                         </td>
@@ -102,7 +94,7 @@
                                     </tr>
                                     {% if not result.passed and not result.test_case.is_hidden or is_instructor %}
                                         <tr class="collapse" id="details-{{ result.id }}" style="background-color: #f9f9f9;">
-                                            <td colspan="5">
+                                            <td colspan="4">
                                                 <div class="p-3">
                                                     <div class="row">
                                                         <div class="col-md-6">
@@ -130,9 +122,9 @@
                     <!-- Summary Line -->
                     <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
                         <div style="font-size: 14px; color: #333;">
-                            <strong>Total Score:</strong> 
+                            <strong>Total Result:</strong> 
                             <span style="font-size: 16px; font-weight: 700; color: {% if submission.max_score > 0 and submission.total_score == submission.max_score %}#28a745{% else %}#dc3545{% endif %};">
-                                {{ submission.total_score }}/{{ submission.max_score }} points
+                                {{ submission.total_score }}/{{ submission.max_score }} tests passed
                             </span>
                             {% if submission.max_score > 0 %}
                                 <span style="color: #666; margin-left: 10px;" id="percentageDisplay"></span>

@@ -386,7 +386,6 @@ def create_assignment(request, course_id=None):
                                 input_data=tc_data.get('input_data', ''),
                                 expected_output=tc_data.get('expected_output', ''),
                                 is_private=key[2],
-                                points_awarded=tc_data.get('points', 5),
                                 order=order_idx
                             )
                             order_idx += 1
@@ -649,7 +648,6 @@ def edit_assignment(request, pk):
                                 input_data=tc_data.get('input_data', ''),
                                 expected_output=tc_data.get('expected_output', ''),
                                 is_private=key[2],
-                                points_awarded=tc_data.get('points', 5),
                                 order=order_idx
                             )
                             order_idx += 1
@@ -699,12 +697,6 @@ def edit_assignment(request, pk):
                             continue
                         seen_tcs.add(key)
 
-                        points_val = row.get('points', '') or '5'
-                        try:
-                            points = int(float(points_val))
-                        except ValueError:
-                            points = 5
-
                         TestCase.objects.create(
                             assignment=assignment,
                             name=f"Test Case {order_idx}",
@@ -712,7 +704,6 @@ def edit_assignment(request, pk):
                             expected_output=expected_output,
                             is_private=is_private,
                             is_hidden=False,
-                            points_awarded=points,
                             order=order_idx,
                         )
                         order_idx += 1
@@ -1469,7 +1460,6 @@ def upload_test_cases(request, assignment_id):
                     description = tc.get('description', '')
                     input_data = tc.get('input_data', '')
                     expected_output = tc.get('expected_output', '')
-                    points_awarded = float(tc.get('points_awarded', 1))
                     is_hidden = tc.get('is_hidden', False)
                     is_private = tc.get('is_private', False)
 
@@ -1482,7 +1472,6 @@ def upload_test_cases(request, assignment_id):
                         defaults={
                             'name': name,
                             'description': description,
-                            'points_awarded': points_awarded,
                             'order': max_order + idx + 1,
                         },
                     )
@@ -1683,14 +1672,13 @@ def parse_test_cases(test_file, file_format):
             "description": "...",
             "input_data": "...",
             "expected_output": "...",
-            "points_awarded": 1,
             "is_hidden": false,
             "is_private": false
         }
     ]
     
     CSV format expected columns:
-    name, description, input_data, expected_output, points_awarded, is_hidden, is_private
+    name, description, input_data, expected_output, is_hidden, is_private
     
     Excel format expected same as CSV.
     """
@@ -1724,7 +1712,6 @@ def parse_test_cases(test_file, file_format):
                 'description': row.get('description', ''),
                 'input_data': row.get('input_data', ''),
                 'expected_output': row.get('expected_output', ''),
-                'points_awarded': float(row.get('points_awarded', 1)),
                 'is_hidden': is_hidden,
                 'is_private': is_private,
             })
@@ -1754,7 +1741,6 @@ def parse_test_cases(test_file, file_format):
                 'description': row_dict.get('description', ''),
                 'input_data': row_dict.get('input_data', ''),
                 'expected_output': row_dict.get('expected_output', ''),
-                'points_awarded': float(row_dict.get('points_awarded', 1)),
                 'is_hidden': is_hidden,
                 'is_private': is_private,
             })
@@ -1851,8 +1837,7 @@ def autograde_submission_api(request, submission_id):
             feedback_lines.append(f"✅ {passed_count} / {len(test_results)} test cases passed.")
             for t in test_results:
                 icon = "✅" if t.get('passed') else "❌"
-                pts  = t.get('points_earned', 0)
-                feedback_lines.append(f"  {icon} {t.get('name', 'Test')}  (+{pts} pts)")
+                feedback_lines.append(f"  {icon} {t.get('name', 'Test')}")
 
         rule_violations = grade_result.get('rule_violations', [])
         if rule_violations:
@@ -1879,15 +1864,8 @@ def autograde_submission_api(request, submission_id):
         breakdown = {}
         for i, t in enumerate(test_results):
             name = t.get('name', f'Test {i+1}')
-            earned = t.get('points_earned', 0)
-            # Reconstruct max per test: if passed, earned==max; if failed, check test_case DB
-            try:
-                tc = TestCase.objects.get(id=t.get('test_case_id'))
-                max_pts = tc.points_awarded
-            except Exception:
-                max_pts = earned if t.get('passed') else 0
             icon = '✅' if t.get('passed') else '❌'
-            breakdown[name] = f'{icon} {earned} / {max_pts} pts'
+            breakdown[name] = f'{icon} {"Passed" if t.get("passed") else "Failed"}'
 
         return JsonResponse({
             'status':               'ok',

@@ -120,7 +120,6 @@ class TestCase(models.Model):
     description = models.TextField(blank=True, help_text="Description of what this test case checks")
     input_data = models.TextField(blank=True, help_text="Input to pass to the program (stdin)")
     expected_output = models.TextField(help_text="Expected output from the program (stdout)")
-    points_awarded = models.IntegerField(default=1, help_text="Points awarded for passing this test case")
     is_hidden = models.BooleanField(default=False, help_text="If True, students cannot see input/output during practice")
     is_private = models.BooleanField(default=False, help_text="If True, test is private (grading only). If False, test is public (students can run)")
     order = models.IntegerField(default=0, help_text="Order in which to display test cases")
@@ -283,7 +282,7 @@ class TestResult(models.Model):
     actual_output = models.TextField(blank=True, help_text="Actual output from code execution")
     error_message = models.TextField(blank=True, help_text="Any error/stderr from execution")
     execution_time = models.FloatField(default=0.0, help_text="Execution time in seconds")
-    points_earned = models.IntegerField(default=0, help_text="Points awarded for this test (0 or test_case.points_awarded)")
+    points_earned = models.IntegerField(default=0, help_text="Binary pass flag stored as 1 (pass) or 0 (fail)")
     
     created_at = models.DateTimeField(auto_now_add=True)
 

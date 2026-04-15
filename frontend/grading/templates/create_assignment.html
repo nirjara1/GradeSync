@@ -418,7 +418,7 @@
                 <i class="fa-solid fa-download"></i> Download CSV Template
             </a>
             <p style="color: #6b7280; font-size: 13px; margin-top: 6px; margin-bottom: 0;">
-                (Required columns: input_data, expected_output, is_private, points)
+                (Required columns: input_data, expected_output, is_private)
             </p>
         </div>
 
@@ -434,7 +434,6 @@
                             <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151;">Input</th>
                             <th style="padding: 12px 16px; text-align: left; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151;">Expected Output</th>
                             <th style="padding: 12px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; width: 160px;">Test Type</th>
-                            <th style="padding: 12px 16px; text-align: center; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; width: 100px;">Points</th>
                         </tr>
                     </thead>
                     <tbody id="previewTableBody">
@@ -1012,7 +1011,7 @@
         }
         
         const headers = validRows[0].map(h => h.trim().toLowerCase());
-        const requiredColumns = ['input_data', 'expected_output', 'is_private', 'points'];
+        const requiredColumns = ['input_data', 'expected_output', 'is_private'];
         
         for (let col of requiredColumns) {
             if (!headers.includes(col)) {
@@ -1025,10 +1024,9 @@
             const row = validRows[i];
             const obj = {};
             headers.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? row[idx].trim() : ''; });
-            const pt = parseInt(obj.points) || 5;
             const privRaw = String(obj.is_private || 'false').trim().toLowerCase();
             const isPriv = privRaw === 'true' || privRaw === '1' || privRaw === 'yes';
-            testCases.push({ input_data: obj.input_data, expected_output: obj.expected_output, is_private: isPriv, points: pt });
+            testCases.push({ input_data: obj.input_data, expected_output: obj.expected_output, is_private: isPriv });
         }
         return testCases;
     }
@@ -1047,9 +1045,6 @@
                         <option value="true" ${tc.is_private ? 'selected' : ''}>Hidden</option>
                     </select>
                 </td>
-                <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center; vertical-align: top;">
-                    <input type="number" id="points_${idx}" class="form-control" value="${tc.points}" min="1" style="width: 70px; padding: 6px 10px; font-size: 13px; text-align: center;" onchange="updateTestCase(${idx})">
-                </td>
             `;
             tbody.appendChild(row);
         });
@@ -1059,7 +1054,6 @@
 
     function updateTestCase(idx) {
         parsedTestCases[idx].is_private = document.getElementById(`private_${idx}`).value === 'true';
-        parsedTestCases[idx].points = parseInt(document.getElementById(`points_${idx}`).value) || 5;
         storeTestCasesAsJson(parsedTestCases);
     }
 

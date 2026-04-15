@@ -435,7 +435,7 @@ def grade_submission(submission_id: int) -> dict:
         max_score = 0
         
         for test_case in test_cases:
-            max_score += test_case.points_awarded
+            max_score += 1
             
             # Execute code with test input (normalize literal \n from CSV to real newlines)
             input_data = (test_case.input_data or '').replace('\\n', '\n')
@@ -447,7 +447,7 @@ def grade_submission(submission_id: int) -> dict:
             passed = actual_output == expected_output
             
             if passed:
-                total_score += test_case.points_awarded
+                total_score += 1
             
             # Create or update TestResult (unique on submission + test_case; re-run overwrites)
             TestResult.objects.update_or_create(
@@ -458,7 +458,7 @@ def grade_submission(submission_id: int) -> dict:
                     'actual_output': actual_output,
                     'error_message': result.get('stderr', ''),
                     'execution_time': result.get('execution_time', 0.0),
-                    'points_earned': test_case.points_awarded if passed else 0,
+                    'points_earned': 1 if passed else 0,
                 },
             )
             
@@ -466,7 +466,7 @@ def grade_submission(submission_id: int) -> dict:
                 'test_case_id': test_case.id,
                 'name': test_case.name,
                 'passed': passed,
-                'points_earned': test_case.points_awarded if passed else 0,
+                'points_earned': 1 if passed else 0,
                 'execution_time': result.get('execution_time', 0.0),
                 'expected_output': test_case.expected_output,
                 'actual_output': actual_output,

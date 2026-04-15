@@ -125,7 +125,7 @@ class TestCaseForm(forms.ModelForm):
     """Form for creating/editing individual test cases"""
     class Meta:
         model = TestCase
-        fields = ['name', 'description', 'input_data', 'expected_output', 'points_awarded', 'is_hidden', 'order']
+        fields = ['name', 'description', 'input_data', 'expected_output', 'is_hidden', 'order']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -145,11 +145,6 @@ class TestCaseForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 5,
                 'placeholder': 'Expected output',
-            }),
-            'points_awarded': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': '0',
-                'step': '0.5',
             }),
             'is_hidden': forms.CheckboxInput(attrs={
                 'class': 'form-check-input',

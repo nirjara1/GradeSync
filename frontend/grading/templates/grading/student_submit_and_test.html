@@ -106,7 +106,6 @@
                                 <tr>
                                     <th>Test Name</th>
                                     <th>Description</th>
-                                    <th>Points</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -115,7 +114,6 @@
                                     <tr>
                                         <td><strong>{{ test_case.name }}</strong></td>
                                         <td>{{ test_case.description|truncatewords:10 }}</td>
-                                        <td>{{ test_case.points_awarded }} pts</td>
                                         <td>
                                             {% if test_results %}
                                                 {% with matching=test_results|dictsort:"test_case_id" %}

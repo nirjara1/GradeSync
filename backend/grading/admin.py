@@ -19,7 +19,7 @@ class AssignmentAdmin(admin.ModelAdmin):
 
 @admin.register(TestCase)
 class TestCaseAdmin(admin.ModelAdmin):
-    list_display = ('name', 'assignment', 'points_awarded', 'is_hidden', 'order')
+    list_display = ('name', 'assignment', 'is_hidden', 'order')
     list_filter = ('is_hidden', 'assignment', 'created_at')
     search_fields = ('name', 'description', 'assignment__name')
     ordering = ('assignment', 'order')

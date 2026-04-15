@@ -1,6 +1,6 @@
-input_data,expected_output,is_private,points
-"1 2 3","6",false,5
-"5 10 15","30",false,5
-"-1 -2 -3","-6",false,5
-"0 0 0","0",false,5
-"100 200 300","600",true,5
+input_data,expected_output,is_private
+"1 2 3","6",false
+"5 10 15","30",false
+"-1 -2 -3","-6",false
+"0 0 0","0",false
+"100 200 300","600",true
