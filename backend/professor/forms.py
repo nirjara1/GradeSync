@@ -44,11 +44,12 @@ class CourseForm(forms.ModelForm):
 
     class Meta:
         model = Course
-        fields = ['title', 'crn', 'term', 'section', 'grading_default', 'unweighted', 'visibility', 'published', 'code']
+        fields = ['title', 'crn', 'term', 'year', 'section', 'grading_default', 'unweighted', 'visibility', 'published', 'code']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'e.g. Database System'}),
             'crn': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Enter 5-digit CRN', 'pattern': r'\d{5}', 'maxlength': '5'}),
             'term': forms.HiddenInput(attrs={'id': 'id_term'}),
+            'year': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Enter 4-digit year', 'pattern': r'(19|20)\d{2}', 'maxlength': '4'}),
             'section': forms.TextInput(attrs={'class': 'input-field', 'placeholder': 'Enter 4-digit course level', 'pattern': r'\d{4}', 'maxlength': '4'}),
             'grading_default': forms.CheckboxInput(attrs={'class': 'ui-toggle'}),
             'unweighted': forms.CheckboxInput(attrs={'class': 'ui-toggle'}),
@@ -61,6 +62,7 @@ class CourseForm(forms.ModelForm):
         self.fields['code'].initial = ''
         self.fields['section'].label = 'Course Level'
         self.fields['section'].required = True
+        self.fields['year'].required = True
 
     def clean_code(self):
         code = (self.cleaned_data.get('code') or '').strip().upper()
@@ -89,6 +91,16 @@ class CourseForm(forms.ModelForm):
         if not level.isdigit() or len(level) != 4:
             raise forms.ValidationError("Course level must be exactly 4 digits.")
         return level
+
+    def clean_year(self):
+        year = (self.cleaned_data.get('year') or '').strip()
+        if not year:
+            raise forms.ValidationError("Year is required.")
+        if not year.isdigit() or len(year) != 4:
+            raise forms.ValidationError("Year must be exactly 4 digits.")
+        if int(year) < 1900 or int(year) > 2100:
+            raise forms.ValidationError("Year must be between 1900 and 2100.")
+        return year
 
 class UserRegistrationForm(forms.Form):
     full_name = forms.CharField(

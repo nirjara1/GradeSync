@@ -8,6 +8,7 @@ class Course(models.Model):
     section = models.CharField(max_length=10)
     title = models.CharField(max_length=200)
     term = models.CharField(max_length=50)
+    year = models.CharField(max_length=4, blank=True, null=True)
     crn = models.CharField(max_length=10, blank=True, null=True)
     grading_default = models.BooleanField(default=True)
     unweighted = models.BooleanField(default=False)
@@ -39,7 +40,10 @@ class Course(models.Model):
         return title or cs
 
     def dashboard_year_label(self):
-        """Calendar year for dashboard cards (from term text, section, or catalog label)."""
+        """Calendar year for dashboard cards."""
+        year = (self.year or '').strip()
+        if len(year) == 4 and year.isdigit():
+            return year
         term = (self.term or '').strip()
         m = re.search(r'\b(19|20)\d{2}\b', term)
         if m:
@@ -53,19 +57,23 @@ class Course(models.Model):
         return ''
 
     def dashboard_card_title(self):
-        """Course cards: 'CODE-CRN-TERM - TITLE' with graceful fallbacks."""
-        code = (self.code or '').strip()
-        if code.upper() == 'GENERIC':
-            code = ''
+        """Dashboard cards: 'SUBJECT****-CRN-SEMESTER-YEAR' with robust level parsing."""
+        subject = (self.code or '').strip().upper()
+        level = (self.section or '').strip()
+        if not (len(level) == 4 and level.isdigit()):
+            # Backfill for older data where level may be embedded in code/section text.
+            match = re.search(r'\b(\d{4})\b', f'{subject} {level}')
+            level = match.group(1) if match else ''
+
+        subject_level = f'{subject}{level}' if subject and level else (subject or level)
         crn = (self.crn or '').strip()
         term = (self.term or '').strip()
-        title = (self.title or '').strip() or 'Course'
+        year = self.dashboard_year_label()
 
-        left_parts = [p for p in [code, crn, term] if p]
-        left = '-'.join(left_parts)
-        if left:
-            return f'{left} - {title}'
-        return title
+        label_parts = [p for p in [subject_level, crn, term, year] if p]
+        if label_parts:
+            return '-'.join(label_parts)
+        return (self.title or '').strip() or 'Course'
 
     def __str__(self):
         cs = self.code_section_label()
