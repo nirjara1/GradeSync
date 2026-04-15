@@ -1020,7 +1020,7 @@ html {
 }
 
 .view-group {
-    background-color: #fcfcfc;
+    background-color: var(--bg-main);
     padding: 15px 20px;
     border-radius: 8px;
     border-left: 4px solid var(--gold);
