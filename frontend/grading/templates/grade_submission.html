@@ -429,6 +429,12 @@
             outline: none;
             box-shadow: 0 0 0 2px rgba(132, 0, 41, 0.1);
         }
+        .gs-inline-status {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .gs-inline-status.success { color: #047857; }
 
         .btn-submit-grade {
             background: var(--maroon);
@@ -935,6 +941,7 @@
                         <div class="feedback-section" style="margin-top: 20px;">
                             <label for="feedback"><i class="fa-regular fa-comment-dots" style="margin-right: 6px; color: #6b7280;"></i> Instructor Feedback</label>
                             <textarea id="feedback" name="feedback" placeholder="Provide constructive feedback for the student here...">{{ grade.feedback|default:'' }}</textarea>
+                            <div id="feedbackAutosaveState" class="gs-inline-status" aria-live="polite"></div>
                         </div>
 
                         <!-- Submit / Remove Grade buttons -->
@@ -1218,6 +1225,83 @@
             }
 
             function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+            // Keyboard-first grading navigation (left/right arrows)
+            document.addEventListener('keydown', function (e) {
+                var activeTag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+                if (activeTag === 'input' || activeTag === 'textarea' || (document.activeElement && document.activeElement.isContentEditable)) {
+                    return;
+                }
+                if (e.key === 'ArrowLeft') {
+                    var prev = document.querySelector('.grade-submission-header .nav-arrow[title="Previous Student"]');
+                    if (prev && prev.getAttribute('href')) {
+                        location.href = prev.getAttribute('href');
+                    }
+                } else if (e.key === 'ArrowRight') {
+                    var next = document.querySelector('.grade-submission-header .nav-arrow[title="Next Student"]');
+                    if (next && next.getAttribute('href')) {
+                        location.href = next.getAttribute('href');
+                    }
+                }
+            });
+
+            // Draft autosave for feedback (local, restored across student navigation)
+            var feedbackInput = document.getElementById('feedback');
+            var autosaveState = document.getElementById('feedbackAutosaveState');
+            var draftKey = 'gs:draft:feedback:submission:{{ submission.pk }}';
+            var tsKey = draftKey + ':ts';
+            var saveTimer = null;
+
+            function fmtSavedAgo(ts) {
+                var diff = Math.max(0, Date.now() - ts);
+                var sec = Math.floor(diff / 1000);
+                if (sec < 5) return 'Saved just now';
+                if (sec < 60) return 'Saved ' + sec + 's ago';
+                var min = Math.floor(sec / 60);
+                if (min < 60) return 'Saved ' + min + 'm ago';
+                var hr = Math.floor(min / 60);
+                return 'Saved ' + hr + 'h ago';
+            }
+
+            function updateAutosaveLabel() {
+                if (!autosaveState) return;
+                var tsRaw = localStorage.getItem(tsKey);
+                if (!tsRaw) {
+                    autosaveState.textContent = '';
+                    autosaveState.className = 'gs-inline-status';
+                    return;
+                }
+                var ts = Number(tsRaw);
+                autosaveState.textContent = fmtSavedAgo(ts);
+                autosaveState.className = 'gs-inline-status success';
+            }
+
+            function persistDraft() {
+                if (!feedbackInput) return;
+                localStorage.setItem(draftKey, feedbackInput.value || '');
+                localStorage.setItem(tsKey, String(Date.now()));
+                updateAutosaveLabel();
+            }
+
+            if (feedbackInput) {
+                var existing = localStorage.getItem(draftKey);
+                if (existing && !feedbackInput.value.trim()) {
+                    feedbackInput.value = existing;
+                }
+                feedbackInput.addEventListener('input', function () {
+                    if (saveTimer) clearTimeout(saveTimer);
+                    saveTimer = setTimeout(persistDraft, 500);
+                });
+                var formEl = document.getElementById('gradingForm');
+                if (formEl) {
+                    formEl.addEventListener('submit', function () {
+                        localStorage.removeItem(draftKey);
+                        localStorage.removeItem(tsKey);
+                    });
+                }
+                updateAutosaveLabel();
+                setInterval(updateAutosaveLabel, 15000);
+            }
         })();
 
         // Rubric UI sync only (same math as backend; display formatting only)

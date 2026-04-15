@@ -70,6 +70,8 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
     .course-header:hover {
         background-color: #f3f4f6;
     }
+    .course-header.expanded .course-chevron { transform: rotate(180deg); }
+    .course-chevron { transition: transform 0.2s var(--ux-ease-standard, ease); }
     
     .course-header h3 {
         margin: 0;
@@ -92,6 +94,19 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
         gap: 20px;
         padding: 20px;
         background-color: #ffffff;
+    }
+    .assignments-grid.collapsible {
+        overflow: hidden;
+        transition: max-height 220ms var(--ux-ease-standard, ease), opacity 180ms ease;
+        max-height: 2200px;
+        opacity: 1;
+    }
+    .assignments-grid.collapsible.collapsed {
+        max-height: 0;
+        opacity: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-top: 0;
     }
     
     .assignment-card {
@@ -221,7 +236,7 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
     
     {% for course_group in course_list %}
     <div class="course-group">
-        <div class="course-header" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'grid' : 'none';">
+        <div class="course-header expanded" data-course-toggle data-course-id="{{ course_group.grouper.id|default:'general' }}">
             <h3>
                 <i class="fa-solid fa-graduation-cap course-header-icon"></i>
                 {% if course_group.grouper %}
@@ -231,10 +246,10 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
                     General Assignments
                 {% endif %}
             </h3>
-            <i class="fa-solid fa-chevron-down" style="color: #9ca3af;"></i>
+            <i class="fa-solid fa-chevron-down course-chevron" style="color: #9ca3af;"></i>
         </div>
         
-        <div class="assignments-grid">
+        <div class="assignments-grid collapsible">
             {% for assignment in course_group.list %}
             <div class="assignment-card {% if is_student %}{% if assignment.student_status == 'GRADED' %}assignment-card--graded{% elif assignment.student_status == 'SUBMITTED' %}assignment-card--submitted{% elif assignment.student_status == 'MISSING' %}assignment-card--missing{% else %}assignment-card--upcoming{% endif %}{% endif %}" onclick="window.location.href='{% url 'assignment_detail' assignment.pk %}'" style="cursor: pointer;">
                 <div>
@@ -310,5 +325,32 @@ with Assignments / Grades navigation. Otherwise, keep the existing layout.
     </div>
 </div>
 {% endif %}
+
+<script>
+    (function () {
+        document.querySelectorAll('[data-course-toggle]').forEach(function (header) {
+            var courseId = header.getAttribute('data-course-id') || 'general';
+            var key = 'gs:assignments:collapsed:' + courseId;
+            var grid = header.nextElementSibling;
+            if (!grid || !grid.classList.contains('assignments-grid')) return;
+
+            function applyCollapsed(isCollapsed) {
+                header.classList.toggle('expanded', !isCollapsed);
+                grid.classList.toggle('collapsed', !!isCollapsed);
+            }
+
+            try {
+                var collapsed = localStorage.getItem(key) === '1';
+                applyCollapsed(collapsed);
+            } catch (e) {}
+
+            header.addEventListener('click', function () {
+                var nowCollapsed = !grid.classList.contains('collapsed');
+                applyCollapsed(nowCollapsed);
+                try { localStorage.setItem(key, nowCollapsed ? '1' : '0'); } catch (e) {}
+            });
+        });
+    })();
+</script>
 
 {% endblock %}

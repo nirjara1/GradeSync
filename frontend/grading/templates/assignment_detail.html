@@ -702,9 +702,19 @@
         document.getElementById('panel-' + tabId).classList.add('active');
         const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.textContent.toLowerCase().includes(tabId));
         if (btn) btn.classList.add('active');
+        try { sessionStorage.setItem('gs:assignment-tab:{{ assignment.pk }}', tabId); } catch (e) {}
         if (tabId === 'submit' && editorInstance) setTimeout(() => editorInstance.layout(), 50);
         if (tabId === 'history' && previewEditorInstance) setTimeout(() => previewEditorInstance.layout(), 50);
     }
+
+    (function restoreMainTab() {
+        try {
+            const tab = sessionStorage.getItem('gs:assignment-tab:{{ assignment.pk }}');
+            if (tab && document.getElementById('panel-' + tab)) {
+                switchMainTab(tab);
+            }
+        } catch (e) {}
+    })();
 
     function addFile(name, content, language) {
         if (typeof monaco === 'undefined' || !monaco.editor) { console.warn('Monaco not ready'); return; }

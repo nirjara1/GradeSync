@@ -174,7 +174,7 @@
     {% if enrollments|length > 1 and not gradebook_course_layout %}
     <form method="get" class="gb-course-filter" action="{% url 'student_gradebook' %}">
         <label for="course-filter">Course</label>
-        <select id="course-filter" name="course" onchange="this.form.submit()">
+        <select id="course-filter" name="course" data-debounce-url data-param="course" data-debounce-ms="120" onchange="this.form.submit()">
             <option value="">All courses</option>
             {% for e in enrollments %}
             <option value="{{ e.course.id }}" {% if filter_course_id == e.course.id %}selected{% endif %}>
@@ -343,6 +343,7 @@
     var rubricWrapEl = document.getElementById('gb-fb-rubric-wrap');
     var rubricListEl = document.getElementById('gb-fb-rubric-list');
     var savedScrollY = 0;
+    var stateKey = 'gs:feedback-open:' + location.pathname + location.search;
 
     function lockPageScroll() {
         savedScrollY = window.scrollY || window.pageYOffset || 0;
@@ -382,6 +383,7 @@
         lockPageScroll();
         overlay.classList.add('gb-fb-open');
         overlay.setAttribute('aria-hidden', 'false');
+        try { sessionStorage.setItem(stateKey, String(assignmentId)); } catch (e) {}
         var closeBtn = overlay.querySelector('.gb-fb-close');
         if (closeBtn) {
             try {
@@ -395,6 +397,7 @@
     function closeFeedback() {
         overlay.classList.remove('gb-fb-open');
         overlay.setAttribute('aria-hidden', 'true');
+        try { sessionStorage.removeItem(stateKey); } catch (e) {}
         unlockPageScroll();
     }
 
@@ -427,6 +430,12 @@
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && overlay.classList.contains('gb-fb-open')) closeFeedback();
     });
+    try {
+        var initialId = sessionStorage.getItem(stateKey);
+        if (initialId && payload[String(initialId)]) {
+            openFeedback(initialId);
+        }
+    } catch (e) {}
 })();
 </script>
 {% endblock %}

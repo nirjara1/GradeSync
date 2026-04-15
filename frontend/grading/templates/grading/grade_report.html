@@ -45,6 +45,13 @@
         color: var(--gs-maroon);
         font-weight: bold;
     }
+    .report-toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: var(--bg-card, #fff);
+        padding: 8px 0;
+    }
 
     /* Grid Styling */
     .grid-card {
@@ -57,6 +64,28 @@
         max-height: 650px;
         overflow: auto;
         border-radius: 8px;
+    }
+    .grid-container.is-loading {
+        position: relative;
+        pointer-events: none;
+    }
+    .grid-container.is-loading::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(255,255,255,0.55);
+        backdrop-filter: blur(1px);
+    }
+    .grid-container.is-loading button.status-badge {
+        color: transparent !important;
+        background: linear-gradient(90deg, #e5e7eb 20%, #f3f4f6 40%, #e5e7eb 60%) !important;
+        background-size: 220% 100% !important;
+        animation: gridShimmer 1s linear infinite;
+        border-color: #e5e7eb !important;
+    }
+    @keyframes gridShimmer {
+        from { background-position: 120% 0; }
+        to { background-position: -20% 0; }
     }
 
     .sticky-col {
@@ -195,7 +224,7 @@
 {% block content %}
 <div class="report-container">
     <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4 report-header">
+    <div class="d-flex justify-content-between align-items-center mb-4 report-header report-toolbar">
         <div>
             <h1 class="mb-1">{{ assignment.name }} - Test Case Report</h1>
             <nav aria-label="breadcrumb">
@@ -480,7 +509,9 @@
 
     function startBulkTesting() {
         const btn = document.getElementById('bulk-grade-btn');
+        const grid = document.querySelector('.grid-container');
         btn.disabled = true;
+        if (grid) grid.classList.add('is-loading');
         
         fetch(`/grading/api/assignments/${assignmentId}/bulk-grade/`, {
             method: 'POST',
@@ -499,11 +530,13 @@
             } else {
                 alert('Error: ' + data.message);
                 btn.disabled = false;
+                if (grid) grid.classList.remove('is-loading');
             }
         })
         .catch(error => {
             console.error('Error:', error);
             btn.disabled = false;
+            if (grid) grid.classList.remove('is-loading');
         });
     }
 
@@ -539,12 +572,16 @@
                         document.getElementById('bulk-grade-status').style.display = 'none';
                         document.getElementById('bulk-grade-btn').disabled = false;
                         document.getElementById('bulk-grade-btn').innerHTML = '<i class="fas fa-flask-vial me-2"></i> Run Bulk Testing';
+                        const grid = document.querySelector('.grid-container');
+                        if (grid) grid.classList.remove('is-loading');
                     })
                     .catch((e) => {
                         message.textContent = 'Testing complete, but failed to load results: ' + (e && e.message ? e.message : e);
                         message.className = 'fw-bold text-danger small';
                         document.getElementById('bulk-grade-btn').disabled = false;
                         document.getElementById('bulk-grade-btn').innerHTML = '<i class="fas fa-flask-vial me-2"></i> Run Bulk Testing';
+                        const grid = document.querySelector('.grid-container');
+                        if (grid) grid.classList.remove('is-loading');
                     });
             }
             else if (data.status === 'FAILURE') {
@@ -553,6 +590,8 @@
                 progressBar.classList.add('bg-danger');
                 clearInterval(pollInterval);
                 document.getElementById('bulk-grade-btn').disabled = false;
+                const grid = document.querySelector('.grid-container');
+                if (grid) grid.classList.remove('is-loading');
             }
         });
     }

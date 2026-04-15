@@ -6,10 +6,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GradeSync - Professor Dashboard</title>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
     <!-- Use FontAwesome for sidebar icons to match screenshot -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Reusing the professor CSS for identical layout -->
     <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.3">
+    <link rel="stylesheet" href="{% static 'css/ux-system.css' %}?v=1.0">
     {% block extra_css %}{% endblock %}
     <style>
         .logout-confirm-overlay {
@@ -98,6 +101,7 @@
             document.documentElement.setAttribute('data-theme', 'dark');
         }
     </script>
+    <script defer src="{% static 'js/ux-system.js' %}?v=1.0"></script>
 </head>
 
 <body>

@@ -16,7 +16,7 @@
     </ul>
     {% endif %}
 
-    <form method="post" style="margin-bottom: 25px;">
+    <form method="post" style="margin-bottom: 25px;" data-save-timestamp data-save-key="gs:rubric:weighted:{{ assignment.pk }}" data-save-target="#rubricSaveState">
         {% csrf_token %}
         <input type="hidden" name="action" value="toggle_weighted">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
@@ -35,7 +35,7 @@
     </p>
 
     <!-- Add criterion -->
-    <form method="post" style="margin-bottom: 30px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+    <form method="post" style="margin-bottom: 30px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;" data-save-timestamp data-save-key="gs:rubric:add:{{ assignment.pk }}" data-save-target="#rubricSaveState">
         {% csrf_token %}
         <input type="hidden" name="action" value="add_criterion">
         <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px;">Add criterion</h3>
@@ -56,6 +56,7 @@
             {% endif %}
             <button type="submit" class="btn-publish" style="padding: 8px 18px;">Add</button>
         </div>
+        <div id="rubricSaveState" class="gs-inline-status" aria-live="polite"></div>
     </form>
 
     <!-- List criteria -->
@@ -83,7 +84,7 @@
                 <td style="text-align: right; padding: 10px;">{% if row.criterion.weight is not None %}{{ row.display_points }}{% else %}—{% endif %}</td>
                 {% endif %}
                 <td style="padding: 10px;">
-                    <form method="post" style="display: inline;" onsubmit="return confirm('Remove this criterion?');">
+                    <form method="post" style="display: inline;" onsubmit="return confirm('Remove this criterion?');" data-save-timestamp data-save-key="gs:rubric:remove:{{ assignment.pk }}" data-save-target="#rubricSaveState">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="delete_criterion">
                         <input type="hidden" name="criterion_id" value="{{ row.criterion.id }}">

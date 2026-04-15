@@ -1,0 +1,259 @@
+:root {
+    --ux-duration-fast: 150ms;
+    --ux-duration-base: 200ms;
+    --ux-duration-slow: 250ms;
+    --ux-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+    --ux-radius-sm: 8px;
+    --ux-radius-md: 12px;
+    --ux-radius-lg: 16px;
+    --ux-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --ux-shadow-md: 0 10px 24px rgba(0, 0, 0, 0.12);
+    --ux-space-1: 4px;
+    --ux-space-2: 8px;
+    --ux-space-3: 12px;
+    --ux-space-4: 16px;
+    --ux-space-5: 24px;
+    --ux-space-6: 32px;
+    --ux-font-xs: 12px;
+    --ux-font-sm: 14px;
+    --ux-font-md: 16px;
+    --ux-font-lg: 20px;
+    --ux-font-xl: 28px;
+    --ux-line-tight: 1.25;
+    --ux-line-base: 1.5;
+}
+
+/* Keep animation quality consistent site-wide */
+*,
+*::before,
+*::after {
+    transition-duration: var(--ux-duration-base);
+    transition-timing-function: var(--ux-ease-standard);
+}
+
+a,
+button,
+[role="button"],
+.nav-item,
+.btn,
+.btn-save,
+.btn-submit,
+.btn-outline-maroon,
+.add-assignment-btn {
+    transition-property: transform, opacity, color, background-color, border-color, box-shadow;
+}
+
+/* Prefer transform/opacity motion for smoother rendering */
+.main-content,
+.course-card,
+.course-card-enhanced,
+.assignment-card,
+.widget-panel,
+.modal-content {
+    will-change: transform, opacity;
+}
+
+.main-content {
+    animation-duration: var(--ux-duration-slow) !important;
+}
+
+/* Reserve media space to reduce CLS */
+img,
+.card-image,
+.card-image-enhanced {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.card-image,
+.card-image-enhanced {
+    min-height: 140px;
+    object-fit: cover;
+}
+
+/* Skeleton states */
+.gs-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(
+        90deg,
+        rgba(148, 163, 184, 0.12) 20%,
+        rgba(148, 163, 184, 0.24) 40%,
+        rgba(148, 163, 184, 0.12) 60%
+    );
+    background-size: 250% 100%;
+    animation: gsShimmer 1.1s linear infinite;
+    border-radius: var(--ux-radius-sm);
+}
+
+@keyframes gsShimmer {
+    from { background-position: 100% 0; }
+    to { background-position: 0 0; }
+}
+
+/* Sticky action bar utility for long forms */
+.gs-sticky-actions,
+.form-actions.sticky {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    background: var(--bg-card, #fff);
+    padding: var(--ux-space-3) var(--ux-space-4);
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* Inline success/error and timestamps */
+.gs-inline-status {
+    margin-top: var(--ux-space-2);
+    font-size: 12px;
+    color: var(--text-muted, #6b7280);
+}
+
+.gs-inline-status.success { color: #047857; }
+.gs-inline-status.error { color: #b91c1c; }
+
+/* Toasts */
+.gs-toast-stack {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 12000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.gs-toast {
+    pointer-events: auto;
+    background: var(--bg-card, #fff);
+    color: var(--text-main, #111827);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: var(--ux-radius-md);
+    box-shadow: var(--ux-shadow-md);
+    padding: 10px 12px;
+    min-width: 240px;
+    max-width: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transform: translateY(10px);
+    opacity: 0;
+}
+
+.gs-toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.gs-toast button {
+    border: 0;
+    background: transparent;
+    color: var(--maroon, #840029);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Command palette */
+.gs-cmdk {
+    position: fixed;
+    inset: 0;
+    z-index: 13000;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12vh;
+    background: rgba(2, 6, 23, 0.36);
+    backdrop-filter: blur(3px);
+}
+
+.gs-cmdk.open { display: flex; }
+
+.gs-cmdk-panel {
+    width: min(680px, calc(100vw - 24px));
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: var(--ux-radius-lg);
+    box-shadow: var(--ux-shadow-md);
+    overflow: hidden;
+}
+
+.gs-cmdk-input {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    padding: 14px;
+    font-size: 15px;
+    outline: none;
+    background: transparent;
+    color: var(--text-main, #111827);
+}
+
+.gs-cmdk-list { max-height: 50vh; overflow: auto; }
+
+.gs-cmdk-item {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color, #f1f5f9);
+}
+
+.gs-cmdk-item:hover,
+.gs-cmdk-item.active {
+    background: var(--bg-hover, #f8fafc);
+}
+
+/* Typography normalization across pages */
+.page-title {
+    font-size: var(--ux-font-xl);
+    line-height: var(--ux-line-tight);
+    letter-spacing: -0.01em;
+}
+
+.profile-subtitle,
+.gb-header p,
+.assignment-meta,
+.gb-muted {
+    font-size: var(--ux-font-sm);
+    line-height: var(--ux-line-base);
+}
+
+/* Dark mode parity for overlays, toasts, and subtle surfaces */
+[data-theme='dark'] .gs-toast {
+    background: #20252d;
+    border-color: #374151;
+    color: #f3f4f6;
+}
+
+[data-theme='dark'] .gs-cmdk {
+    background: rgba(2, 6, 23, 0.52);
+}
+
+[data-theme='dark'] .gs-cmdk-panel {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-theme='dark'] .gs-cmdk-input {
+    border-bottom-color: #374151;
+    color: #e5e7eb;
+}
+
+[data-theme='dark'] .gs-cmdk-item {
+    border-bottom-color: #2d3748;
+}
+
+[data-theme='dark'] .gs-cmdk-item:hover,
+[data-theme='dark'] .gs-cmdk-item.active {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme='dark'] .gs-sticky-actions,
+[data-theme='dark'] .form-actions.sticky {
+    background: #1f2937;
+    border-top-color: #374151;
+}

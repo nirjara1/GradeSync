@@ -311,7 +311,7 @@
                         <p class="course-term">{{ course.term }}</p>
                     </div>
                 </a>
-                <form method="post" action="{% url 'archive_course' course.id %}" style="margin: 0;" onsubmit="return confirm('Move this class to Archived Classes?');">
+                <form method="post" action="{% url 'archive_course' course.id %}" style="margin: 0;" onsubmit="return confirm('Move this class to Archived Classes?');" data-undo-submit data-undo-label="Class moved to archive">
                     {% csrf_token %}
                     <button type="submit" class="archive-btn" title="Move to Archived Classes">
                         <i class="fa-solid fa-archive"></i> Archive
@@ -344,7 +344,7 @@
                         <p class="course-term">{{ course.term }}</p>
                     </div>
                 </a>
-                <form method="post" action="{% url 'unarchive_course' course.id %}" style="margin: 0;" onsubmit="return confirm('Restore this class to Active Classes?');">
+                <form method="post" action="{% url 'unarchive_course' course.id %}" style="margin: 0;" onsubmit="return confirm('Restore this class to Active Classes?');" data-undo-submit data-undo-label="Class restored">
                     {% csrf_token %}
                     <button type="submit" class="archive-btn" title="Restore to Active Classes">
                         <i class="fa-solid fa-box-open"></i> Unarchive
@@ -378,7 +378,7 @@
                 {% for item in todo_items %}
                 <li class="todo-item" style="display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <form method="post" action="{% url 'toggle_todo' item.id %}" style="margin: 0; display: inline;">
+                        <form method="post" action="{% url 'toggle_todo' item.id %}" style="margin: 0; display: inline;" data-undo-submit data-undo-label="Task marked complete">
                             {% csrf_token %}
                             <input type="checkbox" id="todo{{ item.id }}" class="todo-checkbox" 
                                 onchange="

@@ -293,7 +293,7 @@
                     {% for item in todo_items %}
                     <li class="todo-item" style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <form method="post" action="{% url 'toggle_todo' item.id %}" style="margin: 0; display: inline;">
+                            <form method="post" action="{% url 'toggle_todo' item.id %}" style="margin: 0; display: inline;" data-undo-submit data-undo-label="Task marked complete">
                                 {% csrf_token %}
                                 <input type="checkbox" id="todo{{ item.id }}" class="todo-checkbox" 
                                     onchange="
