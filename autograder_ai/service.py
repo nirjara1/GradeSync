@@ -16,7 +16,14 @@ class GradingService:
     def __init__(self):
         self.similarity_engine = SimilarityEngine()
         # Path relative to module root or configured
-        self.ai_engine = AIInferenceEngine("autograder_ai/ai/models/ai_likelihood.joblib")
+        try:
+            from django.conf import settings
+            base_dir = settings.BASE_DIR.parent
+        except ImportError:
+            base_dir = os.getcwd()
+            
+        model_path = os.path.join(base_dir, "autograder_ai", "ai", "models", "rf_model.pkl")
+        self.ai_engine = AIInferenceEngine(model_path)
         
     def grade_submission(self, request: GradeRequest) -> GradeResponse:
         try:
