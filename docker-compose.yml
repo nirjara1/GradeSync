@@ -36,7 +36,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       # Email: defaults target Mailpit (docker-compose service). Override in .env for real SMTP.
-      - SITE_URL=${SITE_URL:-http://localhost}
+      - SITE_URL=${SITE_URL:-http://localhost:8000}
       - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
       - EMAIL_HOST=${EMAIL_HOST:-mailpit}
       - EMAIL_PORT=${EMAIL_PORT:-1025}
