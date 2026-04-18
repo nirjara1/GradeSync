@@ -352,6 +352,23 @@ class CriterionGrade(models.Model):
         return f"{self.points_earned} for {self.criterion.name} ({self.submission})"
 
 
+class RubricCriterionCommentPreset(models.Model):
+    """
+    Instructor-authored default comment text for a criterion at a specific earned score.
+    Example: criterion "Code Style", score_value=1.00 -> "Layout makes code difficult to read."
+    """
+    criterion = models.ForeignKey(RubricCriterion, on_delete=models.CASCADE, related_name='comment_presets')
+    score_value = models.DecimalField(max_digits=6, decimal_places=2)
+    comment_text = models.TextField()
+
+    class Meta:
+        unique_together = ('criterion', 'score_value')
+        ordering = ['criterion_id', 'score_value']
+
+    def __str__(self):
+        return f"{self.criterion.name} @ {self.score_value}"
+
+
 def assignment_id_or_obj(assignment):
     return assignment and getattr(assignment, "id", None)
 

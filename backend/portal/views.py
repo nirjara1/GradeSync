@@ -98,6 +98,30 @@ from django.db.models import Q
 from professor.models import Message, Course
 from django.contrib.auth.models import User
 
+
+AUTO_RUBRIC_COMMENTS_MARKER = "--- Auto rubric comments ---"
+
+
+def _student_visible_feedback(text: str) -> str:
+    """
+    Replace internal marker with a student-friendly label.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+    marker = "\n\n" + AUTO_RUBRIC_COMMENTS_MARKER + "\n"
+    if marker in raw:
+        manual, auto = raw.split(marker, 1)
+        auto = auto.strip()
+        label = "Auto rubric comments:\n"
+        if manual.strip():
+            return f"{manual.strip()}\n\n{label}{auto}"
+        return f"{label}{auto}"
+    if raw.startswith(AUTO_RUBRIC_COMMENTS_MARKER + "\n"):
+        return "Auto rubric comments:\n" + raw[len(AUTO_RUBRIC_COMMENTS_MARKER) + 1 :].strip()
+    return raw
+
+
 @login_required
 def student_profile(request):
     user = request.user
@@ -172,7 +196,7 @@ def student_assignments(request):
             if hasattr(submission, 'grade') and submission.grade:
                 assignment.student_status = 'GRADED'
                 assignment.student_grade = submission.grade.score
-                assignment.student_feedback = (submission.grade.feedback or '').strip()
+                assignment.student_feedback = _student_visible_feedback(submission.grade.feedback or '')
             else:
                 assignment.student_status = 'SUBMITTED'
                 assignment.student_grade = None

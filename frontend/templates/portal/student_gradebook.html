@@ -149,6 +149,25 @@
     .gb-fb-rubric-meta { font-size: 12px; color: var(--text-muted, #6b7280); margin-top: 2px; }
     .gb-fb-rubric-score { font-size: 14px; font-weight: 700; color: var(--maroon, #840029); font-variant-numeric: tabular-nums; }
     .gb-fb-body { color: var(--text-main, #1f2937); font-size: 15px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .gb-fb-auto-wrap {
+        margin-top: 14px;
+        border: 1px solid var(--border-color, #e5e7eb);
+        border-radius: 10px;
+        background: var(--bg-main, #fafafa);
+        overflow: hidden;
+    }
+    .gb-fb-auto-head {
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-muted, #6b7280);
+        border-bottom: 1px solid var(--border-color, #e5e7eb);
+    }
+    .gb-fb-auto-list { margin: 0; padding: 10px 16px; }
+    .gb-fb-auto-list li { margin: 0 0 6px 0; color: var(--text-main, #374151); }
+    .gb-fb-auto-list li:last-child { margin-bottom: 0; }
     .gb-fb-sig { margin-top: 20px; text-align: right; font-size: 14px; color: var(--text-muted, #374151); font-style: italic; }
 </style>
 {% endblock %}
@@ -324,6 +343,10 @@
                 <div id="gb-fb-rubric-list"></div>
             </div>
             <div class="gb-fb-body" id="gb-fb-body"></div>
+            <div class="gb-fb-auto-wrap" id="gb-fb-auto-wrap" style="display: none;">
+                <div class="gb-fb-auto-head">Auto rubric comments</div>
+                <ul class="gb-fb-auto-list" id="gb-fb-auto-list"></ul>
+            </div>
             <div class="gb-fb-sig" id="gb-fb-sig"></div>
         </div>
     </aside>
@@ -339,11 +362,30 @@
     var overlay = document.getElementById('gb-feedback-overlay');
     var whenEl = document.getElementById('gb-fb-when');
     var bodyEl = document.getElementById('gb-fb-body');
+    var autoWrapEl = document.getElementById('gb-fb-auto-wrap');
+    var autoListEl = document.getElementById('gb-fb-auto-list');
     var sigEl = document.getElementById('gb-fb-sig');
     var rubricWrapEl = document.getElementById('gb-fb-rubric-wrap');
     var rubricListEl = document.getElementById('gb-fb-rubric-list');
     var savedScrollY = 0;
     var stateKey = 'gs:feedback-open:' + location.pathname + location.search;
+    var AUTO_HDR = '--- Auto rubric comments ---';
+
+    function splitAutoComments(rawText) {
+        var src = String(rawText || '');
+        var marker = '\n\n' + AUTO_HDR + '\n';
+        var idx = src.indexOf(marker);
+        if (idx < 0) {
+            if (src.indexOf(AUTO_HDR + '\n') === 0) {
+                return { manual: '', autoLines: src.slice((AUTO_HDR + '\n').length).split('\n').filter(Boolean) };
+            }
+            return { manual: src, autoLines: [] };
+        }
+        var manual = src.slice(0, idx);
+        var autoPart = src.slice(idx + marker.length);
+        var autoLines = autoPart.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+        return { manual: manual, autoLines: autoLines };
+    }
 
     function lockPageScroll() {
         savedScrollY = window.scrollY || window.pageYOffset || 0;
@@ -361,7 +403,17 @@
         var data = payload[String(assignmentId)];
         if (!data) return;
         whenEl.textContent = data.gradedAt || '';
-        bodyEl.textContent = data.body || '';
+        var parsed = splitAutoComments(data.body || '');
+        bodyEl.textContent = parsed.manual || '';
+        if (parsed.autoLines.length) {
+            autoListEl.innerHTML = parsed.autoLines.map(function (line) {
+                return '<li>' + escHtml(line) + '</li>';
+            }).join('');
+            autoWrapEl.style.display = '';
+        } else {
+            autoListEl.innerHTML = '';
+            autoWrapEl.style.display = 'none';
+        }
         sigEl.textContent = data.instructor ? ('- ' + data.instructor) : '';
         var rubricRows = Array.isArray(data.rubricScores) ? data.rubricScores : [];
         if (rubricRows.length) {

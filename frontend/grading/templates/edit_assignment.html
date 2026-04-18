@@ -126,11 +126,17 @@
     /* Buttons */
     .btn-action-group {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
+        align-items: center;
         gap: 16px;
         margin-top: 50px;
         padding-top: 30px;
         border-top: 1px solid #f3f4f6;
+    }
+    .btn-action-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
     }
 
     .btn-secondary {
@@ -253,7 +259,7 @@
     </div>
     {% endif %}
 
-    <form method="POST" enctype="multipart/form-data" action="{% url 'edit_assignment' assignment.pk %}">
+    <form method="POST" enctype="multipart/form-data" action="{% url 'edit_assignment' assignment.pk %}" id="editAssignmentForm" onsubmit="return submitEditAssignment(event);">
         {% csrf_token %}
 
         <!-- SECTION 1: Basic Information -->
@@ -413,27 +419,36 @@
 
         <!-- SECTION 3B: Rubric -->
         <h3 class="section-header"><i class="fa-solid fa-list-check"></i> 3B. Rubric (Optional)</h3>
-        <div class="form-group" style="background: #fefcfb; border-radius: 12px; border: 1px dashed #e5e7eb; padding: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px;">
-            <div>
-                <div style="font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 4px;">
-                    Attach a rubric to this assignment
-                </div>
-                <div style="font-size: 13px; color: #6b7280;">
-                    Use a rubric to break the grade into criteria. You can switch between weighted and unweighted criteria inside the rubric editor.
-                </div>
-                {% if assignment.rubric %}
-                    <div style="margin-top: 8px; font-size: 12px; color: #059669; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                        <i class="fa-solid fa-circle-check"></i> Rubric already configured for this assignment.
-                    </div>
-                {% endif %}
+        <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
+            Use the same inline rubric builder as create-assignment. Your criteria are saved with this form.
+        </p>
+        <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: #374151;">
+                    <input type="checkbox" name="rubric_is_weighted" id="id_rubric_is_weighted" class="form-check-input" onchange="syncRubricColumnMode()" {% if rubric_is_weighted_prefill %}checked{% endif %}>
+                    Weighted rubric (each row: max points + weight %; weights must total 100%)
+                </label>
             </div>
-            <div>
-                <a href="{% url 'assignment_rubric' assignment_id=assignment.id %}"
-                   class="btn-secondary"
-                   style="white-space: nowrap; display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-pen-to-square"></i> Configure Rubric
-                </a>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb; background: #fff;">
+                            <th style="text-align: left; padding: 10px 8px; color: #374151;">Criterion name</th>
+                            <th id="rubricColPoints" style="text-align: right; padding: 10px 8px; color: #374151; width: 120px;">Max points</th>
+                            <th id="rubricColWeight" style="text-align: right; padding: 10px 8px; color: #374151; width: 120px; display: none;">Weight %</th>
+                            <th style="width: 56px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rubricRowsBody"></tbody>
+                </table>
             </div>
+            <button type="button" class="btn-secondary" onclick="addRubricRow()" style="margin-top: 12px;">
+                <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Add criterion
+            </button>
+            <a href="{% url 'configure_rubric_comments' assignment.id %}" class="btn-secondary" style="margin-top: 12px; margin-left: 8px; text-decoration: none;">
+                <i class="fa-regular fa-comment-dots" style="margin-right: 6px;"></i> Configure score-based comments
+            </a>
+            <input type="hidden" name="rubric_criteria_json" id="rubricCriteriaJson" value="{{ rubric_criteria_json_prefill|default:'[]' }}">
         </div>
 
         <!-- SECTION 4: Environment -->
@@ -470,14 +485,28 @@
         </div>
 
         <div class="btn-action-group">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap: wrap;">
+                <label for="duplicate_course_id" class="form-label" style="margin:0;">Duplicate to my class:</label>
+                <select id="duplicate_course_id" name="duplicate_course_id" class="form-control" style="width: 260px; padding: 10px 12px;">
+                    <option value="">Select class</option>
+                    {% for c in duplicate_course_options %}
+                    <option value="{{ c.id }}">{{ c.code_title_label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" name="action" value="duplicate" class="btn-secondary">
+                    <i class="fa-regular fa-copy" style="margin-right: 8px;"></i> Duplicate
+                </button>
+            </div>
+            <div class="btn-action-right">
             {% if assignment.course %}
             <a href="{% if request.user_role == 'FACULTY' %}{% url 'professor_course' assignment.course.id %}{% elif request.user_role == 'STUDENT' %}{% url 'student_course' assignment.course.id %}{% else %}{% url 'ga_course' assignment.course.id %}{% endif %}"
                 class="btn-secondary">Cancel</a>
             {% else %}
             <a href="{% url 'assignments_dashboard' %}" class="btn-secondary">Cancel</a>
             {% endif %}
-            <button type="submit" class="btn-primary"><i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i>
+            <button type="submit" name="action" value="save" class="btn-primary"><i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i>
                 Save Changes</button>
+            </div>
         </div>
     </form>
 </div>
@@ -488,6 +517,102 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
+    function addRubricRow(prefill) {
+        var tbody = document.getElementById('rubricRowsBody');
+        var tr = document.createElement('tr');
+        tr.className = 'rubric-row';
+        tr.innerHTML =
+            '<td style="padding: 8px;"><input type="text" class="form-control rubric-name" placeholder="e.g. Correctness" style="width:100%;box-sizing:border-box;"></td>' +
+            '<td style="padding: 8px;" class="rubric-cell-points"><input type="number" class="form-control rubric-max" min="0.5" step="0.5" value="5" style="width:100%;text-align:right;"></td>' +
+            '<td style="padding: 8px; display: none;" class="rubric-cell-weight"><input type="number" class="form-control rubric-weight" min="0" max="100" step="0.5" placeholder="0" style="width:100%;text-align:right;"></td>' +
+            '<td style="padding: 8px; text-align: center;"><button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 13px;" onclick="this.closest(\'tr\').remove(); prepareRubricJson();" title="Remove">&times;</button></td>';
+        if (prefill && typeof prefill === 'object') {
+            var nm = tr.querySelector('.rubric-name');
+            var mp = tr.querySelector('.rubric-max');
+            var wt = tr.querySelector('.rubric-weight');
+            if (nm) nm.value = prefill.name || '';
+            if (mp && prefill.max_points !== undefined && prefill.max_points !== null) mp.value = prefill.max_points;
+            if (wt && prefill.weight !== undefined && prefill.weight !== null) wt.value = prefill.weight;
+        }
+        tbody.appendChild(tr);
+        syncRubricColumnMode();
+        tr.querySelectorAll('input').forEach(function (inp) {
+            inp.addEventListener('input', prepareRubricJson);
+            inp.addEventListener('change', prepareRubricJson);
+        });
+        prepareRubricJson();
+    }
+
+    function syncRubricColumnMode() {
+        var weightedEl = document.getElementById('id_rubric_is_weighted');
+        if (!weightedEl || !document.getElementById('rubricColPoints')) return;
+        var weighted = weightedEl.checked;
+        document.getElementById('rubricColPoints').style.display = '';
+        document.getElementById('rubricColWeight').style.display = weighted ? '' : 'none';
+        document.querySelectorAll('.rubric-cell-points').forEach(function (td) { td.style.display = ''; });
+        document.querySelectorAll('.rubric-cell-weight').forEach(function (td) { td.style.display = weighted ? '' : 'none'; });
+        prepareRubricJson();
+    }
+
+    function prepareRubricJson() {
+        var weightedEl = document.getElementById('id_rubric_is_weighted');
+        var outEl = document.getElementById('rubricCriteriaJson');
+        if (!weightedEl || !outEl) return;
+        var weighted = weightedEl.checked;
+        var rows = document.querySelectorAll('#rubricRowsBody tr');
+        var out = [];
+        rows.forEach(function (tr) {
+            var nameEl = tr.querySelector('.rubric-name');
+            var name = (nameEl && nameEl.value || '').trim();
+            if (!name) return;
+            var maxEl = tr.querySelector('.rubric-max');
+            var mp = parseFloat(maxEl && maxEl.value) || 0;
+            if (weighted) {
+                var wEl = tr.querySelector('.rubric-weight');
+                var w = parseFloat(wEl && wEl.value) || 0;
+                out.push({ name: name, max_points: mp, weight: w });
+            } else {
+                out.push({ name: name, max_points: mp });
+            }
+        });
+        outEl.value = JSON.stringify(out);
+    }
+
+    function submitEditAssignment(ev) {
+        var submitter = ev && ev.submitter ? ev.submitter : null;
+        if (submitter && submitter.value === 'duplicate') {
+            var target = document.getElementById('duplicate_course_id');
+            if (!target || !target.value) {
+                alert('Please choose one of your classes to duplicate this assignment into.');
+                if (ev && ev.preventDefault) ev.preventDefault();
+                return false;
+            }
+            return true;
+        }
+        prepareRubricJson();
+        var weightedEl = document.getElementById('id_rubric_is_weighted');
+        if (!weightedEl || weightedEl.checked) return true;
+        var apEl = document.querySelector('#editAssignmentForm [name="points"]');
+        var ap = parseFloat(apEl && apEl.value) || 0;
+        var raw = document.getElementById('rubricCriteriaJson').value;
+        var rows = [];
+        try {
+            rows = JSON.parse(raw || '[]');
+        } catch (e) {
+            return true;
+        }
+        var sum = 0;
+        rows.forEach(function (r) {
+            sum += parseFloat(r.max_points) || 0;
+        });
+        if (ap > 0 && sum - ap > 0.01) {
+            alert('Unweighted rubric: the sum of criterion points (' + sum + ') cannot exceed the assignment total (' + ap + ').');
+            if (ev && ev.preventDefault) ev.preventDefault();
+            return false;
+        }
+        return true;
+    }
+
     // Initialize data from template
     const allStudents = [
         {% for member in course_students %}
@@ -866,6 +991,16 @@
         // Initial setup
         renderGroups();
         toggleGroupUI();
+        syncRubricColumnMode();
+        var rubricPrefillRaw = '{{ rubric_criteria_json_prefill|default:"[]"|escapejs }}';
+        try {
+            var rubricPrefillRows = JSON.parse(rubricPrefillRaw || '[]');
+            if (Array.isArray(rubricPrefillRows) && rubricPrefillRows.length > 0) {
+                rubricPrefillRows.forEach(function (row) { addRubricRow(row); });
+            }
+        } catch (e) {
+            // keep rubric builder empty if malformed
+        }
     });
 </script>
 

@@ -455,7 +455,7 @@
         <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: #374151;">
-                    <input type="checkbox" name="rubric_is_weighted" id="id_rubric_is_weighted" class="form-check-input" onchange="syncRubricColumnMode()">
+                    <input type="checkbox" name="rubric_is_weighted" id="id_rubric_is_weighted" class="form-check-input" onchange="syncRubricColumnMode()" {% if rubric_is_weighted_prefill %}checked{% endif %}>
                     Weighted rubric (each row: max points + weight %; weights must total 100%)
                 </label>
             </div>
@@ -475,7 +475,7 @@
             <button type="button" class="btn-secondary" onclick="addRubricRow()" style="margin-top: 12px;">
                 <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Add criterion
             </button>
-            <input type="hidden" name="rubric_criteria_json" id="rubricCriteriaJson" value="[]">
+            <input type="hidden" name="rubric_criteria_json" id="rubricCriteriaJson" value="{{ rubric_criteria_json_prefill|default:'[]' }}">
         </div>
 
         <div class="btn-action-group">
@@ -495,7 +495,7 @@
     ];
     let groups = [];
 
-    function addRubricRow() {
+    function addRubricRow(prefill) {
         var tbody = document.getElementById('rubricRowsBody');
         var tr = document.createElement('tr');
         tr.className = 'rubric-row';
@@ -504,6 +504,14 @@
             '<td style="padding: 8px;" class="rubric-cell-points"><input type="number" class="form-control rubric-max" min="0.5" step="0.5" value="5" style="width:100%;text-align:right;"></td>' +
             '<td style="padding: 8px; display: none;" class="rubric-cell-weight"><input type="number" class="form-control rubric-weight" min="0" max="100" step="0.5" placeholder="0" style="width:100%;text-align:right;"></td>' +
             '<td style="padding: 8px; text-align: center;"><button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 13px;" onclick="this.closest(\'tr\').remove(); prepareRubricJson();" title="Remove">&times;</button></td>';
+        if (prefill && typeof prefill === 'object') {
+            var nm = tr.querySelector('.rubric-name');
+            var mp = tr.querySelector('.rubric-max');
+            var wt = tr.querySelector('.rubric-weight');
+            if (nm) nm.value = prefill.name || '';
+            if (mp && prefill.max_points !== undefined && prefill.max_points !== null) mp.value = prefill.max_points;
+            if (wt && prefill.weight !== undefined && prefill.weight !== null) wt.value = prefill.weight;
+        }
         tbody.appendChild(tr);
         syncRubricColumnMode();
         tr.querySelectorAll('input').forEach(function (inp) {
@@ -1080,6 +1088,19 @@
         // Initial setup
         toggleGroupUI();
         syncRubricColumnMode();
+
+        // Restore rubric rows after server-side validation errors.
+        var prefillRaw = '{{ rubric_criteria_json_prefill|default:"[]"|escapejs }}';
+        try {
+            var prefillRows = JSON.parse(prefillRaw || '[]');
+            if (Array.isArray(prefillRows) && prefillRows.length > 0) {
+                prefillRows.forEach(function (row) {
+                    addRubricRow(row);
+                });
+            }
+        } catch (e) {
+            // no-op: keep empty rubric if malformed prefill
+        }
     });
 </script>
 
