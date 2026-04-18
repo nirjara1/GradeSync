@@ -13,6 +13,8 @@ from django.db import transaction
 
 from professor.models import UserProfile
 
+from admin_dashboard.audit import log_audit
+
 UserModel = get_user_model()
 
 PortalRole = Literal['student', 'instructor', 'admin']
@@ -161,6 +163,12 @@ def handle_role_post(request, actor: User) -> bool:
 
     ok, msg = apply_portal_role(target=target, portal_role=portal_role, actor=actor)
     if ok:
+        log_audit(
+            "portal_role_set",
+            actor=actor,
+            object_repr=target.username,
+            detail=f"portal_role={portal_role}",
+        )
         messages.success(request, msg)
     else:
         messages.error(request, msg)

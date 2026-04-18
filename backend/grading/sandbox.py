@@ -16,6 +16,65 @@ import time
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_LANGUAGE_IMAGES = {
+    "python": "python:3.10-alpine",
+    "java": "eclipse-temurin:17-jdk",
+}
+
+
+def resolve_sandbox_runtime(language: str) -> dict:
+    """
+    Combine items.ExecutionEnvironment (limits, network) with ProgrammingLanguage
+    (image + per-language limits) for the live Docker runner.
+    """
+    defaults = {
+        "timeout_seconds": 10,
+        "mem_limit": "128m",
+        "image": _DEFAULT_LANGUAGE_IMAGES.get(language),
+        "network_disabled": True,
+    }
+    if language not in _DEFAULT_LANGUAGE_IMAGES:
+        return defaults
+
+    try:
+        from django.db.models import Q
+
+        from items.models import ExecutionEnvironment, ProgrammingLanguage
+
+        ee = ExecutionEnvironment.load()
+        mem_map_mb = {"512 MB": 512, "1 GB": 1024, "2 GB": 2048, "4 GB": 4096}
+        mem_mb = mem_map_mb.get(ee.memory_limit, 1024)
+        timeout_sec = max(1, int(ee.execution_timeout or 10))
+
+        qs = ProgrammingLanguage.objects.filter(status=True).order_by("id")
+        if language == "python":
+            pl = (
+                qs.filter(Q(container_image__icontains="python") | Q(name__icontains="Python")).first()
+                or qs.first()
+            )
+        else:
+            pl = (
+                qs.filter(Q(container_image__icontains="java") | Q(name__icontains="Java")).first()
+                or qs.first()
+            )
+
+        image = (pl.container_image.strip() if pl and pl.container_image else None) or defaults["image"]
+        if pl and pl.memory_limit_mb:
+            mem_mb = max(mem_mb, int(pl.memory_limit_mb))
+        if pl and pl.time_limit_ms:
+            timeout_sec = max(timeout_sec, max(1, (int(pl.time_limit_ms) + 999) // 1000))
+
+        mem_limit = f"{max(32, min(mem_mb, 8192))}m"
+        return {
+            "timeout_seconds": timeout_sec,
+            "mem_limit": mem_limit,
+            "image": image,
+            "network_disabled": not bool(ee.network_access),
+        }
+    except Exception as exc:
+        logger.warning("resolve_sandbox_runtime fallback: %s", exc)
+        return defaults
+
 # Base dir for temp execution dirs — must be bind-mounted into the web container from the host
 # so that when we mount it into the student container, the host path has our files (see docker-compose).
 SANDBOX_BASE_DIR = os.environ.get("GRADESYNC_SANDBOX_DIR", "/tmp/gradesync_sandbox")
@@ -44,13 +103,8 @@ class SandboxExecutor:
     TIMEOUT_SECONDS = 10
     MEMORY_LIMIT = '128m'
     
-    # Docker image mappings for different languages
-    # Use stable, widely-available tags
-    LANGUAGE_IMAGES = {
-        'python': 'python:3.10-alpine',
-        # Eclipse Temurin is the current official OpenJDK distribution on Docker Hub
-        'java': 'eclipse-temurin:17-jdk',
-    }
+    # Docker image mappings for different languages (defaults; runtime may override via admin ProgrammingLanguage)
+    LANGUAGE_IMAGES = dict(_DEFAULT_LANGUAGE_IMAGES)
     
     def __init__(self):
         """Initialize Docker client."""
@@ -142,7 +196,13 @@ class SandboxExecutor:
                 'execution_time': 0.0,
                 'error': f'Language {language} not supported',
             }
-        
+
+        rt = resolve_sandbox_runtime(language)
+        mem_limit = rt["mem_limit"]
+        wait_timeout = rt["timeout_seconds"]
+        image = rt["image"]
+        network_disabled = rt["network_disabled"]
+
         container = None
         start_time = time.time()
         
@@ -171,7 +231,6 @@ class SandboxExecutor:
                 with open(code_file, 'w', encoding='utf-8') as f:
                     f.write(container_code)
 
-                image = self.LANGUAGE_IMAGES[language]
                 try:
                     self.client.images.get(image)
                 except docker.errors.ImageNotFound:
@@ -185,9 +244,9 @@ class SandboxExecutor:
                     image,
                     command=['sh', '-c', run_cmd],
                     stdin_open=False,
-                    mem_limit=self.MEMORY_LIMIT,
-                    memswap_limit=self.MEMORY_LIMIT,
-                    network_disabled=True,
+                    mem_limit=mem_limit,
+                    memswap_limit=mem_limit,
+                    network_disabled=network_disabled,
                     read_only=False,
                     tmpfs={'/tmp': 'size=32m,mode=1777'},
                     volumes={
@@ -205,7 +264,7 @@ class SandboxExecutor:
                     result = container.start()
                     
                     # Wait for container with timeout
-                    exit_code = container.wait(timeout=self.TIMEOUT_SECONDS)
+                    exit_code = container.wait(timeout=wait_timeout)
                     
                     # Get output
                     output = container.logs(stdout=True, stderr=False).decode('utf-8', errors='replace')
@@ -228,7 +287,7 @@ class SandboxExecutor:
                         return {
                             'success': False,
                             'stdout': '',
-                            'stderr': f'Execution timeout after {self.TIMEOUT_SECONDS} seconds',
+                            'stderr': f'Execution timeout after {wait_timeout} seconds',
                             'exit_code': -1,
                             'execution_time': execution_time,
                             'error': 'Timeout - code took too long to execute',

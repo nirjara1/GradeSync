@@ -12,7 +12,56 @@
 </div>
 {% endif %}
 
-<p class="console-page-intro">All <strong>course shells</strong> from the faculty app are listed below. Edit <strong>term</strong>, <strong>faculty owner</strong>, and <strong>archive</strong> state, then click <strong>Save</strong> on that row.</p>
+<p class="console-page-intro">All <strong>course shells</strong> are listed below. Staff can create an empty shell, edit <strong>term</strong> / <strong>faculty</strong> / <strong>archive</strong>, or delete a mistaken row. Faculty can still create shells from the professor dashboard.</p>
+
+{% if duplicate_course_groups %}
+<section class="console-section" aria-labelledby="dup-heading">
+    <h2 id="dup-heading" class="roles-section-title">Possible duplicate shells (same code, section, term)</h2>
+    {% for group in duplicate_course_groups %}
+    <div class="accounts-table-container" style="margin-bottom:1rem;">
+        <table class="accounts-table">
+            <thead><tr><th>Course</th><th>ID</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for course in group %}
+                <tr>
+                    <td>{{ course.code_title_label }}</td>
+                    <td class="muted">{{ course.pk }}</td>
+                    <td>
+                        <form method="post" onsubmit="return confirm('Delete this course shell? This cannot be undone.');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_course">
+                            <input type="hidden" name="course_id" value="{{ course.pk }}">
+                            <button type="submit" class="roles-save-btn" style="background:var(--ulm-maroon);color:#fff;">Delete duplicate</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<section class="console-section" aria-labelledby="create-heading">
+    <h2 id="create-heading" class="roles-section-title">Create empty course shell</h2>
+    <form method="post" class="console-inline-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_course_shell">
+        <label>Code <input type="text" name="new_code" maxlength="20" class="courses-term-input" placeholder="e.g. CSCI3010"></label>
+        <label>Section <input type="text" name="new_section" maxlength="10" class="courses-term-input" placeholder="001"></label>
+        <label>Title <input type="text" name="new_title" maxlength="200" class="courses-term-input" style="min-width:220px;" placeholder="Course title"></label>
+        <label>Term <input type="text" name="new_term" maxlength="50" class="courses-term-input" placeholder="Fall 2026"></label>
+        <label>Faculty owner
+            <select name="new_professor_id" class="courses-faculty-select">
+                {% for u in faculty_users %}
+                <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit" class="console-action-btn console-action-btn-primary">Create shell</button>
+    </form>
+</section>
 
 <div class="accounts-table-container courses-console-table-wrap">
     <table class="accounts-table courses-console-table">
@@ -54,11 +103,17 @@
                     </select>
                 </td>
                 <td class="col-actions">
-                    <form method="post" id="course-form-{{ course.pk }}" class="courses-save-form">
+                    <form method="post" id="course-form-{{ course.pk }}" class="courses-save-form" style="display:inline-block;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="update_course">
                         <input type="hidden" name="course_id" value="{{ course.pk }}">
                         <button type="submit" class="roles-save-btn">Save</button>
+                    </form>
+                    <form method="post" style="display:inline-block;margin-left:6px;" onsubmit="return confirm('Delete this course shell permanently?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_course">
+                        <input type="hidden" name="course_id" value="{{ course.pk }}">
+                        <button type="submit" class="roles-save-btn" style="background:#444;color:#fff;">Delete</button>
                     </form>
                 </td>
             </tr>

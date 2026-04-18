@@ -32,7 +32,14 @@ def submission_is_late(assignment: "Assignment", submission: "Submission") -> bo
     due = effective_due(assignment)
     if due is None:
         return False
-    return submission.submission_time > due
+    try:
+        from admin_dashboard.models import SystemSettings
+
+        grace_h = int(SystemSettings.load().global_late_grace_hours or 0)
+    except Exception:
+        grace_h = 0
+    cutoff = due + timezone.timedelta(hours=grace_h)
+    return submission.submission_time > cutoff
 
 
 def assignment_submission_report_status(

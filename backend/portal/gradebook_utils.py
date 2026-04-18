@@ -14,7 +14,12 @@ if TYPE_CHECKING:
     from professor.models import Course
 
 
-def course_grade_totals(assignments: list, submission_by_assignment: dict[int, Any]) -> tuple[Optional[float], float, float]:
+def course_grade_totals(
+    assignments: list,
+    submission_by_assignment: dict[int, Any],
+    *,
+    respect_grade_release: bool = False,
+) -> tuple[Optional[float], float, float]:
     """
     Returns (overall_percentage_or_none, points_earned, points_possible).
     Mirrors weighted handling in grading.views.student_course_report.
@@ -29,6 +34,8 @@ def course_grade_totals(assignments: list, submission_by_assignment: dict[int, A
     total_weight_earned = 0.0
 
     for a in assignments:
+        if respect_grade_release and not getattr(a, "grades_released_to_students", True):
+            continue
         total_points_possible += float(a.points or 0)
         sub = submission_by_assignment.get(a.id)
         score = None
@@ -132,7 +139,7 @@ def build_student_course_gradebook_section(
                 }
             )
 
-    pct, earned, possible = course_grade_totals(assignments, sub_by_aid)
+    pct, earned, possible = course_grade_totals(assignments, sub_by_aid, respect_grade_release=True)
 
     rows = []
     for a in assignments:
@@ -166,10 +173,15 @@ def build_student_course_gradebook_section(
             if sub
             else []
         )
-        has_feedback = bool(feedback_text or rubric_scores)
+        released = getattr(a, "grades_released_to_students", True)
+        has_feedback = bool(feedback_text or rubric_scores) and released
 
-        score_num = float(grade.score) if grade else None
-        if has_feedback and grade:
+        score_num = (
+            float(grade.score)
+            if grade and getattr(a, "grades_released_to_students", True)
+            else None
+        )
+        if has_feedback and grade and released:
             feedback_payload[str(a.id)] = {
                 "assignmentName": a.name,
                 "body": feedback_text,

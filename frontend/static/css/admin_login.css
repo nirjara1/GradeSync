@@ -18,7 +18,7 @@ body {
 
 /* ── MAIN MAROON HEADER ── */
 .main-header {
-    background-color: #860029;
+    background-color: var(--ulm-maroon);
     width: 100%;
     padding: 22px 40px;
     display: flex;
@@ -70,7 +70,7 @@ body {
 }
 
 .secondary-header span {
-    color: #860029;
+    color: var(--ulm-maroon);
     font-size: 15px;
     font-weight: 500;
 }
@@ -87,7 +87,7 @@ body {
 /* ── SIGN-IN CARD ── */
 .login-card {
     background-color: #ffffff;
-    border-top: 4px solid #860029;
+    border-top: 4px solid var(--ulm-maroon);
     border-radius: 6px;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
     padding: 28px 36px 26px;
@@ -96,7 +96,7 @@ body {
 }
 
 .card-title {
-    color: #860029;
+    color: var(--ulm-maroon);
     font-size: 20px;
     font-weight: 700;
     text-align: center;
@@ -108,7 +108,7 @@ body {
 
 .title-rule {
     border: none;
-    border-top: 1.5px solid #860029;
+    border-top: 1.5px solid var(--ulm-maroon);
     margin-bottom: 12px;
 }
 
@@ -201,7 +201,7 @@ body {
 
 .form-group input[type="text"]:focus,
 .form-group input[type="password"]:focus {
-    border-color: #860029;
+    border-color: var(--ulm-maroon);
     box-shadow: 0 0 0 3px rgba(134, 0, 41, 0.09);
     background-color: #fff;
 }
@@ -216,7 +216,7 @@ body {
     background: none;
     border: none;
     cursor: pointer;
-    color: #860029;
+    color: var(--ulm-maroon);
     font-size: 15px;
     font-weight: 700;
     text-transform: uppercase;
@@ -236,7 +236,7 @@ body {
 }
 
 .card-links a {
-    color: #860029;
+    color: var(--ulm-maroon);
     font-size: 12px;
     text-decoration: none;
 }

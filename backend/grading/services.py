@@ -96,9 +96,22 @@ def run_submission_analysis(submission_id) -> dict:
                 logger.warning(f"Analysis unavailable for submission {submission_id}: No valid scripts found inside ZIP or raw upload.")
                 return {"status": "skipped", "submission_id": submission_id, "reason": "No valid source code"}
 
+            try:
+                from admin_dashboard.models import SystemSettings
+
+                sys_settings = SystemSettings.load()
+            except Exception:
+                sys_settings = None
+            ai_enabled = sys_settings is None or sys_settings.ai_code_detection_enabled
+            plag_enabled = sys_settings is None or sys_settings.plagiarism_detection_enabled
+
             # 1. AI Detection
             try:
-                if HAS_AI_MODULES:
+                if not ai_enabled:
+                    submission.ai_likelihood_score = None
+                    submission.ai_confidence_score = None
+                    submission.ai_explanation = "AI code detection disabled by institution settings."
+                elif HAS_AI_MODULES:
                     model_dir = os.path.join(settings.BASE_DIR.parent, 'autograder_ai', 'ai', 'models')
                     model_path = os.path.join(model_dir, 'rf_model.pkl')
                     logger.info(f"Searching for AI model at: {model_path}")
@@ -126,7 +139,12 @@ def run_submission_analysis(submission_id) -> dict:
 
             # 2. Plagiarism Detection
             try:
-                if HAS_AI_MODULES:
+                if not plag_enabled:
+                    submission.plagiarism_score = None
+                    submission.plagiarism_confidence_score = None
+                    submission.plagiarism_match_info = "Plagiarism detection disabled by institution settings."
+                    submission.plagiarism_match = None
+                elif HAS_AI_MODULES:
                     other_submissions = Submission.objects.filter(assignment=submission.assignment).exclude(id=submission.id)
                     logger.info(f"Checking similarity against {other_submissions.count()} other submissions")
                     
@@ -233,6 +251,14 @@ def run_bulk_plagiarism_analysis(assignment_id: int) -> dict:
     """
     if not HAS_AI_MODULES:
         return {"status": "error", "reason": "AI modules not available"}
+
+    try:
+        from admin_dashboard.models import SystemSettings
+
+        if not SystemSettings.load().plagiarism_detection_enabled:
+            return {"status": "skipped", "reason": "Plagiarism detection disabled in system settings"}
+    except Exception:
+        pass
 
     try:
         assignment = Assignment.objects.get(id=assignment_id)

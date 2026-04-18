@@ -7,7 +7,22 @@ import openpyxl
 class AssignmentForm(forms.ModelForm):
     class Meta:
         model = Assignment
-        fields = ['name', 'description', 'course', 'points', 'is_weighted', 'weight', 'due_date', 'no_due_date', 'allowed_language', 'public_test_data', 'status', 'is_group_assignment', 'max_group_size']
+        fields = [
+            'name',
+            'description',
+            'course',
+            'points',
+            'is_weighted',
+            'weight',
+            'due_date',
+            'no_due_date',
+            'allowed_language',
+            'public_test_data',
+            'status',
+            'grades_released_to_students',
+            'is_group_assignment',
+            'max_group_size',
+        ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'placeholder': 'Assignment Title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Description'}),
@@ -20,6 +35,7 @@ class AssignmentForm(forms.ModelForm):
             'allowed_language': forms.RadioSelect(attrs={'class': 'form-check-input'}),
             'public_test_data': forms.FileInput(attrs={'class': 'form-control-file'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
+            'grades_released_to_students': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_group_assignment': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'max_group_size': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
         }
@@ -28,6 +44,7 @@ class AssignmentForm(forms.ModelForm):
             'is_weighted': 'Weighted grading',
             'weight': 'Weight (%)',
             'max_group_size': 'Maximum Group Size',
+            'grades_released_to_students': 'Release numeric grades to students',
         }
 
     def __init__(self, *args, **kwargs):
@@ -40,9 +57,17 @@ class AssignmentForm(forms.ModelForm):
         self.fields['weight'].required = False
         self.fields['is_group_assignment'].required = False
         self.fields['max_group_size'].required = False
+        self.fields['grades_released_to_students'].required = False
 
     def clean(self):
         cleaned = super().clean()
+        if self.instance.pk is None and "grades_released_to_students" not in self.data:
+            try:
+                from admin_dashboard.models import SystemSettings
+
+                cleaned["grades_released_to_students"] = SystemSettings.load().default_grades_released_to_students
+            except Exception:
+                cleaned["grades_released_to_students"] = True
         is_weighted = bool(cleaned.get("is_weighted"))
         weight = cleaned.get("weight")
         if is_weighted:

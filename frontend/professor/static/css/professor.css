@@ -1,16 +1,16 @@
-/* Colors */
+/* Colors — ULM digital brand (see static/css/ulm-brand.css); load ulm-brand.css before this file */
 :root {
-    --maroon: #840029;
-    --gold: #fdb913;
-    --light-gray: #e8e8e8;
+    --maroon: var(--ulm-maroon, #840029);
+    --gold: var(--ulm-gold, #fdb913);
+    --light-gray: var(--ulm-neutral-light, #dad8d6);
     --white: #ffffff;
     --bg-main: #f4f6f8;
     --bg-card: #ffffff;
     --bg-header: #ffffff;
     --bg-hover: rgba(132, 0, 41, 0.05);
-    --text-main: #333333;
-    --text-muted: #666666;
-    --border-color: #eaeaea;
+    --text-main: var(--ulm-neutral-dark, #646469);
+    --text-muted: var(--ulm-neutral-mid-dark, #a9a8a9);
+    --border-color: var(--ulm-neutral-mid-light, #c8c9c7);
     --red-link: #d32f2f;
     --divider-color: #000000;
     --space-xs: 4px;
@@ -24,7 +24,7 @@
 }
 
 [data-theme='dark'] {
-    --maroon: #b31b46;
+    --maroon: #840029;
     --gold: #fdb913;
     --light-gray: #333333;
     --white: #1e1e1e;
@@ -43,7 +43,7 @@ body,
 html {
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--ulm-font-ui, "Arial Narrow", Arial, sans-serif);
     background-color: var(--bg-main);
     color: var(--text-main);
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -264,13 +264,18 @@ html {
 }
 
 .logout-link {
-    color: var(--red-link);
+    color: var(--ulm-maroon, #840029);
     font-weight: bold;
     text-decoration: none;
+    font-family: var(--ulm-font-heading, "Barlow Condensed", Arial, sans-serif);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 13px;
 }
 
 .logout-link:hover {
     text-decoration: underline;
+    color: var(--ulm-gold, #fdb913);
 }
 
 /* MAIN LAYOUT */

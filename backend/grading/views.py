@@ -810,8 +810,26 @@ def assignment_detail_view(request, pk):
                     monaco_files = json.loads(monaco_files_json)
                 except json.JSONDecodeError:
                     pass
-            
+
             if files or monaco_files:
+                try:
+                    from admin_dashboard.models import SystemSettings
+                    from admin_dashboard.upload_policy import validate_submission_upload
+
+                    ss = SystemSettings.load()
+                    ok_u, err_u = validate_submission_upload(
+                        uploaded_files=files,
+                        monaco_files=monaco_files,
+                        allowed_language=assignment.allowed_language,
+                        max_mb=ss.max_submission_file_mb,
+                        extensions_csv=ss.allowed_upload_extensions,
+                    )
+                    if not ok_u:
+                        messages.error(request, err_u)
+                        return redirect("assignment_detail", pk=pk)
+                except Exception as exc:
+                    logger.warning("Upload policy check skipped: %s", exc)
+
                 if assignment.is_group_assignment and submission:
                     messages.error(request, "Your group already has a submission. Ask faculty to reopen submissions.")
                     return redirect('assignment_detail', pk=pk)
@@ -825,7 +843,11 @@ def assignment_detail_view(request, pk):
                 
                 # Link the actual submitter for record keeping even in groups
                 submission.student = student_profile
-                
+
+                old_storage_name = None
+                if submission.pk and submission.file_path:
+                    old_storage_name = submission.file_path.name
+
                 file_contents = {}
                 for f in files:
                     file_contents[f.name] = f.read()
@@ -836,7 +858,24 @@ def assignment_detail_view(request, pk):
                         extension = ".java" if assignment.allowed_language == "java" else ".py"
                         name = f"submission_{len(file_contents)}{extension}"
                     file_contents[name] = mf.get('content', '').encode('utf-8')
-                
+
+                if old_storage_name:
+                    from django.core.files.base import ContentFile
+                    from django.core.files.storage import default_storage
+
+                    from admin_dashboard.models import SubmissionFileVersion
+
+                    try:
+                        with default_storage.open(old_storage_name, "rb") as fh:
+                            blob = fh.read()
+                        SubmissionFileVersion.objects.create(
+                            submission=submission,
+                            snapshot_file=ContentFile(blob, name=os.path.basename(old_storage_name)),
+                            notes="Prior upload before resubmit",
+                        )
+                    except Exception as snap_err:
+                        logger.warning("Could not snapshot prior submission file: %s", snap_err)
+
                 if len(file_contents) > 1:
                     import zipfile
                     import io
@@ -2298,7 +2337,6 @@ def test_result_detail_api(request, submission_id, test_case_id):
 
 
 @login_required
-@login_required
 def student_course_report(request, course_id, student_id):
     """
     Detailed report for an instructor to see a specific student's 
@@ -2344,24 +2382,23 @@ def student_course_report(request, course_id, student_id):
     
     for a in assignments:
         sub = submission_lookup.get(a.id)
-        total_points_possible += float(a.points or 0)
-        
-        score = None
+        hide_score = is_self_student and not getattr(a, "grades_released_to_students", True)
         status = assignment_submission_report_status(a, sub)
-        if sub:
-            g = getattr(sub, 'grade', None)
-            if g:
-                score = float(g.score)
-                total_points_earned += score
-        
-        # Weighted grading: compute weighted earned/possible using weight (%)
-        if use_weighted and a.is_weighted and a.weight and float(a.points or 0) > 0:
-            w = float(a.weight)
-            total_weight_possible += w
-            if score is not None:
-                pct = max(0.0, min(1.0, float(score) / float(a.points)))
-                total_weight_earned += pct * w
+        score = None
 
+        if not hide_score:
+            total_points_possible += float(a.points or 0)
+            if sub:
+                g = getattr(sub, "grade", None)
+                if g:
+                    score = float(g.score)
+                    total_points_earned += score
+            if use_weighted and a.is_weighted and a.weight and float(a.points or 0) > 0:
+                w = float(a.weight)
+                total_weight_possible += w
+                if score is not None:
+                    pct = max(0.0, min(1.0, float(score) / float(a.points)))
+                    total_weight_earned += pct * w
         report_data.append({
             'assignment': a,
             'submission': sub,
@@ -2425,31 +2462,33 @@ def download_student_course_report(request, course_id, student_id):
     total_weight_earned = 0.0
     use_weighted = assignments.filter(is_weighted=True).exists()
     rows = []
+    hide_scores = is_self_student
 
     for a in assignments:
         sub = submission_lookup.get(a.id)
         points_possible = float(a.points or 0)
-        total_points_possible += points_possible
-
-        score = None
         status = assignment_submission_report_status(a, sub)
-        if sub:
-            g = getattr(sub, "grade", None)
-            if g:
-                score = float(g.score)
-                total_points_earned += score
+        score = None
+        row_hidden = hide_scores and not getattr(a, "grades_released_to_students", True)
 
-        if use_weighted and a.is_weighted and a.weight and points_possible > 0:
-            w = float(a.weight)
-            total_weight_possible += w
-            if score is not None:
-                pct = max(0.0, min(1.0, float(score) / points_possible))
-                total_weight_earned += pct * w
+        if not row_hidden:
+            total_points_possible += points_possible
+            if sub:
+                g = getattr(sub, "grade", None)
+                if g:
+                    score = float(g.score)
+                    total_points_earned += score
+            if use_weighted and a.is_weighted and a.weight and points_possible > 0:
+                w = float(a.weight)
+                total_weight_possible += w
+                if score is not None:
+                    pct = max(0.0, min(1.0, float(score) / points_possible))
+                    total_weight_earned += pct * w
 
         rows.append({
             "assignment": a,
             "status": status,
-            "score": score,
+            "score": None if row_hidden else score,
             "points_possible": points_possible,
         })
 

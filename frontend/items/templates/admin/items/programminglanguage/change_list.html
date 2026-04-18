@@ -41,12 +41,12 @@
                     {% endif %}
                 </td>
                 <td class="col-actions">
-                    <a href="{{ obj.pk }}/change/" class="action-link" style="color: #860029;">Edit</a> | 
+                    <a href="{{ obj.pk }}/change/" class="action-link" style="color: var(--ulm-maroon);">Edit</a> | 
                     {% if obj.status %}
                     <!-- Can add disable logic if built, but link to delete for now or just generic style -->
-                    <a href="{{ obj.pk }}/delete/" class="action-link" style="color: #860029;">Disable</a>
+                    <a href="{{ obj.pk }}/delete/" class="action-link" style="color: var(--ulm-maroon);">Disable</a>
                     {% else %}
-                    <a href="{{ obj.pk }}/delete/" class="action-link" style="color: #860029;">Enable</a>
+                    <a href="{{ obj.pk }}/delete/" class="action-link" style="color: var(--ulm-maroon);">Enable</a>
                     {% endif %}
                 </td>
             </tr>

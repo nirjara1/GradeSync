@@ -78,7 +78,7 @@ def student_dashboard_view(request):
 
         for enrollment in enrollments:
             course_assignments = assignments_by_course.get(enrollment.course_id, [])
-            pct, _, _ = course_grade_totals(course_assignments, sub_by_assignment)
+            pct, _, _ = course_grade_totals(course_assignments, sub_by_assignment, respect_grade_release=True)
             enrollment.course_percentage = pct
     else:
         for enrollment in enrollments:

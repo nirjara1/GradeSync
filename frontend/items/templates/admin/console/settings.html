@@ -4,7 +4,95 @@
 <h1 class="page-title">{{ page_title }}</h1>
 <hr class="page-rule">
 
-<p class="console-page-intro">General console preferences and support links will live here.</p>
+{% if messages %}
+<div class="console-messages" role="status">
+    {% for message in messages %}
+    <div class="console-message console-message-{{ message.tags|default:'info' }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<p class="console-page-intro">Institution-wide defaults for integrity checks, uploads, late policy grace period, and new-assignment grade release. Faculty can still override per assignment where noted.</p>
+
+<section class="console-section" aria-labelledby="sys-heading">
+    <h2 id="sys-heading" class="roles-section-title">System settings</h2>
+    <form method="post" class="console-settings-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_system_settings">
+        <div class="form-group" style="margin-bottom:12px;">
+            <label><input type="checkbox" name="plagiarism_detection_enabled" {% if settings.plagiarism_detection_enabled %}checked{% endif %}> Plagiarism detection enabled</label>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label><input type="checkbox" name="ai_code_detection_enabled" {% if settings.ai_code_detection_enabled %}checked{% endif %}> AI-generated code detection enabled</label>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label><input type="checkbox" name="default_grades_released_to_students" {% if settings.default_grades_released_to_students %}checked{% endif %}> New assignments default to <strong>released</strong> numeric grades for students</label>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label>Max upload (MB)
+                <input type="number" name="max_submission_file_mb" min="1" max="500" value="{{ settings.max_submission_file_mb }}" class="courses-term-input" style="width:100px;">
+            </label>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label>Allowed extensions (comma-separated)
+                <input type="text" name="allowed_upload_extensions" value="{{ settings.allowed_upload_extensions }}" class="courses-term-input" style="min-width:280px;">
+            </label>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label>Late grace (hours after due before “late”)
+                <input type="number" name="global_late_grace_hours" min="0" max="168" value="{{ settings.global_late_grace_hours }}" class="courses-term-input" style="width:100px;">
+            </label>
+        </div>
+        <button type="submit" class="console-action-btn console-action-btn-primary">Save settings</button>
+    </form>
+</section>
+
+<section class="console-section" aria-labelledby="notice-heading">
+    <h2 id="notice-heading" class="roles-section-title">System notices (dashboard alerts)</h2>
+    <form method="post" style="margin-bottom:1.5rem;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_notice">
+        <div class="form-group" style="margin-bottom:8px;">
+            <input type="text" name="notice_title" placeholder="Title" maxlength="200" class="courses-term-input" style="min-width:240px;" required>
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+            <textarea name="notice_body" rows="3" placeholder="Body (optional)" class="courses-term-input" style="width:100%;max-width:560px;"></textarea>
+        </div>
+        <label>Severity
+            <select name="notice_severity" class="courses-faculty-select">
+                <option value="info">Info</option>
+                <option value="warning">Warning</option>
+                <option value="danger">Danger</option>
+            </select>
+        </label>
+        <button type="submit" class="roles-save-btn">Add notice</button>
+    </form>
+
+    <div class="accounts-table-container">
+        <table class="accounts-table">
+            <thead><tr><th>Title</th><th>Severity</th><th>Active</th><th>Action</th></tr></thead>
+            <tbody>
+                {% for n in notices %}
+                <tr>
+                    <td>{{ n.title }}</td>
+                    <td>{{ n.severity }}</td>
+                    <td>{% if n.is_active %}yes{% else %}no{% endif %}</td>
+                    <td>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle_notice">
+                            <input type="hidden" name="notice_id" value="{{ n.pk }}">
+                            <button type="submit" class="roles-save-btn">{% if n.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">No notices yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 
 <details class="console-advanced-panel">
     <summary class="console-advanced-summary">Advanced settings</summary>
@@ -14,6 +102,7 @@
             <li><a href="{% url 'admin:index' %}">Model admin index</a></li>
             <li><a href="{% url 'admin:database_maintenance' %}">Database maintenance</a></li>
             <li><a href="{% url 'admin:archive_class' %}">Archive class</a></li>
+            <li>Failed login attempts are recorded by <strong>django-axes</strong> (see <code>axes_accessattempt</code> in the database or register Axes models on your admin site).</li>
         </ul>
     </div>
 </details>

@@ -1,0 +1,81 @@
+{% extends "admin/console/base_console.html" %}
+
+{% block console_content %}
+<h1 class="page-title">{{ page_title }}</h1>
+<hr class="page-rule">
+
+<nav class="console-page-toolbar" aria-label="Related console pages">
+    <a href="{% url 'admin:console_audit' %}" class="console-action-btn console-action-btn-primary">Audit &amp; health</a>
+</nav>
+
+<p class="console-page-intro">Read-only view of recent autograde failures and Celery task errors. Does not modify student submissions.</p>
+
+<section class="console-section" aria-labelledby="failed-sub-heading">
+    <h2 id="failed-sub-heading" class="roles-section-title">Failed submissions (grading pipeline)</h2>
+    <div class="accounts-table-container">
+        <table class="accounts-table">
+            <thead>
+                <tr>
+                    <th>When</th>
+                    <th>Course / assignment</th>
+                    <th>Student</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in failed_submissions %}
+                <tr>
+                    <td>{{ s.submission_time }}</td>
+                    <td>
+                        {% if s.assignment.course %}{{ s.assignment.course.code_title_label }} — {% endif %}{{ s.assignment.name }}
+                    </td>
+                    <td>{% if s.student and s.student.user %}{{ s.student.user.get_full_name|default:s.student.user.username }}{% else %}—{% endif %}</td>
+                    <td>{{ s.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">No failed submissions in the recent window.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="console-section" aria-labelledby="celery-fail-heading">
+    <h2 id="celery-fail-heading" class="roles-section-title">Failed Celery tasks</h2>
+    <div class="accounts-table-container">
+        <table class="accounts-table">
+            <thead>
+                <tr>
+                    <th>Finished</th>
+                    <th>Task</th>
+                    <th>Task id</th>
+                    <th>Exception</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in failed_celery_tasks %}
+                <tr>
+                    <td>{{ t.date_done }}</td>
+                    <td>{{ t.task_name }}</td>
+                    <td><code>{{ t.task_id }}</code></td>
+                    <td class="muted" style="max-width:420px;word-break:break-word;">{{ t.traceback|default:t.result|truncatechars:200 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">No failed tasks recorded (django-celery-results) or backend unavailable.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="console-section" aria-labelledby="audit-err-heading">
+    <h2 id="audit-err-heading" class="roles-section-title">Audit events mentioning errors</h2>
+    <ul class="console-advanced-links">
+        {% for e in error_audit_events %}
+        <li><strong>{{ e.created_at }}</strong> — {{ e.action }} — {{ e.object_repr }} — {{ e.detail|truncatechars:160 }}</li>
+        {% empty %}
+        <li>No matching audit rows.</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}

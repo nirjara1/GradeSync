@@ -6,6 +6,7 @@ from items.admin import gradesync_admin
 from portal import views as portal_views
 
 urlpatterns = [
+    path("hijack/", include("hijack.urls")),
     path("admin/login/", RedirectView.as_view(url="/accounts/login/")),
     path("admin/", gradesync_admin.urls),
     path("", include("items.urls")),

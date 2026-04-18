@@ -6,7 +6,81 @@
 
 <nav class="console-page-toolbar" aria-label="Audit shortcuts">
     <a href="{% url 'admin:admin_logentry_changelist' %}" class="console-action-btn console-action-btn-primary"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Django admin log entries</a>
+    <a href="{% url 'admin:console_system_errors' %}" class="console-action-btn"><i class="fa-solid fa-bug" aria-hidden="true"></i> System errors (read-only)</a>
 </nav>
 
-<p class="console-page-intro">Autograding health, job requeue, and extended audit trails will be added here. Admin log entries cover model changes logged by Django.</p>
+<p class="console-page-intro">Django <strong>LogEntry</strong> covers model saves in admin. <strong>Audit events</strong> record console actions (settings, courses, requeues). Failed <strong>Celery</strong> rows come from <code>django-celery-results</code>.</p>
+
+<section class="console-section" aria-labelledby="celery-fail-heading">
+    <h2 id="celery-fail-heading" class="roles-section-title">Failed autograding jobs (Celery)</h2>
+    <div class="accounts-table-container">
+        <table class="accounts-table">
+            <thead>
+                <tr>
+                    <th>Finished</th>
+                    <th>Task</th>
+                    <th>Args</th>
+                    <th>Requeue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in failed_celery_tasks %}
+                <tr>
+                    <td>{{ t.date_done }}</td>
+                    <td style="max-width:280px;word-break:break-all;">{{ t.task_name }}</td>
+                    <td style="max-width:200px;word-break:break-all;"><code>{{ t.task_args|truncatechars:80 }}</code></td>
+                    <td>
+                        {% if "bulk_grade_assignment" in t.task_name %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="requeue_bulk_grade">
+                            <input type="hidden" name="task_id" value="{{ t.task_id }}">
+                            <button type="submit" class="roles-save-btn">Requeue bulk grade</button>
+                        </form>
+                        {% else %}
+                        <span class="muted">Manual retry only</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">No failed tasks on record.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="console-section" aria-labelledby="audit-local-heading">
+    <h2 id="audit-local-heading" class="roles-section-title">Console audit events</h2>
+    <ul class="console-advanced-links">
+        {% for e in recent_audit_events %}
+        <li><strong>{{ e.created_at }}</strong> — {{ e.action }} — {{ e.actor|default:"—" }} — {{ e.object_repr }} — {{ e.detail|truncatechars:120 }}</li>
+        {% empty %}
+        <li>No audit rows yet.</li>
+        {% endfor %}
+    </ul>
+</section>
+
+<section class="console-section" aria-labelledby="django-log-heading">
+    <h2 id="django-log-heading" class="roles-section-title">Recent Django admin changes</h2>
+    <div class="accounts-table-container">
+        <table class="accounts-table">
+            <thead>
+                <tr><th>Time</th><th>User</th><th>Action</th><th>Object</th></tr>
+            </thead>
+            <tbody>
+                {% for le in recent_log_entries %}
+                <tr>
+                    <td>{{ le.action_time }}</td>
+                    <td>{{ le.user }}</td>
+                    <td>{{ le.get_action_flag_display }}</td>
+                    <td>{{ le.object_repr|truncatechars:80 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">No log entries.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 {% endblock %}

@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <title>Logout Successful | GradeSync</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/ulm-brand.css' %}?v=1.1">
     <style>
         * {
             box-sizing: border-box;
@@ -14,13 +14,13 @@
         }
 
         body {
-            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            font-family: var(--ulm-font-ui), Arial, sans-serif;
             background-color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            color: #222;
+            color: var(--ulm-neutral-dark);
         }
 
         .logout-container {
@@ -51,7 +51,7 @@
 
         .btn-login {
             display: inline-block;
-            background-color: #860029; /* ULM Maroon */
+            background-color: var(--ulm-maroon);
             color: #ffffff;
             text-decoration: none;
             padding: 12px 28px;
@@ -66,7 +66,7 @@
         }
     </style>
 </head>
-<body>
+<body class="gradesync-app">
 
     <div class="logout-container">
         <!-- SVG Icon (Person walking out door) -->

@@ -31,6 +31,22 @@
             <div class="metric-card-value" data-metric="plagiarism_flags">{{ metrics.plagiarism_flags }}</div>
             <p class="metric-card-hint">Submissions with score &gt; 0 or match text</p>
         </article>
+        <article class="metric-card">
+            <div class="metric-card-label">Failed grading runs (30d)</div>
+            <div class="metric-card-value">{{ metrics.failed_submissions_recent }}</div>
+            <p class="metric-card-hint">Submissions stuck in <code>failed</code> status</p>
+        </article>
+        <article class="metric-card">
+            <div class="metric-card-label">Approx. submission storage</div>
+            <div class="metric-card-value">
+                {% if metrics.approx_storage_bytes >= 1073741824 %}
+                    {% widthratio metrics.approx_storage_bytes 1073741824 1 %} GB
+                {% else %}
+                    {% widthratio metrics.approx_storage_bytes 1048576 1 %} MB
+                {% endif %}
+            </div>
+            <p class="metric-card-hint">Uploaded files + resubmit snapshots (on-disk sizes)</p>
+        </article>
         <article class="metric-card metric-card-wide">
             <div class="metric-card-label">System alerts</div>
             {% if system_alerts %}
@@ -44,9 +60,27 @@
             </ul>
             {% else %}
             <div class="metric-card-value metric-card-value-muted">No active alerts</div>
-            <p class="metric-card-hint">Maintenance windows and notices will appear here when wired to the API.</p>
+            <p class="metric-card-hint">Create notices from <a href="{% url 'admin:console_settings' %}">Settings</a>.</p>
             {% endif %}
         </article>
     </div>
+</section>
+
+<section class="dashboard-metrics metric-card-wide" aria-label="Submission trend">
+    <h2 class="roles-section-title">Submission trend (last {{ metrics.submission_trend_days }} days)</h2>
+    {% if metrics.submission_trend %}
+    <div class="accounts-table-container">
+        <table class="accounts-table">
+            <thead><tr><th>Day</th><th>Submissions</th></tr></thead>
+            <tbody>
+                {% for row in metrics.submission_trend %}
+                <tr><td>{{ row.day }}</td><td>{{ row.count }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="metric-card-hint">No submissions in this window.</p>
+    {% endif %}
 </section>
 {% endblock %}

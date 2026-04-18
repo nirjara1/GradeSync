@@ -6,95 +6,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GradeSync - Grading Assistant Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
     <!-- Use FontAwesome for sidebar icons to match screenshot -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.0">
+    <link rel="stylesheet" href="{% static 'css/ulm-brand.css' %}?v=1.1">
+    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.4">
     <link rel="stylesheet" href="{% static 'css/ux-system.css' %}?v=1.0">
     <script defer src="{% static 'js/ux-system.js' %}?v=1.0"></script>
-    <style>
-        .logout-confirm-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(17, 17, 17, 0.55);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1100;
-            padding: 16px;
-            backdrop-filter: blur(1.5px);
-        }
-
-        .logout-confirm-overlay.show {
-            display: flex;
-        }
-
-        .logout-confirm-modal {
-            width: min(100%, 430px);
-            border-radius: 12px;
-            border: 1px solid #d8b36a;
-            background: #ffffff;
-            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
-
-        .logout-confirm-header {
-            background: #7b0d2e;
-            color: #fff;
-            font-weight: 700;
-            padding: 12px 18px;
-            border-bottom: 2px solid #d8b36a;
-        }
-
-        .logout-confirm-body {
-            color: #222222;
-            background: #ffffff;
-            padding: 16px 18px;
-            font-size: 16px;
-            font-weight: 500;
-            line-height: 1.45;
-        }
-
-        .logout-confirm-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            padding: 0 18px 18px;
-        }
-
-        .logout-btn-cancel,
-        .logout-btn-confirm {
-            border-radius: 8px;
-            padding: 8px 14px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-            border: 1px solid transparent;
-            transition: transform 0.15s ease, box-shadow 0.2s ease;
-        }
-
-        .logout-btn-cancel {
-            background: #f7f7f7;
-            color: #1f1f1f;
-            border-color: #b9b9b9;
-        }
-
-        .logout-btn-confirm {
-            background: #7b0d2e;
-            color: #fff;
-            border-color: #7b0d2e;
-        }
-
-        .logout-btn-cancel:hover,
-        .logout-btn-confirm:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
-        }
-    </style>
 </head>
 
-<body>
+<body class="gradesync-app">
 
     <header class="top-header">
         <div class="maroon-band">

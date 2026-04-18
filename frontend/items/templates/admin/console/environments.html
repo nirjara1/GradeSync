@@ -9,5 +9,37 @@
     <a href="{% url 'admin:items_programminglanguage_changelist' %}" class="console-action-btn"><i class="fa-solid fa-code" aria-hidden="true"></i> Programming languages</a>
 </nav>
 
-<p class="console-page-intro">Runner limits, uploads, and LMS-related settings will be consolidated here. The execution environment form remains the source of truth until this page owns those fields.</p>
+<p class="console-page-intro">The <strong>autograde Docker runner</strong> reads these records on each execution: timeout and memory from the execution environment, container image and per-language limits from programming languages (see <code>grading/sandbox.py</code>).</p>
+
+<section class="console-section" aria-labelledby="ee-live-heading">
+    <h2 id="ee-live-heading" class="roles-section-title">Execution environment (singleton)</h2>
+    <ul class="roles-perm-list">
+        <li><strong>CPU</strong> — {{ ee.cpu_limit }}</li>
+        <li><strong>Memory</strong> — {{ ee.memory_limit }} (mapped to Docker <code>mem_limit</code>)</li>
+        <li><strong>Timeout</strong> — {{ ee.execution_timeout }}s for <code>container.wait</code></li>
+        <li><strong>Network in sandbox</strong> — {% if ee.network_access %}enabled{% else %}disabled{% endif %}</li>
+    </ul>
+</section>
+
+<section class="console-section" aria-labelledby="pl-heading">
+    <h2 id="pl-heading" class="roles-section-title">Programming languages (runner images)</h2>
+    <div class="accounts-table-container">
+        <table class="accounts-table">
+            <thead><tr><th>Name</th><th>Image</th><th>Memory MB</th><th>Time ms</th><th>Enabled</th></tr></thead>
+            <tbody>
+                {% for pl in programming_languages %}
+                <tr>
+                    <td>{{ pl.name }} {{ pl.version }}</td>
+                    <td style="word-break:break-all;">{{ pl.container_image }}</td>
+                    <td>{{ pl.memory_limit_mb }}</td>
+                    <td>{{ pl.time_limit_ms }}</td>
+                    <td>{% if pl.status %}yes{% else %}no{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5">No rows (seed via Django admin).</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 {% endblock %}

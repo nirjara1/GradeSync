@@ -5,25 +5,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GradeSync - Courses</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/ulm-brand.css' %}?v=1.1">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         /* Base styles */
         :root {
-            --primary-red: #860029;
+            --primary-red: var(--ulm-maroon);
             --primary-red-hover: #6b0020;
-            --ulm-gold: #c39a3f;
-            --bg-gradient-1: #f3f4f6;
-            --bg-gradient-2: #e5e7eb;
+            --bg-gradient-1: var(--ulm-neutral-light);
+            --bg-gradient-2: #f0f0f0;
             --bg-gradient-3: #ebd4d4;
             --card-bg: #ffffff;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
+            --text-dark: var(--ulm-neutral-dark);
+            --text-muted: var(--ulm-neutral-mid-dark);
+            --border-color: var(--ulm-neutral-mid-light);
             --sidebar-width: 120px;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--ulm-font-ui), "Arial Narrow", Arial, sans-serif; }
 
         body {
             background: linear-gradient(-45deg, var(--bg-gradient-1), var(--bg-gradient-2), var(--bg-gradient-3), var(--bg-gradient-1));
@@ -118,7 +117,7 @@
 
     </style>
 </head>
-<body>
+<body class="gradesync-app">
     <header class="portal-header">
         <img src="{% static 'images/logo.png' %}" alt="ULM Logo" class="portal-logo" onerror="this.src='https://upload.wikimedia.org/wikipedia/en/thumb/5/52/Louisiana_–_Monroe_Warhawks_logo.svg/1200px-Louisiana_–_Monroe_Warhawks_logo.svg.png'">
     </header>

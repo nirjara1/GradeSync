@@ -6,22 +6,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GradeSync - Create Account</title>
-    <!-- Use a modern, clean font like Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/ulm-brand.css' %}?v=1.1">
     <style>
         :root {
-            --primary-red: #860029;
-            /* ULM Maroon */
-            --primary-red-hover: #860029;
-            --ulm-gold: #c39a3f;
-            --bg-gray: #f3f4f6;
+            --primary-red: var(--ulm-maroon);
+            --primary-red-hover: #6b0020;
+            --bg-gray: var(--ulm-neutral-light);
             --card-bg: #ffffff;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #d1d5db;
-            --focus-ring: rgba(139, 0, 0, 0.15);
+            --text-dark: var(--ulm-neutral-dark);
+            --text-muted: var(--ulm-neutral-mid-dark);
+            --border-color: var(--ulm-neutral-mid-light);
+            --focus-ring: rgba(132, 0, 41, 0.15);
         }
 
         #background-container {
@@ -47,7 +42,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
+            font-family: var(--ulm-font-ui), "Arial Narrow", Arial, sans-serif;
         }
 
         body {

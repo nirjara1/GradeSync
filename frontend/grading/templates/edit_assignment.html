@@ -371,6 +371,19 @@
             </div>
         </div>
 
+        <div class="form-row" style="align-items: center;">
+            <div class="form-col" style="flex: 1;">
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    {{ form.grades_released_to_students }}
+                    <label for="{{ form.grades_released_to_students.id_for_label }}" class="form-label" style="margin: 0;">
+                        Release numeric grades and detailed rubric feedback to students
+                    </label>
+                </div>
+                <div style="color: #dc2626; font-size: 13px;">{{ form.grades_released_to_students.errors }}</div>
+                <p style="color: #64748b; font-size: 13px; margin: 8px 0 0 0;">When unchecked, students still see submission status (including late/missing) but scores stay hidden until you turn this on.</p>
+            </div>
+        </div>
+
         <!-- SECTION 3: Logistics -->
         <h3 class="section-header"><i class="fa-regular fa-calendar-check"></i> 3. Deadlines & Grading</h3>
 

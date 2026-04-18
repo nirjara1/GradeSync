@@ -9,6 +9,7 @@ Shared admin console nav (eight routes). Active state from resolver url_name.
     <a href="{% url 'admin:console_roles' %}" class="nav-item console-nav-item {% if url_name == 'console_roles' %}active{% endif %}"><i class="fa-solid fa-user-shield" aria-hidden="true"></i><span>Roles &amp; permissions</span></a>
     <a href="{% url 'admin:console_environments' %}" class="nav-item console-nav-item {% if url_name == 'console_environments' %}active{% endif %}"><i class="fa-solid fa-microchip" aria-hidden="true"></i><span>Environments</span></a>
     <a href="{% url 'admin:console_audit' %}" class="nav-item console-nav-item {% if url_name == 'console_audit' %}active{% endif %}"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i><span>Audit &amp; health</span></a>
+    <a href="{% url 'admin:console_system_errors' %}" class="nav-item console-nav-item {% if url_name == 'console_system_errors' %}active{% endif %}"><i class="fa-solid fa-bug" aria-hidden="true"></i><span>System errors</span></a>
     <a href="{% url 'admin:console_integrity' %}" class="nav-item console-nav-item {% if url_name == 'console_integrity' %}active{% endif %}"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>Integrity</span></a>
     <a href="{% url 'admin:console_settings' %}" class="nav-item console-nav-item {% if url_name == 'console_settings' %}active{% endif %}"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>Settings</span></a>
 </aside>

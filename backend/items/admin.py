@@ -34,6 +34,7 @@ class GradeSyncAdminSite(admin.AdminSite):
             path('roles/', self.admin_view(self.console_roles_view), name='console_roles'),
             path('environments/', self.admin_view(self.console_environments_view), name='console_environments'),
             path('audit/', self.admin_view(self.console_audit_view), name='console_audit'),
+            path('system-errors/', self.admin_view(self.console_system_errors_view), name='console_system_errors'),
             path('integrity/', self.admin_view(self.console_integrity_view), name='console_integrity'),
             path('settings/', self.admin_view(self.console_settings_view), name='console_settings'),
             path('execution-environment/', self.admin_view(self.execution_environment_view), name='execution_environment'),
@@ -67,6 +68,10 @@ class GradeSyncAdminSite(admin.AdminSite):
     def console_audit_view(self, request):
         from admin_dashboard import views as console_views
         return console_views.console_audit(request, self)
+
+    def console_system_errors_view(self, request):
+        from admin_dashboard import views as console_views
+        return console_views.console_system_errors(request, self)
 
     def console_integrity_view(self, request):
         from admin_dashboard import views as console_views
@@ -338,6 +343,7 @@ from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
+from hijack.contrib.admin import HijackUserAdminMixin
 
 
 class GradeSyncUserChangeForm(forms.ModelForm):
@@ -353,7 +359,7 @@ class GradeSyncUserCreationForm(UserCreationForm):
         fields = ("username", "first_name", "last_name", "email")
 
 
-class GradeSyncUserAdmin(UserAdmin):
+class GradeSyncUserAdmin(HijackUserAdminMixin, UserAdmin):
     """
     Superuser flag cannot be granted or cleared here (see save_model).
     Staff/active/permissions are managed elsewhere (e.g. Roles console), not on this form.

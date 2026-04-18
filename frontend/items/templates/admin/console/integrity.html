@@ -3,5 +3,37 @@
 {% block console_content %}
 <h1 class="page-title">{{ page_title }}</h1>
 <hr class="page-rule">
-<p class="console-page-intro">Global integrity toggles and cross-course plagiarism / AI-detection alerts will appear here.</p>
+
+<p class="console-page-intro">Cross-course view of submissions with elevated <strong>AI-likelihood</strong> or <strong>plagiarism</strong> signals. Per-assignment drill-down remains in the grading UI.</p>
+
+<div class="accounts-table-container">
+    <table class="accounts-table">
+        <thead>
+            <tr>
+                <th>Submitted</th>
+                <th>Course / assignment</th>
+                <th>Student</th>
+                <th>AI %</th>
+                <th>Plagiarism %</th>
+                <th>Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in integrity_rows %}
+            <tr>
+                <td>{{ s.submission_time }}</td>
+                <td>
+                    {% if s.assignment.course %}{{ s.assignment.course.code_title_label }} — {% endif %}{{ s.assignment.name }}
+                </td>
+                <td>{% if s.student and s.student.user %}{{ s.student.user.email|default:s.student.user.username }}{% else %}—{% endif %}</td>
+                <td>{% if s.ai_likelihood_score is not None %}{{ s.ai_likelihood_score|floatformat:0 }}{% else %}—{% endif %}</td>
+                <td>{% if s.plagiarism_score is not None %}{{ s.plagiarism_score|floatformat:0 }}{% else %}—{% endif %}</td>
+                <td><a href="{% url 'assignment_detail' s.assignment_id %}">Open assignment</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">No submissions crossed the reporting thresholds.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

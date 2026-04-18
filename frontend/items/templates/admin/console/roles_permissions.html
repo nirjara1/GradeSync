@@ -69,4 +69,16 @@
         </tbody>
     </table>
 </div>
+
+{% if permission_rules %}
+<section class="console-section" aria-labelledby="builtin-perm-heading">
+    <h2 id="builtin-perm-heading" class="roles-section-title">Shipped access model (reference)</h2>
+    <p class="metric-card-hint">Fine-grained policy engines can extend this list; routing today uses staff flags plus <code>UserProfile.role</code>.</p>
+    <ul class="roles-perm-list">
+        {% for rule in permission_rules %}
+        <li><strong>{{ rule.title }}</strong> ({{ rule.slug }}) — {{ rule.description }}</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
 {% endblock %}

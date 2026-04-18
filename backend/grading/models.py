@@ -65,7 +65,10 @@ class Assignment(models.Model):
     public_test_data = models.FileField(upload_to='test_data/', null=True, blank=True)
     expected_outputs = models.FileField(upload_to='expected_outputs/', null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='published')
-    is_group_assignment = models.BooleanField(default=False)
+    grades_released_to_students = models.BooleanField(
+        default=True,
+        help_text="When off, students see submission status but numeric scores stay hidden until you release grades.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

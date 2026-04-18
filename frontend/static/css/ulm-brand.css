@@ -1,0 +1,275 @@
+/**
+ * University of Louisiana Monroe — official digital palette & typography for GradeSync
+ * Sources: ULM Primary (Warhawk Maroon #840029, Heritage Gold #FDB913), Neutral greys,
+ *          Univers + Garamond (with Arial / Times web fallbacks per ULM web materials).
+ * Headline feel: Barlow Condensed (free, condensed sans similar to Univers for the web).
+ * Body: Arial / system sans for readability; long-form serif: EB Garamond + Garamond stack.
+ * Apply to shells using <body class="gradesync-app">.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap");
+
+:root {
+    /* Primary — official hex */
+    --ulm-maroon: #840029;
+    --ulm-maroon-rgb: 134, 0, 41;
+    --ulm-maroon-hover: #6b0020;
+    --ulm-gold: #fdb913;
+    --ulm-gold-rgb: 253, 185, 19;
+
+    /* Neutrals — official */
+    --ulm-neutral-dark: #646469;
+    --ulm-neutral-mid-dark: #a9a8a9;
+    --ulm-neutral-mid-light: #c8c9c7;
+    --ulm-neutral-light: #dad8d6;
+
+    /* Body copy (guideline: black on light) */
+    --ulm-body-text: #1a1a1a;
+
+    /**
+     * Web stacks (Univers / Garamond licensed; ULM notes Arial for site copy):
+     * - Headlines: Barlow Condensed → Arial Narrow → Arial (bold condensed headline rhythm).
+     * - UI / tables: Arial family (Univers 47 Light Condensed analogue).
+     * - Formal prose: EB Garamond → Garamond → Times (Garamond Premier Pro guideline).
+     */
+    --ulm-font-heading: "Barlow Condensed", "Arial Narrow", "Franklin Gothic Medium", Arial, sans-serif;
+    --ulm-font-ui: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    --ulm-font-display: "Barlow Condensed", "Arial Black", "Arial Narrow", Arial, sans-serif;
+    --ulm-font-serif: "EB Garamond", Garamond, "Palatino Linotype", "Times New Roman", Times, serif;
+
+    /* Backward compatibility */
+    --maroon: var(--ulm-maroon);
+    --gold: var(--ulm-gold);
+}
+
+/* ── Global app shell (student / faculty / GA / admin console) ── */
+body.gradesync-app {
+    font-family: var(--ulm-font-ui);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ulm-body-text);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Headline hierarchy: maroon, condensed, caps (ULM headline structure) */
+body.gradesync-app h1:not(.header-left-title),
+body.gradesync-app .page-title,
+body.gradesync-app .roles-section-title,
+body.gradesync-app .console-page-title,
+body.gradesync-app .section-header,
+body.gradesync-app .metric-card-label,
+body.gradesync-app .app-title {
+    font-family: var(--ulm-font-heading);
+    color: var(--ulm-maroon);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+body.gradesync-app h2,
+body.gradesync-app h3:not(.section-title-modern) {
+    font-family: var(--ulm-font-heading);
+    color: var(--ulm-maroon);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+/* Assignment / content titles: sentence case, still maroon + condensed */
+body.gradesync-app .assignment-title,
+body.gradesync-app .assignment-header h1,
+body.gradesync-app .course-card-title,
+body.gradesync-app .assignment-card-title {
+    font-family: var(--ulm-font-heading);
+    color: var(--ulm-maroon);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: none;
+}
+
+/* Gold accent / lede (Heritage Gold callouts) */
+body.gradesync-app .ulm-lede,
+body.gradesync-app .text-ulm-gold,
+body.gradesync-app .console-lede {
+    color: var(--ulm-gold);
+    font-family: var(--ulm-font-heading);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+/* Long-form / policy / help: serif body per Garamond guideline */
+body.gradesync-app .ulm-prose,
+body.gradesync-app .help-prose,
+body.gradesync-app .policy-block {
+    font-family: var(--ulm-font-serif);
+    color: var(--ulm-body-text);
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+body.gradesync-app .muted,
+body.gradesync-app .metric-card-hint,
+body.gradesync-app .text-muted {
+    color: var(--ulm-neutral-mid-dark) !important;
+}
+
+/* Faculty / student header wordmark */
+body.gradesync-app .header-left-title {
+    font-family: var(--ulm-font-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--ulm-maroon);
+}
+
+/* Links: maroon; hover gold underline */
+body.gradesync-app a:not(.nav-item):not(.console-nav-item):not(.btn):not([class*="btn-"]):not(.logout-link) {
+    color: var(--ulm-maroon);
+    text-decoration-color: rgba(132, 0, 41, 0.35);
+}
+
+body.gradesync-app a:not(.nav-item):not(.console-nav-item):not(.btn):not([class*="btn-"]):not(.logout-link):hover {
+    color: var(--ulm-maroon-hover);
+    text-decoration-color: var(--ulm-gold);
+}
+
+/* Focus visible — gold ring (brand accent), maroon inner */
+body.gradesync-app :where(input, select, textarea, button):focus-visible {
+    outline: 2px solid var(--ulm-gold);
+    outline-offset: 2px;
+}
+
+/* Primary actions — maroon fill, gold hairline optional */
+body.gradesync-app .btn-maroon-primary,
+body.gradesync-app button[type="submit"].primary-brand {
+    background-color: var(--ulm-maroon);
+    color: #fff;
+    border: 1px solid var(--ulm-maroon);
+    font-family: var(--ulm-font-heading);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+body.gradesync-app .btn-maroon-primary:hover,
+body.gradesync-app button[type="submit"].primary-brand:hover {
+    background-color: var(--ulm-maroon-hover);
+    border-color: var(--ulm-maroon-hover);
+}
+
+/* Section titles inside grading (modern cards) */
+body.gradesync-app .section-title-modern {
+    font-family: var(--ulm-font-heading);
+    color: var(--ulm-maroon);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+/* Tables — neutral borders */
+body.gradesync-app .accounts-table,
+body.gradesync-app table.data-table {
+    border-color: var(--ulm-neutral-mid-light);
+}
+
+/* ── Logout confirmation (shared across shells) ── */
+body.gradesync-app .logout-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 16px;
+    backdrop-filter: blur(1.5px);
+}
+
+body.gradesync-app .logout-confirm-overlay.show {
+    display: flex;
+}
+
+body.gradesync-app .logout-confirm-modal {
+    width: min(100%, 430px);
+    border-radius: 12px;
+    border: 1px solid var(--ulm-gold);
+    background: #fff;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+body.gradesync-app .logout-confirm-header {
+    background: var(--ulm-maroon);
+    color: #fff;
+    font-family: var(--ulm-font-heading);
+    font-weight: 700;
+    padding: 12px 18px;
+    border-bottom: 2px solid var(--ulm-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+body.gradesync-app .logout-confirm-body {
+    color: var(--ulm-neutral-dark);
+    background: #fff;
+    padding: 16px 18px;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.45;
+    font-family: var(--ulm-font-ui);
+}
+
+body.gradesync-app .logout-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 0 18px 18px;
+}
+
+body.gradesync-app .logout-btn-cancel,
+body.gradesync-app .logout-btn-confirm {
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    border: 1px solid transparent;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    font-family: var(--ulm-font-heading);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+body.gradesync-app .logout-btn-cancel {
+    background: var(--ulm-neutral-light);
+    color: var(--ulm-neutral-dark);
+    border-color: var(--ulm-neutral-mid-dark);
+}
+
+body.gradesync-app .logout-btn-confirm {
+    background: var(--ulm-maroon);
+    color: #fff;
+    border-color: var(--ulm-maroon);
+}
+
+body.gradesync-app .logout-btn-cancel:hover,
+body.gradesync-app .logout-btn-confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
+}
+
+/* Admin console sidebar: condensed uppercase labels */
+body.gradesync-app .console-sidebar .nav-item span {
+    font-family: var(--ulm-font-heading);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+/* Help / long FAQ blocks: optional serif */
+body.gradesync-app .portal-help-body,
+body.gradesync-app .faq-answer {
+    font-family: var(--ulm-font-serif);
+    color: var(--ulm-body-text);
+}
