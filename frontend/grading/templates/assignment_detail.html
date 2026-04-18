@@ -412,6 +412,16 @@
             <div class="section-box">
                 <h3 class="section-title-modern"><i class="fa-solid fa-file-arrow-up"
                         style="color: var(--gs-maroon);"></i>New Submission</h3>
+                {% if latest_submission %}
+                <p style="font-size: 13px; color: #64748b; margin: 0 0 {% if submission_was_late and assignment.due_date and not assignment.no_due_date %}8px{% else %}16px{% endif %}; line-height: 1.5;">
+                    Your submitted files and feedback are on <strong>History & Results</strong>. This editor stays empty for a new upload when your instructor allows it.
+                </p>
+                {% if submission_was_late and assignment.due_date and not assignment.no_due_date %}
+                <p style="font-size: 13px; color: #991b1b; margin: 0 0 16px 0; line-height: 1.5; font-weight: 600;">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right: 6px;"></i>Your last upload was <strong>submitted late</strong> (due {{ assignment.due_date|date:"M j, Y, g:i A" }}).
+                </p>
+                {% endif %}
+                {% endif %}
                 <form id="submissionForm" method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     <p style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: 20px;">
@@ -514,9 +524,23 @@
             <div id="submission-section" class="section-box" style="scroll-margin-top: 100px;">
                 <h3 class="section-title-modern"><i class="fa-solid fa-check-circle"
                         style="color: var(--gs-maroon);"></i>Latest Submission Status</h3>
-                <div
-                    style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-clock"></i><span>Submitted on {{ latest_submission.submission_time|date:"F j, Y, g:i A" }}</span>
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 14px; color: var(--gs-text-muted); margin-bottom: {% if submission_was_late and assignment.due_date and not assignment.no_due_date %}10px{% else %}0{% endif %}; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+                        <span style="display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-clock"></i>
+                            <span>Submitted on {{ latest_submission.submission_time|date:"F j, Y, g:i A" }}</span>
+                        </span>
+                        {% if submission_was_late %}
+                        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 9999px; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Submitted late
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if submission_was_late and assignment.due_date and not assignment.no_due_date %}
+                    <p style="margin: 0; padding: 12px 14px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; font-size: 13px; color: #9a3412; line-height: 1.5;">
+                        This submission was received after the due date of <strong>{{ assignment.due_date|date:"F j, Y, g:i A" }}</strong>.
+                    </p>
+                    {% endif %}
                 </div>
                 {% if latest_submission.grade %}
                 <div
@@ -560,6 +584,11 @@
             <div class="section-box">
                 <h3 class="section-title-modern"><i class="fa-solid fa-eye"
                         style="color: var(--gs-maroon);"></i>Submitted Code Preview</h3>
+                {% if submission_was_late %}
+                <p style="margin: 0 0 14px 0; padding: 10px 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; color: #991b1b; font-weight: 600;">
+                    <i class="fa-solid fa-clock-rotate-left" style="margin-right: 8px;"></i>Shown below is the code from your <strong>late</strong> submission (timestamp above).
+                </p>
+                {% endif %}
                 <div class="editor-wrapper">
                     <div style="display: flex; gap: 4px; border-bottom: 1px solid #334155; padding: 4px 12px; background: #2d3748; border-radius: 12px 12px 0 0;"
                         id="studentPreviewTabs"></div>
@@ -864,22 +893,24 @@
 
     require(['vs/editor/editor.main'], function (monaco) {
         window.monaco = monaco; // Global for helper functions
-        let initialFiles = [];
-        try { initialFiles = JSON.parse(`{{ submission_files_json|escapejs }}` || '[]'); } catch (e) { }
+        let editorSeed = [];
+        let previewFiles = [];
+        try { editorSeed = JSON.parse(`{{ submission_editor_seed_json|escapejs }}` || '[]'); } catch (e) { }
+        try { previewFiles = JSON.parse(`{{ submission_preview_files_json|escapejs }}` || '[]'); } catch (e) { }
         const submissionContainer = document.getElementById('monaco-editor-container-submission');
         if (submissionContainer) {
             editorInstance = monaco.editor.create(submissionContainer, {
                 theme: 'vs-dark', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false, padding: { top: 16 },
                 scrollbar: { alwaysConsumeMouseWheel: false }
             });
-            if (initialFiles.length > 0) { initialFiles.forEach(f => addFile(f.name, f.content, f.language)); switchTab(0); }
+            if (editorSeed.length > 0) { editorSeed.forEach(f => addFile(f.name, f.content, f.language)); switchTab(0); }
             else { addFile(`main${configLang === 'java' ? '.java' : '.py'}`, '', configLang); switchTab(0); }
         }
 
         const previewContainer = document.getElementById('monaco-editor-container-preview');
-        if (previewContainer && initialFiles.length > 0) {
+        if (previewContainer && previewFiles.length > 0) {
             previewEditorInstance = monaco.editor.create(previewContainer, { theme: 'vs-dark', readOnly: true, automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollbar: { alwaysConsumeMouseWheel: false } });
-            const previewModels = initialFiles.map(f => ({ name: f.name, model: monaco.editor.createModel(f.content, f.language) }));
+            const previewModels = previewFiles.map(f => ({ name: f.name, model: monaco.editor.createModel(f.content, f.language) }));
             let activePreview = 0;
             function switchPreview(idx) {
                 activePreview = idx; previewEditorInstance.setModel(previewModels[idx].model);

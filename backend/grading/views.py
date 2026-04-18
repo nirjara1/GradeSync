@@ -8,6 +8,11 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult, AssignmentGroup, AssignmentGroupMember, CourseGroupSet, CourseGroup, CourseGroupMember
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
 from .services import grade_submission, extract_code_from_file, run_submission_analysis
+from .report_status import (
+    assignment_submission_report_status,
+    report_status_csv_label,
+    submission_is_late,
+)
 from .group_services import (
     apply_assignment_groups,
     can_submit_for_group,
@@ -934,8 +939,10 @@ def assignment_detail_view(request, pk):
     else:
         base_template = 'base_grading_assistant.html'
     
-    submission_files_json = json.dumps(submission_files)
-    
+    # Submit-tab Monaco: students always start from a blank editor (submitted code is on History & Results).
+    submission_preview_files_json = json.dumps(submission_files)
+    submission_editor_seed_json = json.dumps([])
+
     can_preview_code = False
     if len(submission_files) > 0:
         can_preview_code = True
@@ -961,13 +968,18 @@ def assignment_detail_view(request, pk):
     can_reopen_group_submissions = (
         course_role in ('INSTRUCTOR', 'GRADING_ASSISTANT') and assignment.is_group_assignment
     )
+    submission_was_late = bool(
+        latest_submission and submission_is_late(assignment, latest_submission)
+    )
     context = {
         'assignment': assignment,
         'submissions': submissions,
         'latest_submission': latest_submission,
+        'submission_was_late': submission_was_late,
         'group_submission_locked': group_submission_locked,
         'can_reopen_group_submissions': can_reopen_group_submissions,
-        'submission_files_json': submission_files_json,
+        'submission_preview_files_json': submission_preview_files_json,
+        'submission_editor_seed_json': submission_editor_seed_json,
         'can_preview_code': can_preview_code,
         'is_instructor': is_instructor,
         'is_student': is_student,
@@ -1056,21 +1068,12 @@ def gradebook_view(request, pk):
             for a in grid_assignments:
                 sub = cell_lookup.get((stu.id, a.id))
                 if not sub:
-                    # If due date has passed, mark as missing; otherwise it's simply not submitted yet
-                    due = getattr(a, 'due_date', None)
-                    if due and due < timezone.now():
-                        status = 'missing'
-                    else:
-                        status = 'not_submitted'
+                    status = assignment_submission_report_status(a, None)
                     score = None
                 else:
                     g = getattr(sub, 'grade', None)
-                    if g:
-                        status = 'graded'
-                        score = float(g.score)
-                    else:
-                        status = 'ungraded'
-                        score = None
+                    score = float(g.score) if g else None
+                    status = assignment_submission_report_status(a, sub)
                 submission_id = sub.id if sub else None
                 cells.append({
                     "assignment": a,
@@ -2344,15 +2347,12 @@ def student_course_report(request, course_id, student_id):
         total_points_possible += float(a.points or 0)
         
         score = None
-        status = 'missing'
+        status = assignment_submission_report_status(a, sub)
         if sub:
             g = getattr(sub, 'grade', None)
             if g:
-                status = 'graded'
                 score = float(g.score)
                 total_points_earned += score
-            else:
-                status = 'ungraded'
         
         # Weighted grading: compute weighted earned/possible using weight (%)
         if use_weighted and a.is_weighted and a.weight and float(a.points or 0) > 0:
@@ -2432,15 +2432,12 @@ def download_student_course_report(request, course_id, student_id):
         total_points_possible += points_possible
 
         score = None
-        status = "missing"
+        status = assignment_submission_report_status(a, sub)
         if sub:
             g = getattr(sub, "grade", None)
             if g:
-                status = "graded"
                 score = float(g.score)
                 total_points_earned += score
-            else:
-                status = "ungraded"
 
         if use_weighted and a.is_weighted and a.weight and points_possible > 0:
             w = float(a.weight)
@@ -2492,7 +2489,7 @@ def download_student_course_report(request, course_id, student_id):
         writer.writerow([
             a.name,
             due,
-            r["status"],
+            report_status_csv_label(r["status"]),
             score_str,
             f"{r['points_possible']:.1f}",
         ])

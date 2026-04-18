@@ -67,18 +67,34 @@
                                 <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #d1fae5; color: #065f46; font-size: 11px; font-weight: 700;">
                                     <i class="fa-solid fa-check-circle" style="margin-right: 4px;"></i> Graded
                                 </span>
+                            {% elif item.status == 'late_graded' %}
+                                <span style="display: inline-flex; flex-direction: column; align-items: center; gap: 6px;">
+                                    <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #d1fae5; color: #065f46; font-size: 11px; font-weight: 700;">
+                                        <i class="fa-solid fa-check-circle" style="margin-right: 4px;"></i> Graded
+                                    </span>
+                                    <span style="display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 9999px; background: #ffedd5; color: #9a3412; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">Late</span>
+                                </span>
                             {% elif item.status == 'ungraded' %}
                                 <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 700;">
                                     <i class="fa-solid fa-clock" style="margin-right: 4px;"></i> Ungraded
                                 </span>
-                            {% elif item.status == 'submitted' %}
-                                <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 700;">
-                                    <i class="fa-solid fa-paper-plane" style="margin-right: 4px;"></i> Submitted
+                            {% elif item.status == 'late_ungraded' %}
+                                <span style="display: inline-flex; flex-direction: column; align-items: center; gap: 6px;">
+                                    <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 700;">
+                                        <i class="fa-solid fa-clock" style="margin-right: 4px;"></i> Ungraded
+                                    </span>
+                                    <span style="display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 9999px; background: #ffedd5; color: #9a3412; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">Late</span>
                                 </span>
-                            {% else %}
+                            {% elif item.status == 'not_submitted' %}
+                                <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #f3f4f6; color: #4b5563; font-size: 11px; font-weight: 700;">
+                                    <i class="fa-solid fa-calendar" style="margin-right: 4px;"></i> Not submitted
+                                </span>
+                            {% elif item.status == 'missing' %}
                                 <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #fee2e2; color: #991b1b; font-size: 11px; font-weight: 700;">
                                     <i class="fa-solid fa-circle-xmark" style="margin-right: 4px;"></i> Missing
                                 </span>
+                            {% else %}
+                                <span style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; background: #f3f4f6; color: #6b7280; font-size: 11px; font-weight: 700;">—</span>
                             {% endif %}
                         </td>
                         <td style="padding: 16px; text-align: center;">
@@ -113,7 +129,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af; font-style: italic;">
+                        <td colspan="6" style="padding: 40px; text-align: center; color: #9ca3af; font-style: italic;">
                             No assignments found for this course.
                         </td>
                     </tr>
@@ -122,7 +138,7 @@
                 {% if report_data %}
                 <tfoot style="background: #f9fafb; border-top: 1px solid #e5e7eb;">
                     <tr>
-                        <td colspan="3" style="padding: 20px 16px; font-weight: 800; text-align: right; color: #374151; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">Course Summary:</td>
+                        <td colspan="4" style="padding: 20px 16px; font-weight: 800; text-align: right; color: #374151; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">Course Summary:</td>
                         <td style="padding: 20px 16px; text-align: center;">
                             <div style="font-weight: 800; font-size: 18px; color: var(--maroon);">
                                 {{ total_points_earned|floatformat:1 }}
@@ -135,6 +151,7 @@
                             </div>
                             <div style="font-weight: 500; color: #9ca3af; font-size: 11px;">Points Possible</div>
                         </td>
+                        <td style="padding: 20px 16px;"></td>
                     </tr>
                 </tfoot>
                 {% endif %}

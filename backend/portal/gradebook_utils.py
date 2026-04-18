@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from grading.models import Assignment, CriterionGrade, Submission
+from grading.report_status import assignment_submission_report_status
 
 if TYPE_CHECKING:
     from grading.models import Student
@@ -139,26 +140,25 @@ def build_student_course_gradebook_section(
         grade = getattr(sub, "grade", None) if sub else None
         points = float(a.points or 0)
 
-        is_late = False
-        if sub:
-            st = sub.submission_time
-            if a.due_date and not a.no_due_date and st > a.due_date:
-                is_late = True
-
+        raw = assignment_submission_report_status(a, sub)
         status_badges = []
-        if grade:
+        if raw == "graded":
             status_key = "graded"
-        elif sub:
+        elif raw == "late_graded":
+            status_key = "graded"
+            status_badges.append("late")
+        elif raw in ("ungraded", "late_ungraded"):
             status_key = "submitted"
             status_badges.append("pending")
-        elif not a.no_due_date and a.due_date and a.due_date < now:
+            if raw == "late_ungraded":
+                status_badges.append("late")
+        elif raw == "missing":
             status_key = "missing"
             status_badges.append("missing")
         else:
             status_key = "upcoming"
 
-        if is_late:
-            status_badges.append("late")
+        is_late = "late" in status_badges
 
         feedback_text = (grade.feedback or "").strip() if grade else ""
         rubric_scores = (
