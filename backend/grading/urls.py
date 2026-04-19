@@ -56,4 +56,11 @@ urlpatterns = [
     # Individual student course report
     path('courses/<int:course_id>/students/<int:student_id>/report/', views.student_course_report, name='student_course_report'),
     path('courses/<int:course_id>/students/<int:student_id>/report/download/', views.download_student_course_report, name='download_student_course_report'),
+
+    # Rubric library (named, reusable rubrics)
+    path('rubrics/', views.rubric_library, name='rubric_library'),
+    path('rubrics/new/', views.rubric_template_create, name='rubric_template_create'),
+    path('rubrics/<int:template_id>/edit/', views.rubric_template_edit, name='rubric_template_edit'),
+    path('rubrics/<int:template_id>/delete/', views.rubric_template_delete, name='rubric_template_delete'),
+    path('api/rubrics/<int:template_id>/', views.rubric_template_detail_api, name='rubric_template_detail_api'),
 ]

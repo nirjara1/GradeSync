@@ -5,7 +5,27 @@ from django.db.models import Max, Q, Count, Avg
 from django.http import HttpResponse, HttpResponseForbidden, FileResponse, Http404, JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, RubricCriterionCommentPreset, TestCase, RuleSet, TestResult, AssignmentGroup, AssignmentGroupMember, CourseGroupSet, CourseGroup, CourseGroupMember
+from .models import (
+    Assignment,
+    Submission,
+    Grade,
+    Student,
+    Rubric,
+    RubricCriterion,
+    CriterionGrade,
+    RubricCriterionCommentPreset,
+    RubricTemplate,
+    RubricTemplateCriterion,
+    RubricTemplateCriterionPreset,
+    TestCase,
+    RuleSet,
+    TestResult,
+    AssignmentGroup,
+    AssignmentGroupMember,
+    CourseGroupSet,
+    CourseGroup,
+    CourseGroupMember,
+)
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
 from .services import grade_submission, extract_code_from_file, run_submission_analysis
 from .report_status import (
@@ -103,12 +123,13 @@ def _save_rubric_from_create_post(request, assignment):
             raise ValueError(err)
 
     rubric = Rubric.objects.create(assignment=assignment, is_weighted=is_weighted)
+    created_criteria = []
     for order, item in enumerate(rows, start=1):
         name = (item.get("name") or "").strip()
         mp = float(item.get("max_points") or 0)
         if is_weighted:
             w = float(item.get("weight") or 0)
-            RubricCriterion.objects.create(
+            crit = RubricCriterion.objects.create(
                 rubric=rubric,
                 name=name,
                 order=order,
@@ -116,13 +137,40 @@ def _save_rubric_from_create_post(request, assignment):
                 weight=w,
             )
         else:
-            RubricCriterion.objects.create(
+            crit = RubricCriterion.objects.create(
                 rubric=rubric,
                 name=name,
                 order=order,
                 max_points=mp,
                 weight=None,
             )
+        created_criteria.append(crit)
+
+    # If the faculty applied a saved rubric template, copy its preset comments
+    # onto the freshly created criteria. Match by name first, then by order so
+    # rename/reorder edits in the assignment form still keep meaningful presets.
+    template_id = (request.POST.get("apply_rubric_template_id") or "").strip()
+    if template_id and created_criteria:
+        try:
+            template = RubricTemplate.objects.get(pk=int(template_id), owner=request.user)
+        except (RubricTemplate.DoesNotExist, ValueError):
+            template = None
+        if template:
+            template_criteria = list(template.criteria.all().order_by('order', 'id'))
+            by_name = {c.name.strip().lower(): c for c in template_criteria}
+            for idx, crit in enumerate(created_criteria):
+                src = by_name.get(crit.name.strip().lower())
+                if src is None and idx < len(template_criteria):
+                    src = template_criteria[idx]
+                if src is None:
+                    continue
+                presets = src.comment_presets.all()
+                for preset in presets:
+                    RubricCriterionCommentPreset.objects.update_or_create(
+                        criterion=crit,
+                        score_value=preset.score_value,
+                        defaults={'comment_text': preset.comment_text},
+                    )
 
 
 def _build_rubric_prefill_from_request(request):
@@ -305,6 +353,32 @@ def _save_rubric_from_edit_post(request, assignment):
         rubric.is_weighted = is_weighted
         rubric.save(update_fields=["is_weighted"])
     _sync_rubric_criteria_from_json_rows(rubric=rubric, is_weighted=is_weighted, rows=rows)
+
+    # Optional: copy comment presets from a saved rubric template the user picked
+    # in the selector. Match by criterion name (case-insensitive) first, then by
+    # order so renamed/reordered criteria still get useful presets.
+    template_id = (request.POST.get("apply_rubric_template_id") or "").strip()
+    if template_id:
+        try:
+            template = RubricTemplate.objects.get(pk=int(template_id), owner=request.user)
+        except (RubricTemplate.DoesNotExist, ValueError):
+            template = None
+        if template:
+            asg_criteria = list(rubric.criteria.all().order_by("order", "id"))
+            tpl_criteria = list(template.criteria.all().order_by("order", "id"))
+            by_name = {c.name.strip().lower(): c for c in tpl_criteria}
+            for idx, crit in enumerate(asg_criteria):
+                src = by_name.get(crit.name.strip().lower())
+                if src is None and idx < len(tpl_criteria):
+                    src = tpl_criteria[idx]
+                if src is None:
+                    continue
+                for preset in src.comment_presets.all():
+                    RubricCriterionCommentPreset.objects.update_or_create(
+                        criterion=crit,
+                        score_value=preset.score_value,
+                        defaults={"comment_text": preset.comment_text},
+                    )
 
 
 def _taught_courses_queryset(user, *, exclude_course_id=None):
@@ -795,12 +869,19 @@ def create_assignment(request, course_id=None):
             initial_data['course'] = course
         form = AssignmentForm(initial=initial_data)
 
+    saved_rubrics = (
+        RubricTemplate.objects.filter(owner=user).order_by('name')
+        if _user_can_manage_rubrics(user)
+        else RubricTemplate.objects.none()
+    )
+
     context = {
         'form': form,
         'course': course,
         'base_template': base_template,
         'course_students': course_students,
         'course_group_sets': course_group_sets,
+        'saved_rubric_templates': saved_rubrics,
         **rubric_prefill,
     }
     return render(request, 'create_assignment.html', context)
@@ -1061,6 +1142,11 @@ def edit_assignment(request, pk):
                     'course_students': CourseMember.objects.filter(course=assignment.course, role_in_course='STUDENT').select_related('user'),
                     'course_group_sets': CourseGroupSet.objects.filter(course=assignment.course).order_by('-created_at'),
                     'duplicate_course_options': duplicate_course_options,
+                    'saved_rubric_templates': (
+                        RubricTemplate.objects.filter(owner=user).order_by('name')
+                        if _user_can_manage_rubrics(user)
+                        else RubricTemplate.objects.none()
+                    ),
                     **rubric_prefill,
                 })
 
@@ -1144,12 +1230,17 @@ def edit_assignment(request, pk):
                 group_member_ids = list(AssignmentGroupMember.objects.filter(group=group).values_list('student_id', flat=True))
     
     return render(request, 'edit_assignment.html', {
-        'form': form, 
-        'assignment': assignment, 
+        'form': form,
+        'assignment': assignment,
         'base_template': base_template,
         'course_students': course_students,
         'course_group_sets': CourseGroupSet.objects.filter(course=assignment.course).order_by('-created_at'),
         'duplicate_course_options': duplicate_course_options,
+        'saved_rubric_templates': (
+            RubricTemplate.objects.filter(owner=user).order_by('name')
+            if _user_can_manage_rubrics(user)
+            else RubricTemplate.objects.none()
+        ),
         **rubric_prefill,
     })
 
@@ -3236,3 +3327,337 @@ def compare_submissions_view(request, submission_id):
     }
     
     return render(request, 'compare_submissions.html', context)
+
+
+# ---------------------------------------------------------------------------
+# Rubric library (named, reusable rubrics owned by a faculty user)
+# ---------------------------------------------------------------------------
+
+def _user_can_manage_rubrics(user):
+    """Faculty + staff may author rubric templates."""
+    if not user.is_authenticated:
+        return False
+    if user.is_staff or user.is_superuser:
+        return True
+    try:
+        profile = UserProfile.objects.get(user=user)
+        if profile.role == 'FACULTY':
+            return True
+    except UserProfile.DoesNotExist:
+        pass
+    # Mirror existing fall-through used elsewhere for the seeded faculty user.
+    if user.username == 'poudelb2':
+        return True
+    return False
+
+
+def _rubric_library_base_template(request):
+    role = request.session.get('active_role') or getattr(request, 'user_role', None)
+    if role == 'STUDENT':
+        return 'portal/base_portal.html'
+    if role in ('GRADING_ASSISTANT', 'GA'):
+        return 'base_grading_assistant.html'
+    return 'base_professor.html'
+
+
+def _serialize_rubric_template(template):
+    """Pure JSON shape used by the rubric selector on assignment creation."""
+    criteria = []
+    for c in template.criteria.all().order_by('order', 'id'):
+        presets = []
+        for p in c.comment_presets.all().order_by('score_value'):
+            presets.append({
+                'score': float(p.score_value),
+                'comment': p.comment_text,
+            })
+        criteria.append({
+            'id': c.id,
+            'name': c.name,
+            'order': c.order,
+            'max_points': float(c.max_points or 0),
+            'weight': float(c.weight) if c.weight is not None else None,
+            'presets': presets,
+        })
+    return {
+        'id': template.id,
+        'name': template.name,
+        'description': template.description,
+        'is_weighted': bool(template.is_weighted),
+        'criteria': criteria,
+    }
+
+
+@login_required
+def rubric_library(request):
+    """List the current user's saved rubrics."""
+    user = get_user_from_request(request)
+    if not _user_can_manage_rubrics(user):
+        return HttpResponseForbidden('Only faculty can manage rubric templates.')
+
+    templates = (
+        RubricTemplate.objects
+        .filter(owner=user)
+        .annotate(criteria_count=Count('criteria'))
+        .order_by('-updated_at', 'name')
+    )
+    return render(request, 'rubric_library.html', {
+        'base_template': _rubric_library_base_template(request),
+        'templates': templates,
+    })
+
+
+def _parse_rubric_template_post(request, *, assignment_points=None):
+    """Validate the rubric template form payload; raise ValueError with a friendly message."""
+    name = (request.POST.get('name') or '').strip()
+    if not name:
+        raise ValueError('Give the rubric a name so you can find it later.')
+
+    raw = (request.POST.get('rubric_criteria_json') or '').strip()
+    is_weighted = request.POST.get('rubric_is_weighted') == 'on'
+    rows = []
+    if raw:
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            raise ValueError('Could not read the rubric criteria. Please try again.')
+        if isinstance(data, list):
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                row_name = (item.get('name') or '').strip()
+                if not row_name:
+                    continue
+                rows.append(item)
+
+    if not rows:
+        raise ValueError('Add at least one criterion before saving the rubric.')
+
+    if is_weighted:
+        err = validate_weighted_rubric_rows(rows)
+        if err:
+            raise ValueError(err)
+    elif assignment_points is not None:
+        err = validate_unweighted_rubric_rows(rows, assignment_points)
+        if err:
+            raise ValueError(err)
+
+    return {
+        'name': name,
+        'description': (request.POST.get('description') or '').strip(),
+        'is_weighted': is_weighted,
+        'rows': rows,
+    }
+
+
+def _save_rubric_template_from_post(*, owner, template, payload, request):
+    """Replace template criteria + presets in one transaction."""
+    with transaction.atomic():
+        template.name = payload['name']
+        template.description = payload['description']
+        template.is_weighted = payload['is_weighted']
+        template.owner = owner
+        template.save()
+
+        template.criteria.all().delete()
+
+        for order_idx, item in enumerate(payload['rows'], start=1):
+            row_name = (item.get('name') or '').strip()
+            try:
+                mp = Decimal(str(item.get('max_points') or 0)).quantize(Decimal('0.01'))
+            except (InvalidOperation, TypeError):
+                mp = Decimal('0').quantize(Decimal('0.01'))
+            weight_val = None
+            if payload['is_weighted']:
+                try:
+                    weight_val = Decimal(str(item.get('weight') or 0)).quantize(Decimal('0.01'))
+                except (InvalidOperation, TypeError):
+                    weight_val = Decimal('0').quantize(Decimal('0.01'))
+
+            crit = RubricTemplateCriterion.objects.create(
+                template=template,
+                name=row_name,
+                order=order_idx,
+                max_points=mp,
+                weight=weight_val,
+            )
+
+            # Pull preset comment textareas posted with this criterion's stable token.
+            client_token = (item.get('client_token') or '').strip()
+            if client_token:
+                seen_scores = set()
+                for v in _score_choices_for_criterion(crit):
+                    score_dec = Decimal(str(v)).quantize(Decimal('0.01'))
+                    if score_dec in seen_scores:
+                        continue
+                    seen_scores.add(score_dec)
+                    field = f'preset_{client_token}_{_score_token(v)}'
+                    txt = (request.POST.get(field) or '').strip()
+                    if txt:
+                        RubricTemplateCriterionPreset.objects.create(
+                            criterion=crit,
+                            score_value=score_dec,
+                            comment_text=txt,
+                        )
+
+
+def _build_template_form_context(request, *, template, error=None):
+    """Shared context for the create/edit rubric template form."""
+    if request.method == 'POST':
+        raw = (request.POST.get('rubric_criteria_json') or '').strip()
+        is_weighted = request.POST.get('rubric_is_weighted') == 'on'
+        name = (request.POST.get('name') or '').strip()
+        description = (request.POST.get('description') or '').strip()
+        try:
+            prefill_rows = json.loads(raw) if raw else []
+            if not isinstance(prefill_rows, list):
+                prefill_rows = []
+        except json.JSONDecodeError:
+            prefill_rows = []
+
+        # Gather any preset textareas the user already typed so they survive validation errors.
+        for row in prefill_rows:
+            if not isinstance(row, dict):
+                continue
+            token = (row.get('client_token') or '').strip()
+            if not token:
+                continue
+            try:
+                row_mp = float(row.get('max_points') or 0)
+            except (TypeError, ValueError):
+                row_mp = 0
+            stub = RubricTemplateCriterion(max_points=row_mp)
+            preset_map = {}
+            for v in _score_choices_for_criterion(stub):
+                field = f'preset_{token}_{_score_token(v)}'
+                txt = (request.POST.get(field) or '').strip()
+                if txt:
+                    preset_map[_format_score_value(v)] = txt
+            row['presets_map'] = preset_map
+        prefill_json = json.dumps(prefill_rows)
+    else:
+        name = template.name if template else ''
+        description = template.description if template else ''
+        is_weighted = bool(template.is_weighted) if template else False
+        prefill_rows = []
+        if template:
+            for c in template.criteria.all().order_by('order', 'id'):
+                preset_map = {}
+                for p in c.comment_presets.all().order_by('score_value'):
+                    preset_map[_format_score_value(p.score_value)] = p.comment_text
+                prefill_rows.append({
+                    'id': c.id,
+                    'name': c.name,
+                    'max_points': float(c.max_points or 0),
+                    'weight': float(c.weight) if c.weight is not None else 0,
+                    'presets_map': preset_map,
+                })
+        prefill_json = json.dumps(prefill_rows)
+
+    return {
+        'base_template': _rubric_library_base_template(request),
+        'template': template,
+        'name_value': name,
+        'description_value': description,
+        'is_weighted_value': is_weighted,
+        'rubric_criteria_json_prefill': prefill_json,
+        'error_message': error,
+    }
+
+
+@login_required
+def rubric_template_create(request):
+    user = get_user_from_request(request)
+    if not _user_can_manage_rubrics(user):
+        return HttpResponseForbidden('Only faculty can manage rubric templates.')
+
+    if request.method == 'POST':
+        try:
+            payload = _parse_rubric_template_post(request)
+        except ValueError as e:
+            ctx = _build_template_form_context(request, template=None, error=str(e))
+            return render(request, 'rubric_template_form.html', ctx)
+
+        if RubricTemplate.objects.filter(owner=user, name=payload['name']).exists():
+            ctx = _build_template_form_context(
+                request,
+                template=None,
+                error=f"You already have a rubric named '{payload['name']}'. Pick a different name.",
+            )
+            return render(request, 'rubric_template_form.html', ctx)
+
+        template = RubricTemplate(owner=user)
+        try:
+            _save_rubric_template_from_post(owner=user, template=template, payload=payload, request=request)
+        except Exception as e:
+            logger.exception('Error saving rubric template')
+            ctx = _build_template_form_context(request, template=None, error=f'Could not save rubric: {e}')
+            return render(request, 'rubric_template_form.html', ctx)
+
+        messages.success(request, f"Rubric '{template.name}' saved.")
+        return redirect('rubric_library')
+
+    return render(request, 'rubric_template_form.html', _build_template_form_context(request, template=None))
+
+
+@login_required
+def rubric_template_edit(request, template_id):
+    user = get_user_from_request(request)
+    if not _user_can_manage_rubrics(user):
+        return HttpResponseForbidden('Only faculty can manage rubric templates.')
+    template = get_object_or_404(RubricTemplate, pk=template_id, owner=user)
+
+    if request.method == 'POST':
+        try:
+            payload = _parse_rubric_template_post(request)
+        except ValueError as e:
+            ctx = _build_template_form_context(request, template=template, error=str(e))
+            return render(request, 'rubric_template_form.html', ctx)
+
+        clash = (
+            RubricTemplate.objects
+            .filter(owner=user, name=payload['name'])
+            .exclude(pk=template.pk)
+            .exists()
+        )
+        if clash:
+            ctx = _build_template_form_context(
+                request,
+                template=template,
+                error=f"You already have another rubric named '{payload['name']}'.",
+            )
+            return render(request, 'rubric_template_form.html', ctx)
+
+        try:
+            _save_rubric_template_from_post(owner=user, template=template, payload=payload, request=request)
+        except Exception as e:
+            logger.exception('Error updating rubric template')
+            ctx = _build_template_form_context(request, template=template, error=f'Could not save rubric: {e}')
+            return render(request, 'rubric_template_form.html', ctx)
+
+        messages.success(request, f"Rubric '{template.name}' updated.")
+        return redirect('rubric_library')
+
+    return render(request, 'rubric_template_form.html', _build_template_form_context(request, template=template))
+
+
+@login_required
+@require_POST
+def rubric_template_delete(request, template_id):
+    user = get_user_from_request(request)
+    if not _user_can_manage_rubrics(user):
+        return HttpResponseForbidden('Only faculty can manage rubric templates.')
+    template = get_object_or_404(RubricTemplate, pk=template_id, owner=user)
+    name = template.name
+    template.delete()
+    messages.success(request, f"Rubric '{name}' deleted.")
+    return redirect('rubric_library')
+
+
+@login_required
+def rubric_template_detail_api(request, template_id):
+    """JSON used by the assignment form's rubric selector."""
+    user = get_user_from_request(request)
+    if not _user_can_manage_rubrics(user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    template = get_object_or_404(RubricTemplate, pk=template_id, owner=user)
+    return JsonResponse(_serialize_rubric_template(template))
