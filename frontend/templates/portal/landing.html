@@ -159,12 +159,12 @@
         }
 
         #hero-particles {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
+            width: 100vw;
+            height: 100vh;
+            z-index: 50;
             pointer-events: none;
         }
 
@@ -496,6 +496,9 @@
 </head>
 <body class="landing-page">
 
+    <!-- Full Page Particle Background -->
+    <canvas id="hero-particles"></canvas>
+
     <!-- Sticky Navbar -->
     <nav class="navbar" id="navbar">
         <div class="nav-container">
@@ -514,7 +517,6 @@
 
     <!-- Hero Section -->
     <section class="hero">
-        <canvas id="hero-particles"></canvas>
         <div class="hero-blob blob-1"></div>
         <div class="hero-blob blob-2"></div>
         
@@ -733,7 +735,7 @@
             
             function resizeCanvas() {
                 canvas.width = window.innerWidth;
-                canvas.height = heroSection ? heroSection.offsetHeight : window.innerHeight;
+                canvas.height = window.innerHeight;
             }
             
             window.addEventListener('resize', resizeCanvas);
