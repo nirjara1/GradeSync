@@ -255,7 +255,7 @@
             z-index: 10;
             width: 100%;
             max-width: 1000px;
-            height: 500px;
+            height: auto;
             border-radius: 16px;
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid var(--glass-border);
@@ -540,23 +540,14 @@
                 <a href="{% url 'register' %}" class="btn-secondary">Get Started Free</a>
             </div>
 
-            <!-- Abstract Dashboard Preview -->
+            <!-- Actual Dashboard Screenshot -->
             <div class="hero-dashboard-mockup">
                 <div class="mockup-header">
                     <div class="mockup-dot red"></div>
                     <div class="mockup-dot yellow"></div>
                     <div class="mockup-dot green"></div>
                 </div>
-                <div class="mockup-body">
-                    <div class="mockup-sidebar"></div>
-                    <div class="mockup-main">
-                        <div class="mockup-bar"></div>
-                        <div class="mockup-grid">
-                            <div class="mockup-card"></div>
-                            <div class="mockup-card"></div>
-                        </div>
-                    </div>
-                </div>
+                <img src="{% static 'images/landing_page_ss.png' %}" alt="GradeSync Dashboard Screenshot" style="width: 100%; height: auto; display: block; object-fit: cover;">
             </div>
         </div>
     </section>
