@@ -842,11 +842,116 @@
                 requestAnimationFrame(animateParticles);
             }
             
+            const heroSection = document.querySelector('.hero');
             if(heroSection) {
                 resizeCanvas();
                 initParticles();
                 animateParticles();
             }
+        }
+
+        // --- SCRUB-LINKED HERO TEXT ANIMATION ---
+        const hTitle = document.querySelector('.hero-title');
+        const hSubtitle = document.querySelector('.hero-subtitle');
+        const hCtas = document.querySelector('.hero-ctas');
+        const hMockup = document.querySelector('.hero-dashboard-mockup');
+        const hBadge = document.querySelector('.hero-badge');
+
+        let maxTitleScale = window.innerWidth < 600 ? 1.5 : (window.innerWidth < 900 ? 2 : 2.8);
+
+        // Turn off default CSS animation
+        if(hTitle) {
+            hTitle.style.animation = 'none';
+            hTitle.style.transformOrigin = 'center top';
+        }
+        if(hSubtitle) hSubtitle.style.animation = 'none';
+        if(hCtas) hCtas.style.animation = 'none';
+        if(hMockup) hMockup.style.animation = 'none';
+        if(hBadge) hBadge.style.animation = 'none';
+
+        // Set initial entrance state
+        if(hTitle) {
+            hTitle.style.opacity = '0';
+            hTitle.style.transform = `scale(${maxTitleScale}) translateX(-100vw) translateY(20vh)`;
+            hTitle.style.transition = 'transform 1.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s ease';
+        }
+        
+        [hSubtitle, hCtas, hBadge, hMockup].forEach(el => {
+            if(el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(60px)';
+                el.style.transition = 'none'; 
+            }
+        });
+
+        // Trigger entrance slide-in
+        setTimeout(() => {
+            if(hTitle && window.scrollY < 50) {
+                hTitle.style.opacity = '1';
+                hTitle.style.transform = `scale(${maxTitleScale}) translateX(0) translateY(20vh)`;
+            }
+        }, 50);
+
+        let entranceFinished = false;
+        setTimeout(() => {
+            entranceFinished = true;
+            if(hTitle) hTitle.style.transition = 'none'; 
+        }, 1450);
+
+        // Handle Scroll Scrubbing safely via RAF
+        let scrubTicking = false;
+        window.addEventListener('scroll', () => {
+            if (!scrubTicking) {
+                window.requestAnimationFrame(() => {
+                    scrubAnimations();
+                    scrubTicking = false;
+                });
+                scrubTicking = true;
+            }
+        });
+
+        function scrubAnimations() {
+            if(!hTitle) return;
+            let scrollY = window.scrollY;
+            let maxScrollBreak = 550; // Total pixels to finish animation
+            
+            let progress = Math.min(scrollY / maxScrollBreak, 1);
+            
+            // If user begins scrolling before entrance finishes, immediately snap to scrub mode
+            if(!entranceFinished && scrollY > 10) {
+               hTitle.style.transition = 'none';
+               entranceFinished = true;
+            }
+
+            // Calculate exact scale and Y-pos based on strictly scroll progress
+            let currentScale = maxTitleScale - ((maxTitleScale - 1) * progress);
+            let currentY = 20 - (20 * progress);
+            
+            hTitle.style.transform = `scale(${currentScale}) translateX(0) translateY(${currentY}vh)`;
+            hTitle.style.opacity = '1';
+
+            // Scrub the fading elements (delay their fade-in until text starts shrinking)
+            let fadeProgress = Math.max(0, (progress - 0.25) / 0.75); // Starts revealing at 25% progress
+            let inverseYOffset = 40 - (40 * fadeProgress);
+            
+            [hSubtitle, hCtas, hBadge].forEach(el => {
+                if(el) {
+                    el.style.opacity = fadeProgress;
+                    el.style.transform = `translateY(${inverseYOffset}px)`;
+                }
+            });
+
+            if(hMockup) {
+                hMockup.style.opacity = fadeProgress;
+                hMockup.style.transform = `translateY(${100 - (100 * fadeProgress)}px)`;
+            }
+        }
+        
+        // Initial scrub call
+        if(window.scrollY > 0) {
+            entranceFinished = true;
+            if(hTitle) hTitle.style.transition = 'none';
+            scrubAnimations();
         }
 
         // Intersection Observer for scroll animations
