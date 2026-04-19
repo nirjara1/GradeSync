@@ -76,6 +76,11 @@
                 <i class="fa-solid fa-book-open"></i>
                 <span>Assignments</span>
             </a>
+            <a href="{% url 'rubric_library' %}"
+                class="nav-item {% if request.resolver_match.url_name == 'rubric_library' or request.resolver_match.url_name == 'rubric_template_create' or request.resolver_match.url_name == 'rubric_template_edit' %}active{% endif %}">
+                <i class="fa-solid fa-list-check"></i>
+                <span>Rubrics</span>
+            </a>
             <a href="{% url 'professor_reports' %}" class="nav-item {% if request.resolver_match.url_name == 'professor_reports' %}active{% endif %}">
                 <i class="fa-solid fa-chart-line"></i>
                 <span>Reports</span>

@@ -175,18 +175,7 @@
             max-width: 900px;
             padding: 96px 20px 0;
         }
-        .hero-badge {
-            display: inline-block;
-            padding: 6px 16px;
-            background: rgba(132, 0, 41, 0.05);
-            border: 1px solid rgba(132, 0, 41, 0.1);
-            color: var(--ulm-maroon);
-            border-radius: 30px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 24px;
-            animation: slideDownFade 0.8s ease backwards;
-        }
+
         .hero-title {
             font-size: 5rem;
             line-height: 1.1;
@@ -530,7 +519,6 @@
         <div class="hero-blob blob-2"></div>
         
         <div class="hero-content">
-            <div class="hero-badge">GradeSync 2.0 is Live</div>
             <h1 class="hero-title">Automated Grading.<br><span>Simplified.</span></h1>
             <p class="hero-subtitle">GradeSync helps students, faculty, and administrators streamline coding assignments, automate evaluation, and gain instant, actionable insights.</p>
             <div class="hero-ctas">
@@ -856,7 +844,6 @@
         const hSubtitle = document.querySelector('.hero-subtitle');
         const hCtas = document.querySelector('.hero-ctas');
         const hMockup = document.querySelector('.hero-dashboard-mockup');
-        const hBadge = document.querySelector('.hero-badge');
 
         let maxTitleScale = window.innerWidth < 600 ? 1.5 : (window.innerWidth < 900 ? 2 : 2.5);
 
@@ -869,15 +856,15 @@
         if (hSubtitle) hSubtitle.style.animation = 'none';
         if (hCtas) hCtas.style.animation = 'none';
         if (hMockup) hMockup.style.animation = 'none';
-        if (hBadge) hBadge.style.animation = 'none';
 
         // T=0: Set initial hidden/huge state
         if (hTitle) {
             hTitle.style.opacity = '0';
-            hTitle.style.transform = `scale(${maxTitleScale}) translateX(-50vw)`;
+            // Start off-screen to the left, pushed DOWN vertically to counter invisible siblings
+            hTitle.style.transform = `scale(${maxTitleScale}) translateX(-50vw) translateY(15vh)`;
         }
         
-        [hSubtitle, hCtas, hBadge, hMockup].forEach(el => {
+        [hSubtitle, hCtas, hMockup].forEach(el => {
             if(el) {
                 el.style.opacity = '0';
                 el.style.transform = 'translateY(40px)';
@@ -889,18 +876,20 @@
             if(hTitle) {
                 hTitle.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease';
                 hTitle.style.opacity = '1';
-                hTitle.style.transform = `scale(${maxTitleScale}) translateX(0)`;
+                // Stop in the exact vertical center of the window context
+                hTitle.style.transform = `scale(${maxTitleScale}) translateX(0) translateY(15vh)`;
             }
         }, 100);
 
-        // T=1800ms: Shrink back down to normal size and reveal the rest
+        // T=1800ms: Shrink back down to normal size, shift UP to natural place, and reveal the rest
         setTimeout(() => {
             if(hTitle) {
                 hTitle.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
-                hTitle.style.transform = `scale(1) translateX(0)`;
+                // Migrate back to original location in the flow layout
+                hTitle.style.transform = `scale(1) translateX(0) translateY(0)`;
             }
             
-            [hSubtitle, hCtas, hBadge].forEach((el, index) => {
+            [hSubtitle, hCtas].forEach((el, index) => {
                 if (el) {
                     el.style.transition = `opacity 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)`;
                     el.style.transitionDelay = `${0.2 * index}s`; // Staggered fade in
