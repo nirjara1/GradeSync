@@ -962,7 +962,7 @@
                         </div>
                         <div class="feedback-section" style="margin-top: 20px;">
                             <label for="feedback"><i class="fa-regular fa-comment-dots" style="margin-right: 6px; color: #6b7280;"></i> Instructor Feedback</label>
-                            <textarea id="feedback" name="feedback" placeholder="Provide constructive feedback for the student here...">{{ grade.feedback|default:'' }}</textarea>
+                            <textarea id="feedback" name="feedback" placeholder="Provide constructive feedback for the student here...">{{ instructor_feedback_display|default:'' }}</textarea>
                             <div id="feedbackAutosaveState" class="gs-inline-status" aria-live="polite"></div>
                         </div>
 

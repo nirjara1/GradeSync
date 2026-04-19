@@ -1864,10 +1864,14 @@ def grade_submission_view(request, pk):
     if submission.group:
         group_members = AssignmentGroupMember.objects.filter(group=submission.group).select_related('student__user')
 
+    # Instructor textarea: manual feedback only; auto rubric block stays on Grade.feedback for students.
+    instructor_feedback_display = _strip_auto_feedback_block(grade.feedback) if grade else ''
+
     context = {
         'submission': submission,
         'assignment': assignment,
         'grade': grade,
+        'instructor_feedback_display': instructor_feedback_display,
         'base_template': base_template,
         'can_preview_code': can_preview_code,
         'submission_files_json': submission_files_json,

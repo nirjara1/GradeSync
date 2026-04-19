@@ -282,8 +282,12 @@ def register_view(request):
             # Create the UserProfile
             UserProfile.objects.create(user=user, role=role)
 
-            # Log the user in
-            login(request, user)
+            # Log the user in (explicit backend: user has no .backend yet; multiple backends in settings)
+            login(
+                request,
+                user,
+                backend='django.contrib.auth.backends.ModelBackend',
+            )
             
             # Auto-link pending enrollments
             pending_enrollments = PendingEnrollment.objects.filter(email__iexact=email)
