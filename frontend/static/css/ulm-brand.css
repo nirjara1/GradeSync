@@ -18,10 +18,10 @@
     --ulm-gold-rgb: 253, 185, 19;
 
     /* Neutrals — official */
-    --ulm-neutral-dark: #646469;
-    --ulm-neutral-mid-dark: #a9a8a9;
-    --ulm-neutral-mid-light: #c8c9c7;
-    --ulm-neutral-light: #dad8d6;
+    --ulm-neutral-dark: #374151;
+    --ulm-neutral-mid-dark: #64748b;
+    --ulm-neutral-mid-light: #94a3b8;
+    --ulm-neutral-light: #cbd5e1;
 
     /* Body copy (guideline: black on light) */
     --ulm-body-text: #1a1a1a;
