@@ -11,8 +11,9 @@ import tempfile
 import os
 import logging
 from pathlib import Path
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 import time
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +142,24 @@ class SandboxExecutor:
             language='python',
             code=code,
             input_data=input_data,
+            submission_id=submission_id,
+        )
+
+    def execute_python_batch(
+        self,
+        code: str,
+        inputs: List[str],
+        submission_id: Optional[int] = None,
+    ) -> Dict[str, any]:
+        """
+        Execute Python code once in a container and run multiple stdin test cases inside it.
+
+        This avoids per-test container spin-up overhead (critical for bulk testing speed).
+        """
+        return self._execute_in_container_batch(
+            language='python',
+            code=code,
+            inputs=inputs or [],
             submission_id=submission_id,
         )
     
@@ -316,6 +335,196 @@ class SandboxExecutor:
                     container.remove(force=True)
                 except Exception as e:
                     logger.warning(f"Failed to remove container: {e}")
+
+    def _execute_in_container_batch(
+        self,
+        language: str,
+        code: str,
+        inputs: List[str],
+        submission_id: Optional[int] = None,
+    ) -> Dict[str, any]:
+        """
+        Batch execution for Python: run multiple inputs in one container.
+        Returns:
+          {
+            success: bool,
+            results: [{stdout, stderr, exit_code, execution_time}, ...],
+            stderr: str (container-level error if any),
+            exit_code: int,
+            execution_time: float (overall)
+          }
+        """
+        if language != "python":
+            return {
+                "success": False,
+                "results": [],
+                "stdout": "",
+                "stderr": f"Batch execution unsupported for language: {language}",
+                "exit_code": -1,
+                "execution_time": 0.0,
+            }
+
+        rt = resolve_sandbox_runtime(language)
+        mem_limit = rt["mem_limit"]
+        wait_timeout = rt["timeout_seconds"]
+        image = rt["image"]
+        network_disabled = rt["network_disabled"]
+
+        container = None
+        start_time = time.time()
+
+        try:
+            container_code, _command = self._prepare_python_execution(code)
+
+            try:
+                use_sandbox_dir = SANDBOX_BASE_DIR if os.path.isdir(SANDBOX_BASE_DIR) else None
+            except OSError:
+                use_sandbox_dir = None
+
+            runner_py = r"""
+import json
+import os
+import subprocess
+import time
+
+def main():
+    # tests.json is a list of {"stdin": "..."} entries
+    with open("/code/tests.json", "r", encoding="utf-8") as f:
+        tests = json.load(f) or []
+
+    per_test_timeout = int(os.environ.get("PER_TEST_TIMEOUT", "10") or "10")
+    results = []
+
+    for t in tests:
+        stdin = (t.get("stdin") if isinstance(t, dict) else "") or ""
+        t0 = time.time()
+        try:
+            proc = subprocess.run(
+                ["python", "/code/solution.py"],
+                input=stdin.encode("utf-8"),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=per_test_timeout,
+            )
+            results.append(
+                {
+                    "stdout": proc.stdout.decode("utf-8", errors="replace"),
+                    "stderr": proc.stderr.decode("utf-8", errors="replace"),
+                    "exit_code": int(proc.returncode),
+                    "execution_time": float(time.time() - t0),
+                }
+            )
+        except subprocess.TimeoutExpired:
+            results.append(
+                {
+                    "stdout": "",
+                    "stderr": f"Execution timeout after {per_test_timeout} seconds",
+                    "exit_code": -1,
+                    "execution_time": float(time.time() - t0),
+                }
+            )
+
+    print(json.dumps({"results": results}))
+
+if __name__ == "__main__":
+    main()
+"""
+
+            with tempfile.TemporaryDirectory(prefix="exec_", dir=use_sandbox_dir) as tmpdir:
+                code_file = os.path.join(tmpdir, "solution.py")
+                runner_file = os.path.join(tmpdir, "runner.py")
+                tests_file = os.path.join(tmpdir, "tests.json")
+
+                with open(code_file, "w", encoding="utf-8") as f:
+                    f.write(container_code)
+                with open(runner_file, "w", encoding="utf-8") as f:
+                    f.write(runner_py.lstrip())
+                with open(tests_file, "w", encoding="utf-8") as f:
+                    json.dump([{"stdin": (x or "")} for x in (inputs or [])], f)
+
+                try:
+                    self.client.images.get(image)
+                except docker.errors.ImageNotFound:
+                    logger.info(f"Pulling Docker image: {image}")
+                    self.client.images.pull(image)
+
+                container = self.client.containers.create(
+                    image,
+                    command=["sh", "-c", "python /code/runner.py"],
+                    stdin_open=False,
+                    mem_limit=mem_limit,
+                    memswap_limit=mem_limit,
+                    network_disabled=network_disabled,
+                    read_only=False,
+                    tmpfs={"/tmp": "size=32m,mode=1777"},
+                    volumes={tmpdir: {"bind": "/code", "mode": "ro"}},
+                    environment={
+                        "PYTHONUNBUFFERED": "1",
+                        "PYTHONDONTWRITEBYTECODE": "1",
+                        "PER_TEST_TIMEOUT": str(wait_timeout),
+                    },
+                )
+
+                container.start()
+                exit_code = container.wait(timeout=wait_timeout * max(1, len(inputs)))  # overall cap
+
+                out = container.logs(stdout=True, stderr=False).decode("utf-8", errors="replace")
+                err = container.logs(stdout=False, stderr=True).decode("utf-8", errors="replace")
+
+                execution_time = time.time() - start_time
+
+                parsed = None
+                try:
+                    parsed = json.loads(out.strip() or "{}")
+                except Exception:
+                    parsed = None
+
+                results = []
+                if isinstance(parsed, dict) and isinstance(parsed.get("results"), list):
+                    results = parsed["results"]
+
+                ok = bool(exit_code == 0) and len(results) == len(inputs)
+                return {
+                    "success": ok,
+                    "results": results,
+                    "stdout": out,
+                    "stderr": err,
+                    "exit_code": exit_code,
+                    "execution_time": execution_time,
+                }
+        except docker.errors.APIError as e:
+            execution_time = time.time() - start_time
+            msg = str(e)
+            if "Timeout" in msg or "timeout" in msg.lower():
+                return {
+                    "success": False,
+                    "results": [],
+                    "stdout": "",
+                    "stderr": f"Execution timeout after {wait_timeout} seconds",
+                    "exit_code": -1,
+                    "execution_time": execution_time,
+                    "error": "Timeout - code took too long to execute",
+                }
+            raise
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = str(e)
+            logger.exception(f"Error executing batch {language} code (submission_id={submission_id}): {error_msg}")
+            return {
+                "success": False,
+                "results": [],
+                "stdout": "",
+                "stderr": error_msg,
+                "exit_code": -1,
+                "execution_time": execution_time,
+                "error": f"Execution error: {error_msg}",
+            }
+        finally:
+            if container:
+                try:
+                    container.remove(force=True)
+                except Exception as e:
+                    logger.warning(f"Failed to remove container: {e}")
     
     def _prepare_python_execution(self, code: str) -> Tuple[str, list]:
         """
@@ -426,3 +635,25 @@ def execute_code(
             'execution_time': 0.0,
             'error': f'Language {language} not supported',
         }
+
+
+def execute_code_batch(
+    language: str,
+    code: str,
+    inputs: List[str],
+    submission_id: Optional[int] = None,
+) -> Dict[str, any]:
+    """
+    Execute a batch of test inputs in one container (Python only).
+    """
+    executor = get_executor()
+    if language == "python":
+        return executor.execute_python_batch(code, inputs, submission_id)
+    return {
+        "success": False,
+        "results": [],
+        "stdout": "",
+        "stderr": f"Batch execution not supported for {language}",
+        "exit_code": -1,
+        "execution_time": 0.0,
+    }

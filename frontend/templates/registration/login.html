@@ -372,10 +372,16 @@
     <div id="background-container"></div>
 
     <header class="header">
+        <a href="{% url 'home' %}" style="position: absolute; left: 30px; color: white; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none; border-radius: 50%; transition: background 0.3s, transform 0.2s;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.15)'; this.style.transform='scale(1.05)'" onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L8 2.207l6.646 6.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293z"/>
+              <path d="m8 3.293 6 6V13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5V9.293z"/>
+            </svg>
+        </a>
         <img src="{% static 'images/ulm_logo.png' %}" alt="ULM Seal" class="ulm-seal"
             onerror="this.src='https://via.placeholder.com/100x100.png?text=ULM+Seal'">
         <div class="vertical-separator"></div>
-        <h1 class="gradesync-logo">GradeSync</h1>
+        <div class="gradesync-logo">GradeSync</div>
     </header>
 
     <main class="login-card">

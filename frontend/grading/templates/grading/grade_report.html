@@ -409,10 +409,14 @@
 
     // Initialize Tooltips and overlay events
     document.addEventListener('DOMContentLoaded', function() {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                try {
+                    new bootstrap.Tooltip(tooltipTriggerEl);
+                } catch (e) { /* ignore */ }
+            });
+        }
 
         const overlay = document.getElementById('testDetailOverlay');
         if (overlay) {
@@ -465,7 +469,16 @@
         const testCaseId = btn.dataset.testCaseId;
         const studentName = btn.dataset.studentName || 'Student';
 
-        if (!(status === 'PASS' || status === 'FAIL')) return;
+        if (!(status === 'PASS' || status === 'FAIL')) {
+            if (status === 'EMPTY' || !status) {
+                if (!submissionId) {
+                    alert('No submission for this student.');
+                } else if (testCaseId) {
+                    alert('No test result yet. Run bulk testing first, then open this cell again.');
+                }
+            }
+            return;
+        }
         if (!submissionId || !testCaseId) return;
 
         document.getElementById('modalSubtitle').textContent = studentName;
@@ -535,7 +548,7 @@
                 currentTaskId = data.task_id;
                 document.getElementById('bulk-grade-status').style.display = 'block';
                 pollBulkGradingStatus();
-                pollInterval = setInterval(pollBulkGradingStatus, 2000);
+                pollInterval = setInterval(pollBulkGradingStatus, 1200);
             } else {
                 alert('Error: ' + data.message);
                 btn.disabled = false;
@@ -560,8 +573,9 @@
             const percentText = document.getElementById('bulk-percent');
             
             if (data.status === 'PROGRESS') {
-                const cur = data.progress.current || 0;
-                const tot = data.progress.total || 1;
+                const prog = data.progress || {};
+                const cur = prog.current || 0;
+                const tot = prog.total || 1;
                 const pct = Math.round((cur / tot) * 100);
                 
                 progressBar.style.width = pct + '%';

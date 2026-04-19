@@ -31,6 +31,9 @@
                 
                 <div class="course-list-item__body">
                     <h3 class="course-list-item__title">{{ course.dashboard_card_title }}</h3>
+                    {% if course.title %}
+                    <p class="course-list-item__subtitle">{{ course.title }}</p>
+                    {% endif %}
                     <p class="course-list-item__meta"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Course Level:</strong> {{ course.section }}</p>
                     <p class="course-list-item__stat">{{ course.students.count }} Students Enrolled</p>
                 </div>
@@ -59,6 +62,9 @@
                         <i class="fa-solid fa-box-archive course-list-item__archive-icon"></i>
                         {{ course.dashboard_card_title }}
                     </h3>
+                    {% if course.title %}
+                    <p class="course-list-item__subtitle">{{ course.title }}</p>
+                    {% endif %}
                     <p class="course-list-item__meta"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Course Level:</strong> {{ course.section }}</p>
                     <p class="course-list-item__stat">{{ course.students.count }} Students Enrolled</p>
                 </div>

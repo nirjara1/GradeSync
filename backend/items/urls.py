@@ -14,7 +14,7 @@ from .views import (
 
 urlpatterns = [
     # Home / Portal
-    path("", LoginView.as_view(template_name="registration/login.html"), name="home"),
+    path("", TemplateView.as_view(template_name="portal/landing.html"), name="home"),
     
     # Portal Prototypes
     path("portal/profile/", TemplateView.as_view(template_name="portal/profile.html"), name="portal_profile"),

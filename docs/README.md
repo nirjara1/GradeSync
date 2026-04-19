@@ -31,7 +31,7 @@ Default Compose maps the app to **port 8000** (`8000:8000`). Use that port unles
 - Admin: http://localhost:8000/admin/
 
 ## Sample assignment test cases (CSV)
-Professors can download a starter file from **Create Assignment** in the UI (`/static/test_case_template.csv`). The same sample lives in the repo at `frontend/static/test_case_template.csv` — it is only an example layout (`input_data`, `expected_output`, `is_private`), not part of the application code.
+Professors can download a starter file from **Create Assignment** in the UI. 
 
 ## When the EC2 is ON
 - Student portal: http://3.151.189.18/

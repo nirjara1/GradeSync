@@ -295,6 +295,24 @@
             line-height: 1.4;
         }
 
+        .rubric-preset-preview {
+            margin: 8px 0 0 0;
+            font-size: 12px;
+            color: #475569;
+            line-height: 1.45;
+        }
+
+        .rubric-preset-preview .rubric-preset-label {
+            font-weight: 600;
+            color: #64748b;
+            margin-right: 6px;
+        }
+
+        .rubric-preset-preview.is-empty {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
         .rubric-criterion-contrib {
             margin: 8px 0 0 0;
             font-size: 11px;
@@ -853,6 +871,10 @@
                                             Allocation {{ row.criterion.max_points|rubric_num }} pts (reference)
                                             {% endif %}
                                         </p>
+                                        <p class="rubric-preset-preview is-empty" data-preset-preview="{{ row.criterion.id }}" aria-live="polite">
+                                            <span class="rubric-preset-label">Preset comment</span>
+                                            <span class="rubric-preset-body">No preset for this score.</span>
+                                        </p>
                                         {% if rubric.is_weighted and row.contribution_pct != None %}
                                         <p class="rubric-criterion-contrib">
                                             Contribution <span class="contrib-val">—</span>
@@ -940,7 +962,7 @@
                         </div>
                         <div class="feedback-section" style="margin-top: 20px;">
                             <label for="feedback"><i class="fa-regular fa-comment-dots" style="margin-right: 6px; color: #6b7280;"></i> Instructor Feedback</label>
-                            <textarea id="feedback" name="feedback" placeholder="Provide constructive feedback for the student here...">{{ grade.feedback|default:'' }}</textarea>
+                            <textarea id="feedback" name="feedback" placeholder="Provide constructive feedback for the student here...">{{ instructor_feedback_display|default:'' }}</textarea>
                             <div id="feedbackAutosaveState" class="gs-inline-status" aria-live="polite"></div>
                         </div>
 
@@ -1316,6 +1338,12 @@
             var unweightedWarn = document.getElementById('rubric-unweighted-warn');
             var overallInput = document.getElementById('overall-score-input');
             var inputs = document.querySelectorAll('.rubric-score-input');
+            var presetMap = {};
+            try {
+                presetMap = JSON.parse('{{ rubric_comment_presets_json|default:"{}"|escapejs }}') || {};
+            } catch (e) {
+                presetMap = {};
+            }
 
             function fmtAssignment(n) {
                 var x = Number(n);
@@ -1337,6 +1365,35 @@
                 var r = Math.round(x * 10) / 10;
                 if (Math.abs(r - Math.round(r)) < 0.05) return String(Math.round(r));
                 return (Math.round(r * 10) / 10).toFixed(1).replace(/\.0$/, '');
+            }
+
+            function formatPresetKey(raw) {
+                var x = parseFloat(raw);
+                if (!isFinite(x)) x = 0;
+                if (Math.abs(x - Math.round(x)) < 0.001) return String(Math.round(x));
+                var s = (Math.round(x * 100) / 100).toFixed(2);
+                return s.replace(/\.?0+$/, '') || '0';
+            }
+
+            function updatePresetPreviews() {
+                document.querySelectorAll('.rubric-criterion.rubric-row[data-criterion-id]').forEach(function (row) {
+                    var cid = row.getAttribute('data-criterion-id');
+                    var inp = row.querySelector('.rubric-score-input');
+                    var wrap = document.querySelector('[data-preset-preview="' + cid + '"]');
+                    if (!wrap) return;
+                    var body = wrap.querySelector('.rubric-preset-body');
+                    if (!body) return;
+                    var key = formatPresetKey(inp && inp.value);
+                    var byScore = presetMap[cid] || {};
+                    var txt = byScore[key] || '';
+                    if (txt) {
+                        wrap.classList.remove('is-empty');
+                        body.textContent = txt;
+                    } else {
+                        wrap.classList.add('is-empty');
+                        body.textContent = 'No preset for this score.';
+                    }
+                });
             }
 
             function updateTotal() {
@@ -1380,6 +1437,7 @@
                 if (overallInput && overallInput.hasAttribute('readonly')) {
                     overallInput.value = fmtAssignment(assignmentScore);
                 }
+                updatePresetPreviews();
             }
 
             inputs.forEach(function (inp) {

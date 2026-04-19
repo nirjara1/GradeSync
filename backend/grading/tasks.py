@@ -1,13 +1,29 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from celery import shared_task
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db import close_old_connections, connection
 from django.utils import timezone
-from grading.models import Assignment, Submission, Student, Grade
+from grading.models import Assignment, Submission, Student
 from grading.services import grade_submission
 from grading.group_services import get_effective_submission_for_student
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _grade_submission_thread_safe(submission_id: int) -> tuple:
+    """Run autograde in a worker thread; Django requires per-thread DB hygiene."""
+    close_old_connections()
+    try:
+        grade_submission(submission_id)
+        return True, submission_id, None
+    except Exception as exc:
+        logger.error("Error grading submission %s: %s", submission_id, exc, exc_info=True)
+        return False, submission_id, str(exc)
+    finally:
+        close_old_connections()
 
 
 @shared_task(bind=True, max_retries=3)
@@ -29,44 +45,69 @@ def bulk_grade_assignment(self, assignment_id):
     
     try:
         # Get all students in the course
-        students = Student.objects.filter(
-            user__course_memberships__course=assignment.course,
-            user__course_memberships__role_in_course='STUDENT'
-        ).select_related('user')
-        
-        total_students = students.count()
+        students = list(
+            Student.objects.filter(
+                user__course_memberships__course=assignment.course,
+                user__course_memberships__role_in_course='STUDENT',
+            ).select_related('user')
+        )
+
+        total_students = len(students)
         graded_count = 0
         failed_count = 0
         missing_submissions = []
-        
-        # Grade each student's submission
-        for i, student in enumerate(students, 1):
-            try:
-                # Find existing submission
-                submission = get_effective_submission_for_student(assignment, student)
-                
-                if submission is None:
-                    # Track missing submissions
-                    missing_submissions.append({
+        submission_ids = []
+        for student in students:
+            submission = get_effective_submission_for_student(assignment, student)
+            if submission is None:
+                missing_submissions.append(
+                    {
                         'student_id': student.id,
                         'student_name': student.user.get_full_name() or student.user.username,
-                        'email': student.user.email
-                    })
-                    continue
-                
-                # Grade the submission
-                grade_submission(submission.id)
-                graded_count += 1
-                
-                # Update task state with progress
-                self.update_state(
-                    state='PROGRESS',
-                    meta={'current': i, 'total': total_students, 'graded': graded_count}
+                        'email': student.user.email,
+                    }
                 )
-                
-            except Exception as e:
-                failed_count += 1
-                logger.error(f"Error grading submission {submission.id}: {str(e)}")
+                continue
+            submission_ids.append(submission.id)
+
+        use_parallel = connection.vendor == 'postgresql' and len(submission_ids) > 1
+        processed = 0
+
+        def _emit_progress():
+            self.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': processed,
+                    'total': total_students,
+                    'graded': graded_count,
+                    'failed': failed_count,
+                },
+            )
+
+        if use_parallel:
+            workers = min(4, len(submission_ids))
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                futures = {pool.submit(_grade_submission_thread_safe, sid): sid for sid in submission_ids}
+                for fut in as_completed(futures):
+                    ok, sid, _err = fut.result()
+                    processed += 1
+                    if ok:
+                        graded_count += 1
+                    else:
+                        failed_count += 1
+                    if processed % 3 == 0 or processed == len(submission_ids):
+                        _emit_progress()
+        else:
+            for submission_id in submission_ids:
+                try:
+                    grade_submission(submission_id)
+                    graded_count += 1
+                except Exception as e:
+                    failed_count += 1
+                    logger.error("Error grading submission %s: %s", submission_id, e, exc_info=True)
+                processed += 1
+                if processed % 3 == 0 or processed == len(submission_ids):
+                    _emit_progress()
         
         # Calculate statistics
         results = {

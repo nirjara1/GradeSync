@@ -5,7 +5,7 @@ from django.db.models import Max, Q, Count, Avg
 from django.http import HttpResponse, HttpResponseForbidden, FileResponse, Http404, JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, TestCase, RuleSet, TestResult, AssignmentGroup, AssignmentGroupMember, CourseGroupSet, CourseGroup, CourseGroupMember
+from .models import Assignment, Submission, Grade, Student, Rubric, RubricCriterion, CriterionGrade, RubricCriterionCommentPreset, TestCase, RuleSet, TestResult, AssignmentGroup, AssignmentGroupMember, CourseGroupSet, CourseGroup, CourseGroupMember
 from .forms import AssignmentForm, SubmissionForm, TestCaseUploadForm, TestCaseForm, RuleSetForm
 from .services import grade_submission, extract_code_from_file, run_submission_analysis
 from .report_status import (
@@ -123,6 +123,372 @@ def _save_rubric_from_create_post(request, assignment):
                 max_points=mp,
                 weight=None,
             )
+
+
+def _build_rubric_prefill_from_request(request):
+    """
+    Preserve rubric builder UI state across create-assignment validation errors.
+    """
+    raw = (request.POST.get("rubric_criteria_json") or "").strip()
+    weighted = request.POST.get("rubric_is_weighted") == "on"
+    if not raw:
+        return {"rubric_criteria_json_prefill": "[]", "rubric_is_weighted_prefill": weighted}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {"rubric_criteria_json_prefill": "[]", "rubric_is_weighted_prefill": weighted}
+    if not isinstance(data, list):
+        return {"rubric_criteria_json_prefill": "[]", "rubric_is_weighted_prefill": weighted}
+    cleaned = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        name = (item.get("name") or "").strip()
+        if not name:
+            continue
+        cleaned.append(
+            {
+                "name": name,
+                "max_points": float(item.get("max_points") or 0),
+                "weight": float(item.get("weight") or 0),
+            }
+        )
+    return {
+        "rubric_criteria_json_prefill": json.dumps(cleaned),
+        "rubric_is_weighted_prefill": weighted,
+    }
+
+
+def _build_rubric_prefill_from_assignment(assignment):
+    """Prefill rubric builder from saved assignment rubric for edit-assignment GET."""
+    try:
+        rubric = assignment.rubric
+    except Rubric.DoesNotExist:
+        return {"rubric_criteria_json_prefill": "[]", "rubric_is_weighted_prefill": False}
+    rows = []
+    for c in rubric.criteria.all().order_by("order", "id"):
+        rows.append(
+            {
+                "id": c.id,
+                "name": c.name,
+                "max_points": float(c.max_points or 0),
+                "weight": float(c.weight or 0) if rubric.is_weighted else 0,
+            }
+        )
+    return {
+        "rubric_criteria_json_prefill": json.dumps(rows),
+        "rubric_is_weighted_prefill": bool(rubric.is_weighted),
+    }
+
+
+def _sync_rubric_criteria_from_json_rows(*, rubric: Rubric, is_weighted: bool, rows: list):
+    """
+    Update rubric criteria in place when possible so primary keys stay stable.
+
+    Stable criterion IDs keep per-criterion data (comment presets, criterion grades)
+    from being silently orphaned when faculty re-saves the assignment form.
+    """
+    def _coerce_decimal(val, default="0"):
+        try:
+            return Decimal(str(val if val is not None else default)).quantize(Decimal("0.01"))
+        except Exception:
+            return Decimal(default).quantize(Decimal("0.01"))
+
+    clean_rows = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        name = (item.get("name") or "").strip()
+        if not name:
+            continue
+        raw_id = item.get("id")
+        cid = None
+        if raw_id is not None and str(raw_id).strip() != "":
+            try:
+                cid = int(raw_id)
+            except (TypeError, ValueError):
+                cid = None
+        clean_rows.append(
+            {
+                "id": cid,
+                "name": name,
+                "max_points": _coerce_decimal(item.get("max_points"), "0"),
+                "weight": item.get("weight"),
+            }
+        )
+
+    if not clean_rows:
+        rubric.criteria.all().delete()
+        return
+
+    existing_by_id = {c.id: c for c in rubric.criteria.all().order_by("order", "id")}
+    used_ids = set()
+    to_create = []
+
+    for order_idx, row in enumerate(clean_rows, start=1):
+        mp = row["max_points"]
+        name = row["name"]
+        cid = row["id"]
+        crit = None
+        if cid is not None and cid in existing_by_id:
+            crit = existing_by_id[cid]
+            used_ids.add(cid)
+        if crit is None:
+            to_create.append((order_idx, name, mp, row["weight"]))
+            continue
+
+        crit.name = name
+        crit.order = order_idx
+        crit.max_points = mp
+        if is_weighted:
+            crit.weight = _coerce_decimal(row.get("weight"), "0")
+        else:
+            crit.weight = None
+        crit.save()
+
+    for order_idx, name, mp, w in to_create:
+        kwargs = {
+            "rubric": rubric,
+            "name": name,
+            "order": order_idx,
+            "max_points": mp,
+        }
+        if is_weighted:
+            kwargs["weight"] = _coerce_decimal(w, "0")
+        else:
+            kwargs["weight"] = None
+        RubricCriterion.objects.create(**kwargs)
+
+    stale_ids = [pk for pk in existing_by_id.keys() if pk not in used_ids]
+    if stale_ids:
+        RubricCriterion.objects.filter(id__in=stale_ids, rubric=rubric).delete()
+
+
+def _save_rubric_from_edit_post(request, assignment):
+    """
+    Upsert rubric + criteria from edit-assignment form.
+    Empty rubric rows remove any previously attached rubric.
+    """
+    raw = (request.POST.get("rubric_criteria_json") or "").strip()
+    is_weighted = request.POST.get("rubric_is_weighted") == "on"
+    rows = []
+    if raw:
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            data = []
+        if isinstance(data, list):
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                name = (item.get("name") or "").strip()
+                if not name:
+                    continue
+                rows.append(item)
+
+    if not rows:
+        Rubric.objects.filter(assignment=assignment).delete()
+        return
+
+    ap = int(assignment.points) if assignment.points is not None else 0
+    if is_weighted:
+        err = validate_weighted_rubric_rows(rows)
+        if err:
+            raise ValueError(err)
+    else:
+        err = validate_unweighted_rubric_rows(rows, ap)
+        if err:
+            raise ValueError(err)
+
+    rubric, _ = Rubric.objects.get_or_create(assignment=assignment, defaults={"is_weighted": is_weighted})
+    if rubric.is_weighted != is_weighted:
+        rubric.is_weighted = is_weighted
+        rubric.save(update_fields=["is_weighted"])
+    _sync_rubric_criteria_from_json_rows(rubric=rubric, is_weighted=is_weighted, rows=rows)
+
+
+def _taught_courses_queryset(user, *, exclude_course_id=None):
+    qs = Course.objects.filter(Q(professor=user) | Q(members__user=user, members__role_in_course='GRADING_ASSISTANT')).distinct()
+    if exclude_course_id is not None:
+        qs = qs.exclude(id=exclude_course_id)
+    return qs.order_by('term', 'code', 'section', 'id')
+
+
+def _duplicate_assignment_to_course(source_assignment, target_course):
+    clone = Assignment.objects.create(
+        name=source_assignment.name,
+        description=source_assignment.description,
+        course=target_course,
+        points=source_assignment.points,
+        is_weighted=source_assignment.is_weighted,
+        weight=source_assignment.weight,
+        due_date=source_assignment.due_date,
+        no_due_date=source_assignment.no_due_date,
+        is_group_assignment=source_assignment.is_group_assignment,
+        max_group_size=source_assignment.max_group_size,
+        allowed_language=source_assignment.allowed_language,
+        status=source_assignment.status,
+        grades_released_to_students=source_assignment.grades_released_to_students,
+    )
+    update_file_fields = []
+    for file_field_name in ("starter_code", "test_cases_file", "public_test_data", "expected_outputs"):
+        src_field = getattr(source_assignment, file_field_name)
+        if src_field:
+            setattr(clone, file_field_name, src_field.name)
+            update_file_fields.append(file_field_name)
+    if update_file_fields:
+        clone.save(update_fields=update_file_fields)
+
+    for tc in source_assignment.test_cases_db.all().order_by('order', 'id'):
+        TestCase.objects.create(
+            assignment=clone,
+            name=tc.name,
+            description=tc.description,
+            input_data=tc.input_data,
+            expected_output=tc.expected_output,
+            is_hidden=tc.is_hidden,
+            is_private=tc.is_private,
+            order=tc.order,
+        )
+
+    try:
+        src_rules = source_assignment.ruleset
+    except RuleSet.DoesNotExist:
+        src_rules = None
+    if src_rules:
+        RuleSet.objects.create(
+            assignment=clone,
+            required_functions=src_rules.required_functions,
+            forbidden_keywords=src_rules.forbidden_keywords,
+            requires_docstring=src_rules.requires_docstring,
+            max_function_length=src_rules.max_function_length,
+        )
+
+    try:
+        src_rubric = source_assignment.rubric
+    except Rubric.DoesNotExist:
+        src_rubric = None
+    if src_rubric:
+        cloned_rubric = Rubric.objects.create(assignment=clone, is_weighted=src_rubric.is_weighted)
+        for c in src_rubric.criteria.all().order_by('order', 'id'):
+            cloned_criterion = RubricCriterion.objects.create(
+                rubric=cloned_rubric,
+                name=c.name,
+                order=c.order,
+                max_points=c.max_points,
+                weight=c.weight,
+            )
+            for preset in c.comment_presets.all().order_by('score_value', 'id'):
+                RubricCriterionCommentPreset.objects.create(
+                    criterion=cloned_criterion,
+                    score_value=preset.score_value,
+                    comment_text=preset.comment_text,
+                )
+    return clone
+
+
+def _score_choices_for_criterion(criterion):
+    try:
+        mx = float(criterion.max_points or 0)
+    except (TypeError, ValueError):
+        mx = 0.0
+    if mx <= 0:
+        return [0.0]
+    as_int = int(round(mx))
+    if abs(mx - as_int) < 0.01 and as_int <= 10:
+        return [float(v) for v in range(0, as_int + 1)]
+    mid = round(mx / 2.0, 2)
+    out = sorted({0.0, mid, round(mx, 2)})
+    return out
+
+
+def _score_token(v):
+    return str(v).replace('.', '_')
+
+
+def _format_score_value(v):
+    f = float(v)
+    if abs(f - int(round(f))) < 0.01:
+        return str(int(round(f)))
+    return ('%.2f' % f).rstrip('0').rstrip('.')
+
+
+AUTO_FEEDBACK_BLOCK_HEADER = "--- Auto rubric comments ---"
+
+
+def _strip_auto_feedback_block(text):
+    src = (text or '').strip()
+    if not src:
+        return ''
+    marker = f"\n\n{AUTO_FEEDBACK_BLOCK_HEADER}\n"
+    if marker in src:
+        return src.split(marker)[0].rstrip()
+    return src
+
+
+def _student_visible_feedback_text(text):
+    """
+    Student-friendly rendering: keep manual feedback first, then a labeled
+    rubric auto-comment section when present.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+    marker = f"\n\n{AUTO_FEEDBACK_BLOCK_HEADER}\n"
+    if marker in raw:
+        manual, auto = raw.split(marker, 1)
+        auto = auto.strip()
+        label = "Auto rubric comments:\n"
+        if manual.strip():
+            return f"{manual.strip()}\n\n{label}{auto}"
+        return f"{label}{auto}"
+    if raw.startswith(AUTO_FEEDBACK_BLOCK_HEADER + "\n"):
+        return "Auto rubric comments:\n" + raw[len(AUTO_FEEDBACK_BLOCK_HEADER) + 1 :].strip()
+    return raw
+
+
+def _index_rubric_comment_presets(criteria):
+    """Map (criterion_id, quantized score) -> preset row; avoids N+1 queries while grading."""
+    ids = [c.id for c in criteria]
+    if not ids:
+        return {}
+    presets = RubricCriterionCommentPreset.objects.filter(criterion_id__in=ids)
+    out = {}
+    for p in presets:
+        try:
+            key = Decimal(str(p.score_value)).quantize(Decimal('0.01'))
+        except Exception:
+            continue
+        out[(p.criterion_id, key)] = p
+    return out
+
+
+def _build_auto_rubric_comment_lines(criteria, earned_by_id, preset_index=None):
+    lines = []
+    if preset_index is None and criteria:
+        preset_index = _index_rubric_comment_presets(criteria)
+    for c in criteria:
+        earned = earned_by_id.get(c.id)
+        if earned is None:
+            continue
+        try:
+            earned_dec = Decimal(str(earned)).quantize(Decimal('0.01'))
+        except Exception:
+            continue
+        preset = preset_index.get((c.id, earned_dec)) if preset_index is not None else None
+        if not preset:
+            preset = (
+                RubricCriterionCommentPreset.objects
+                .filter(criterion=c, score_value=earned_dec)
+                .first()
+            )
+        if not preset:
+            continue
+        comment = (preset.comment_text or '').strip()
+        if not comment:
+            continue
+        lines.append(f"{c.name} ({_format_score_value(earned_dec)}/{_format_score_value(c.max_points)}): {comment}")
+    return lines
 
 
 @login_required
@@ -263,7 +629,7 @@ def student_course_view(request, course_id):
             if g:
                 assignment.student_status = 'GRADED'
                 assignment.student_grade = g.score
-                assignment.student_feedback = (g.feedback or '').strip()
+                assignment.student_feedback = _student_visible_feedback_text(g.feedback or '')
             else:
                 assignment.student_status = 'SUBMITTED'
                 assignment.student_grade = None
@@ -316,7 +682,9 @@ def create_assignment(request, course_id=None):
             member.student_id = student_profile.id
         course_group_sets = CourseGroupSet.objects.filter(course=course).order_by('-created_at')
 
+    rubric_prefill = {"rubric_criteria_json_prefill": "[]", "rubric_is_weighted_prefill": False}
     if request.method == 'POST':
+        rubric_prefill = _build_rubric_prefill_from_request(request)
         form = AssignmentForm(request.POST, request.FILES)
         if form.is_valid():
             try:
@@ -371,7 +739,6 @@ def create_assignment(request, course_id=None):
                     # Process test cases from CSV (if provided)
                     test_cases_json = request.POST.get('test_cases_json', '')
                     if test_cases_json:
-                        import json
                         test_cases_data = json.loads(test_cases_json)
                         seen_tcs = set()
                         order_idx = 1
@@ -408,12 +775,17 @@ def create_assignment(request, course_id=None):
                     'base_template': base_template,
                     'course_students': course_students,
                     'course_group_sets': course_group_sets,
+                    **rubric_prefill,
                 })
                 
             if course:
                 course_role = get_user_course_role(user, course, request)
                 route_name = 'professor_course' if course_role == 'INSTRUCTOR' else ('student_course' if course_role == 'STUDENT' else 'ga_course')
+                if RubricCriterion.objects.filter(rubric__assignment=assignment).exists():
+                    return redirect('configure_rubric_comments', assignment_id=assignment.id)
                 return redirect(route_name, course_id=course.id)
+            if RubricCriterion.objects.filter(rubric__assignment=assignment).exists():
+                return redirect('configure_rubric_comments', assignment_id=assignment.id)
             return redirect('assignments_dashboard')
         else:
             messages.error(request, "Error creating assignment. Please check the form data.")
@@ -429,6 +801,7 @@ def create_assignment(request, course_id=None):
         'base_template': base_template,
         'course_students': course_students,
         'course_group_sets': course_group_sets,
+        **rubric_prefill,
     }
     return render(request, 'create_assignment.html', context)
 
@@ -569,7 +942,27 @@ def edit_assignment(request, pk):
     if not is_course_instructor(user, assignment.course, request):
         return HttpResponseForbidden("Only instructors can edit assignments.")
         
+    rubric_prefill = _build_rubric_prefill_from_assignment(assignment)
+    duplicate_course_options = _taught_courses_queryset(user, exclude_course_id=assignment.course_id)
     if request.method == 'POST':
+        action = request.POST.get('action') or 'save'
+        if action == 'duplicate':
+            target_course_id = request.POST.get('duplicate_course_id')
+            try:
+                target_course = duplicate_course_options.get(id=target_course_id)
+            except (Course.DoesNotExist, TypeError, ValueError):
+                messages.error(request, "Choose a valid class that you teach for duplication.")
+            else:
+                try:
+                    with transaction.atomic():
+                        cloned = _duplicate_assignment_to_course(assignment, target_course)
+                    messages.success(request, f'Assignment duplicated to "{target_course.code_title_label()}".')
+                    return redirect('edit_assignment', pk=cloned.pk)
+                except Exception as e:
+                    logger.error(f"Error duplicating assignment: {e}")
+                    messages.error(request, f"Could not duplicate assignment: {e}")
+
+        rubric_prefill = _build_rubric_prefill_from_request(request)
         form = AssignmentForm(request.POST, request.FILES, instance=assignment)
         if form.is_valid():
             try:
@@ -656,6 +1049,8 @@ def edit_assignment(request, pk):
                                 order=order_idx
                             )
                             order_idx += 1
+
+                    _save_rubric_from_edit_post(request, assignment)
             except Exception as e:
                 logger.error(f"Error updating assignment: {e}")
                 messages.error(request, f"An error occurred while updating the assignment: {str(e)}")
@@ -665,6 +1060,8 @@ def edit_assignment(request, pk):
                     'base_template': base_template,
                     'course_students': CourseMember.objects.filter(course=assignment.course, role_in_course='STUDENT').select_related('user'),
                     'course_group_sets': CourseGroupSet.objects.filter(course=assignment.course).order_by('-created_at'),
+                    'duplicate_course_options': duplicate_course_options,
+                    **rubric_prefill,
                 })
 
             # If a new public_test_data CSV file was uploaded, replace all DB test cases for this assignment
@@ -718,6 +1115,12 @@ def edit_assignment(request, pk):
                 except Exception as e:
                     logger.error(f"Error parsing public_test_data CSV for assignment {assignment.id}: {e}")
 
+            if action == 'save_and_configure_comments':
+                if RubricCriterion.objects.filter(rubric__assignment=assignment).exists():
+                    return redirect('configure_rubric_comments', assignment_id=assignment.id)
+                messages.info(request, "Add rubric criteria first, then configure comment presets.")
+                return redirect('edit_assignment', pk=assignment.id)
+
             # Success message removed as per user request
             course_role = get_user_course_role(user, assignment.course, request)
             route_name = 'professor_course' if course_role == 'INSTRUCTOR' else ('student_course' if course_role == 'STUDENT' else 'ga_course')
@@ -746,6 +1149,66 @@ def edit_assignment(request, pk):
         'base_template': base_template,
         'course_students': course_students,
         'course_group_sets': CourseGroupSet.objects.filter(course=assignment.course).order_by('-created_at'),
+        'duplicate_course_options': duplicate_course_options,
+        **rubric_prefill,
+    })
+
+
+@login_required
+def configure_rubric_comments_view(request, assignment_id):
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    user = get_user_from_request(request)
+    if not is_course_instructor(user, assignment.course, request):
+        return HttpResponseForbidden("Only instructors can configure rubric comments.")
+    rubric = getattr(assignment, 'rubric', None)
+    criteria = list(rubric.criteria.all()) if rubric else []
+    if not criteria:
+        messages.info(request, "Add rubric criteria first, then configure comment presets.")
+        return redirect('edit_assignment', pk=assignment.id)
+
+    if request.method == 'POST':
+        with transaction.atomic():
+            RubricCriterionCommentPreset.objects.filter(criterion__in=criteria).delete()
+            for c in criteria:
+                for v in _score_choices_for_criterion(c):
+                    token = _score_token(v)
+                    txt = (request.POST.get(f'comment_{c.id}_{token}') or '').strip()
+                    if txt:
+                        RubricCriterionCommentPreset.objects.create(
+                            criterion=c,
+                            score_value=Decimal(str(v)).quantize(Decimal('0.01')),
+                            comment_text=txt,
+                        )
+        messages.success(request, "Rubric comment presets saved.")
+        return redirect('edit_assignment', pk=assignment.id)
+
+    existing = {}
+    for p in RubricCriterionCommentPreset.objects.filter(criterion__in=criteria):
+        existing[(p.criterion_id, _score_token(_format_score_value(p.score_value)))] = p.comment_text
+        existing[(p.criterion_id, _score_token(float(p.score_value)))] = p.comment_text
+    rows = []
+    for c in criteria:
+        score_rows = []
+        for v in _score_choices_for_criterion(c):
+            token = _score_token(v)
+            score_rows.append({
+                'score': _format_score_value(v),
+                'token': token,
+                'value': existing.get((c.id, token), ''),
+            })
+        rows.append({'criterion': c, 'score_rows': score_rows})
+
+    course_role = get_user_course_role(user, assignment.course, request)
+    if course_role == 'INSTRUCTOR':
+        base_template = 'base_professor.html'
+    elif course_role == 'STUDENT':
+        base_template = 'portal/base_portal.html'
+    else:
+        base_template = 'base_grading_assistant.html'
+    return render(request, 'configure_rubric_comments.html', {
+        'assignment': assignment,
+        'criterion_rows': rows,
+        'base_template': base_template,
     })
 
 @login_required
@@ -803,7 +1266,6 @@ def assignment_detail_view(request, pk):
             files = request.FILES.getlist('file_path')
             monaco_files_json = request.POST.get('monaco_files', '').strip()
             
-            import json
             monaco_files = []
             if monaco_files_json:
                 try:
@@ -923,7 +1385,6 @@ def assignment_detail_view(request, pk):
 
     submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'grade')
     
-    import json
     submission_files = []
     latest_submission = None
     
@@ -1159,6 +1620,14 @@ def grade_submission_view(request, pk):
     grade = getattr(submission, 'grade', None)
     rubric = getattr(assignment, 'rubric', None)
     criteria = list(rubric.criteria.all()) if rubric else []
+    rubric_comment_preset_index = _index_rubric_comment_presets(criteria) if criteria else {}
+    rubric_comment_presets_for_ui = {}
+    for (cid, score_dec), preset in rubric_comment_preset_index.items():
+        txt = (preset.comment_text or '').strip()
+        if not txt:
+            continue
+        rubric_comment_presets_for_ui.setdefault(str(cid), {})[_format_score_value(score_dec)] = txt
+    rubric_comment_presets_json = json.dumps(rubric_comment_presets_for_ui)
     criterion_grades = {}  # criterion_id -> points_earned (Decimal)
     if submission and criteria:
         for cg in CriterionGrade.objects.filter(submission=submission, criterion__in=criteria):
@@ -1236,16 +1705,27 @@ def grade_submission_view(request, pk):
                     total = final_score_weighted_rubric(criteria, earned_by_id, assignment.points)
                 else:
                     total = final_score_unweighted_rubric(criteria, earned_by_id, assignment.points)
+                manual_feedback = _strip_auto_feedback_block(feedback)
+                auto_lines = _build_auto_rubric_comment_lines(
+                    criteria, earned_by_id, preset_index=rubric_comment_preset_index
+                )
+                final_feedback = manual_feedback
+                if auto_lines:
+                    auto_block = "\n".join(auto_lines)
+                    if final_feedback:
+                        final_feedback = f"{final_feedback}\n\n{AUTO_FEEDBACK_BLOCK_HEADER}\n{auto_block}"
+                    else:
+                        final_feedback = f"{AUTO_FEEDBACK_BLOCK_HEADER}\n{auto_block}"
                 # Keep gradebook sources in sync: rubric scores must persist to Grade.
                 if grade:
                     grade.score = total
-                    grade.feedback = feedback
+                    grade.feedback = final_feedback
                     grade.save(update_fields=['score', 'feedback'])
                 else:
                     Grade.objects.create(
                         submission=submission,
                         score=total,
-                        feedback=feedback,
+                        feedback=final_feedback,
                     )
 
                 submission.status = 'graded'
@@ -1309,7 +1789,6 @@ def grade_submission_view(request, pk):
     else:
         base_template = 'base_grading_assistant.html'
             
-    import json
     submission_files = []
     
     if submission and submission.file_path:
@@ -1385,10 +1864,14 @@ def grade_submission_view(request, pk):
     if submission.group:
         group_members = AssignmentGroupMember.objects.filter(group=submission.group).select_related('student__user')
 
+    # Instructor textarea: manual feedback only; auto rubric block stays on Grade.feedback for students.
+    instructor_feedback_display = _strip_auto_feedback_block(grade.feedback) if grade else ''
+
     context = {
         'submission': submission,
         'assignment': assignment,
         'grade': grade,
+        'instructor_feedback_display': instructor_feedback_display,
         'base_template': base_template,
         'can_preview_code': can_preview_code,
         'submission_files_json': submission_files_json,
@@ -1399,6 +1882,7 @@ def grade_submission_view(request, pk):
         'criteria': criteria,
         'criteria_with_scores': criteria_with_scores,
         'criterion_grades': criterion_grades,
+        'rubric_comment_presets_json': rubric_comment_presets_json,
         'group_members': group_members,
     }
     return render(request, 'grade_submission.html', context)

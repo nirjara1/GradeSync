@@ -512,6 +512,25 @@ body.gradesync-app .main-content h3.courses-section-title--archived {
     line-height: 1.3;
 }
 
+.course-list-item__subtitle {
+    margin: 0 0 6px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.course-list-item--archived .course-list-item__subtitle {
+    color: #4b5563;
+}
+
+[data-theme='dark'] body.gradesync-app .main-content p.course-list-item__subtitle {
+    color: #e5e7eb !important;
+}
+
+[data-theme='dark'] body.gradesync-app .main-content .course-list-item--archived p.course-list-item__subtitle {
+    color: #d1d5db !important;
+}
+
 .course-list-item__title--archived {
     color: #374151;
 }
@@ -1083,6 +1102,12 @@ body.gradesync-app .main-content h3.courses-section-title--archived {
     cursor: pointer;
     font-size: 15px;
     font-weight: bold;
+}
+
+a.btn-publish {
+    display: inline-block;
+    text-decoration: none;
+    box-sizing: border-box;
 }
 
 .btn-publish:hover {
