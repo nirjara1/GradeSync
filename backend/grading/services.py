@@ -156,7 +156,7 @@ def run_submission_analysis(submission_id) -> dict:
                         else:
                             logger.warning(f"Corpus submission {other_sub.id} has no extractable code (files: {other_file_count})")
                             
-                    sim_engine = SimilarityEngine(n=3)
+                    sim_engine = SimilarityEngine()
                     sim_results = sim_engine.check_similarity_from_texts(code_str, corpus_texts)
                     
                     if sim_results:
