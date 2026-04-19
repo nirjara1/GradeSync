@@ -849,109 +849,71 @@
             }
         }
 
-        // --- SCRUB-LINKED HERO TEXT ANIMATION ---
+        // --- CHOREOGRAPHED HERO ENTRANCE ANIMATION ---
         const hTitle = document.querySelector('.hero-title');
         const hSubtitle = document.querySelector('.hero-subtitle');
         const hCtas = document.querySelector('.hero-ctas');
         const hMockup = document.querySelector('.hero-dashboard-mockup');
         const hBadge = document.querySelector('.hero-badge');
 
-        let maxTitleScale = window.innerWidth < 600 ? 1.5 : (window.innerWidth < 900 ? 2 : 2.8);
+        let maxTitleScale = window.innerWidth < 600 ? 1.5 : (window.innerWidth < 900 ? 2 : 2.5);
 
-        // Turn off default CSS animation
-        if(hTitle) {
+        // Reset default CSS animations
+        if (hTitle) {
             hTitle.style.animation = 'none';
-            hTitle.style.transformOrigin = 'center top';
+            // Use 'center center' for clean scaling
+            hTitle.style.transformOrigin = 'center center';
         }
-        if(hSubtitle) hSubtitle.style.animation = 'none';
-        if(hCtas) hCtas.style.animation = 'none';
-        if(hMockup) hMockup.style.animation = 'none';
-        if(hBadge) hBadge.style.animation = 'none';
+        if (hSubtitle) hSubtitle.style.animation = 'none';
+        if (hCtas) hCtas.style.animation = 'none';
+        if (hMockup) hMockup.style.animation = 'none';
+        if (hBadge) hBadge.style.animation = 'none';
 
-        // Set initial entrance state
-        if(hTitle) {
+        // T=0: Set initial hidden/huge state
+        if (hTitle) {
             hTitle.style.opacity = '0';
-            hTitle.style.transform = `scale(${maxTitleScale}) translateX(-100vw) translateY(20vh)`;
-            hTitle.style.transition = 'transform 1.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s ease';
+            hTitle.style.transform = `scale(${maxTitleScale}) translateX(-50vw)`;
         }
         
         [hSubtitle, hCtas, hBadge, hMockup].forEach(el => {
             if(el) {
                 el.style.opacity = '0';
-                el.style.transform = 'translateY(60px)';
-                el.style.transition = 'none'; 
+                el.style.transform = 'translateY(40px)';
             }
         });
 
-        // Trigger entrance slide-in
+        // T=100ms: Slide in HUGE text from the left
         setTimeout(() => {
-            if(hTitle && window.scrollY < 50) {
+            if(hTitle) {
+                hTitle.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease';
                 hTitle.style.opacity = '1';
-                hTitle.style.transform = `scale(${maxTitleScale}) translateX(0) translateY(20vh)`;
+                hTitle.style.transform = `scale(${maxTitleScale}) translateX(0)`;
             }
-        }, 50);
+        }, 100);
 
-        let entranceFinished = false;
+        // T=1800ms: Shrink back down to normal size and reveal the rest
         setTimeout(() => {
-            entranceFinished = true;
-            if(hTitle) hTitle.style.transition = 'none'; 
-        }, 1450);
-
-        // Handle Scroll Scrubbing safely via RAF
-        let scrubTicking = false;
-        window.addEventListener('scroll', () => {
-            if (!scrubTicking) {
-                window.requestAnimationFrame(() => {
-                    scrubAnimations();
-                    scrubTicking = false;
-                });
-                scrubTicking = true;
+            if(hTitle) {
+                hTitle.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+                hTitle.style.transform = `scale(1) translateX(0)`;
             }
-        });
-
-        function scrubAnimations() {
-            if(!hTitle) return;
-            let scrollY = window.scrollY;
-            let maxScrollBreak = 550; // Total pixels to finish animation
             
-            let progress = Math.min(scrollY / maxScrollBreak, 1);
-            
-            // If user begins scrolling before entrance finishes, immediately snap to scrub mode
-            if(!entranceFinished && scrollY > 10) {
-               hTitle.style.transition = 'none';
-               entranceFinished = true;
-            }
-
-            // Calculate exact scale and Y-pos based on strictly scroll progress
-            let currentScale = maxTitleScale - ((maxTitleScale - 1) * progress);
-            let currentY = 20 - (20 * progress);
-            
-            hTitle.style.transform = `scale(${currentScale}) translateX(0) translateY(${currentY}vh)`;
-            hTitle.style.opacity = '1';
-
-            // Scrub the fading elements (delay their fade-in until text starts shrinking)
-            let fadeProgress = Math.max(0, (progress - 0.25) / 0.75); // Starts revealing at 25% progress
-            let inverseYOffset = 40 - (40 * fadeProgress);
-            
-            [hSubtitle, hCtas, hBadge].forEach(el => {
-                if(el) {
-                    el.style.opacity = fadeProgress;
-                    el.style.transform = `translateY(${inverseYOffset}px)`;
+            [hSubtitle, hCtas, hBadge].forEach((el, index) => {
+                if (el) {
+                    el.style.transition = `opacity 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)`;
+                    el.style.transitionDelay = `${0.2 * index}s`; // Staggered fade in
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
                 }
             });
 
-            if(hMockup) {
-                hMockup.style.opacity = fadeProgress;
-                hMockup.style.transform = `translateY(${100 - (100 * fadeProgress)}px)`;
+            if (hMockup) {
+                hMockup.style.transition = 'opacity 1s ease, transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+                hMockup.style.transitionDelay = '0.6s';
+                hMockup.style.opacity = '1';
+                hMockup.style.transform = 'translateY(0)';
             }
-        }
-        
-        // Initial scrub call
-        if(window.scrollY > 0) {
-            entranceFinished = true;
-            if(hTitle) hTitle.style.transition = 'none';
-            scrubAnimations();
-        }
+        }, 1800);
 
         // Intersection Observer for scroll animations
         const revealElements = document.querySelectorAll('.reveal');
