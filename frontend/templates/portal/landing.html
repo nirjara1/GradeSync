@@ -1,0 +1,742 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradeSync - Automated Grading Simplified</title>
+    <!-- Use existing brand styles to maintain consistency -->
+    <link rel="stylesheet" href="{% static 'css/ulm-brand.css' %}?v=1.2">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* LANDING PAGE SPECIFIC STYLES (Modern SaaS Variant) */
+        
+        :root {
+            /* Inherited Brand Colors expanded for SaaS UI */
+            --landing-bg: #fafafa;
+            --landing-surface: #ffffff;
+            --landing-text-main: #111827;
+            --landing-text-muted: #6b7280;
+            --maroon-glow: rgba(132, 0, 41, 0.4);
+            --gold-glow: rgba(253, 185, 19, 0.4);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+        }
+
+        body.landing-page {
+            margin: 0;
+            padding: 0;
+            background-color: var(--landing-bg);
+            color: var(--landing-text-main);
+            font-family: var(--ulm-font-ui);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* typography overrides for landing */
+        .landing-page h1, .landing-page h2, .landing-page h3 {
+            font-family: var(--ulm-font-heading);
+            margin: 0;
+            text-transform: none; /* Modern SaaS utilizes Title Case */
+            letter-spacing: -0.02em;
+        }
+
+        /* --- STICKY NAVBAR --- */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 0;
+            z-index: 100;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background: rgba(250, 250, 250, 0.0);
+            border-bottom: 1px solid transparent;
+        }
+        .navbar.scrolled {
+            padding: 15px 0;
+            background: rgba(255, 255, 255, 0.85);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .nav-brand img {
+            height: 40px;
+            width: auto;
+        }
+        .nav-brand span {
+            font-family: var(--ulm-font-heading);
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--ulm-maroon);
+            letter-spacing: 0.02em;
+        }
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--landing-text-muted);
+            font-size: 15px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .nav-links a:hover {
+            color: var(--ulm-maroon);
+        }
+        .btn-nav-login {
+            background-color: var(--ulm-maroon);
+            color: white !important;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 14px 0 var(--maroon-glow);
+            transition: all 0.3s ease !important;
+        }
+        .btn-nav-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(132, 0, 41, 0.6);
+            color: white !important;
+        }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-top: 80px;
+            overflow: hidden;
+            background: radial-gradient(circle at 50% 0%, #ffffff 0%, var(--landing-bg) 100%);
+        }
+
+        /* Animated Abstract Background Elements */
+        .hero-blob {
+            position: absolute;
+            filter: blur(80px);
+            z-index: 0;
+            opacity: 0.6;
+            animation: floatBlob 20s infinite alternate ease-in-out;
+        }
+        .blob-1 {
+            top: -10%; left: -10%;
+            width: 500px; height: 500px;
+            background: linear-gradient(135deg, rgba(132,0,41,0.2), #ffffff);
+            border-radius: 50%;
+        }
+        .blob-2 {
+            bottom: -20%; right: -10%;
+            width: 600px; height: 600px;
+            background: linear-gradient(135deg, rgba(253,185,19,0.15), rgba(132,0,41,0.05));
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            animation-delay: -5s;
+        }
+        
+        @keyframes floatBlob {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+            33% { transform: translate(50px, -50px) scale(1.1) rotate(10deg); }
+            66% { transform: translate(-20px, 30px) scale(0.9) rotate(-5deg); }
+            100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 900px;
+            padding: 0 20px;
+        }
+        .hero-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(132, 0, 41, 0.05);
+            border: 1px solid rgba(132, 0, 41, 0.1);
+            color: var(--ulm-maroon);
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            animation: slideDownFade 0.8s ease backwards;
+        }
+        .hero-title {
+            font-size: 5rem;
+            line-height: 1.1;
+            font-weight: 800;
+            color: #000;
+            margin-bottom: 24px;
+            animation: slideUpFade 1s 0.2s ease backwards;
+        }
+        .hero-title span {
+            background: linear-gradient(135deg, var(--ulm-maroon) 0%, #d81b60 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--landing-text-muted);
+            max-width: 600px;
+            margin: 0 auto 40px auto;
+            line-height: 1.6;
+            animation: slideUpFade 1s 0.4s ease backwards;
+        }
+        .hero-ctas {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            animation: slideUpFade 1s 0.6s ease backwards;
+        }
+        .btn-primary {
+            background: var(--ulm-maroon);
+            color: white;
+            padding: 16px 36px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px -5px var(--maroon-glow);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid transparent;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 30px -5px var(--maroon-glow);
+        }
+        .btn-secondary {
+            background: white;
+            color: var(--landing-text-main);
+            padding: 16px 36px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            border: 1px solid rgba(0,0,0,0.1);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        .btn-secondary:hover {
+            border-color: var(--ulm-maroon);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+        }
+
+        /* Hero Image/Mockup Parallax */
+        .hero-dashboard-mockup {
+            margin-top: 60px;
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 1000px;
+            height: 500px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            animation: slideUpFade 1.2s 0.8s ease backwards;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .mockup-header {
+            height: 40px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 8px;
+            background: rgba(250,250,250,0.5);
+        }
+        .mockup-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #e5e7eb;
+        }
+        .mockup-dot.red { background: #ef4444; }
+        .mockup-dot.yellow { background: #eab308; }
+        .mockup-dot.green { background: #22c55e; }
+        
+        .mockup-body {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            gap: 24px;
+            background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,0,0,0.02) 39px, rgba(0,0,0,0.02) 40px);
+        }
+        .mockup-sidebar {
+            width: 200px; background: rgba(0,0,0,0.03); border-radius: 8px;
+        }
+        .mockup-main {
+            flex: 1; display: flex; flex-direction: column; gap: 16px;
+        }
+        .mockup-bar {
+            height: 40px; background: rgba(0,0,0,0.03); border-radius: 8px;
+        }
+        .mockup-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1;
+        }
+        .mockup-card { background: white; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+
+        /* --- FEATURES SECTION --- */
+        .section {
+            padding: 120px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+        .section-tag {
+            color: var(--ulm-gold);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: 3rem;
+            color: #000;
+            margin-bottom: 20px;
+        }
+        .section-subtitle {
+            font-size: 1.15rem;
+            color: var(--landing-text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        .feature-card {
+            background: var(--landing-surface);
+            border-radius: 16px;
+            padding: 40px 30px;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(132,0,41,0.02), transparent);
+            z-index: -1; opacity: 0; transition: opacity 0.4s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
+            border-color: rgba(132,0,41,0.1);
+        }
+        .feature-card:hover::before { opacity: 1; }
+        
+        .feature-icon {
+            width: 50px; height: 50px; border-radius: 12px;
+            background: rgba(132,0,41,0.05); color: var(--ulm-maroon);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; margin-bottom: 24px;
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover .feature-icon {
+            background: var(--ulm-maroon); color: white;
+            transform: scale(1.1) rotate(5deg);
+        }
+        .feature-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; color: #111; }
+        .feature-desc { color: var(--landing-text-muted); line-height: 1.6; font-size: 15px; }
+
+        /* --- HOW IT WORKS (3 STEP FLOW) --- */
+        .workflow-section {
+            background: #ffffff;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        .workflow-bg {
+            position: absolute; top: 0; right: 0; bottom: 0; width: 40%;
+            background: linear-gradient(to left, rgba(132,0,41,0.03), transparent);
+            z-index: 0;
+        }
+        .workflow-container {
+            position: relative; z-index: 1; padding: 120px 20px; max-width: 1200px; margin: 0 auto;
+        }
+        .steps-container {
+            display: flex; flex-direction: column; gap: 60px; position: relative; margin-top: 60px;
+        }
+        .steps-container::before {
+            content: ''; position: absolute; left: 24px; top: 0; bottom: 0; width: 2px;
+            background: linear-gradient(to bottom, var(--ulm-maroon), transparent);
+            opacity: 0.2;
+        }
+        .step-row {
+            display: flex; gap: 40px; align-items: flex-start;
+        }
+        .step-number {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: white; border: 2px solid var(--ulm-maroon);
+            color: var(--ulm-maroon); font-weight: 800; font-size: 20px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; z-index: 2; position: relative;
+            box-shadow: 0 0 0 8px #ffffff;
+        }
+        .step-content {
+            background: white; padding: 30px; border-radius: 16px;
+            border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            flex: 1; transition: transform 0.3s;
+        }
+        .step-row:hover .step-content { transform: translateX(10px); }
+        .step-content h3 { font-size: 1.5rem; margin-bottom: 10px; color: #111; }
+        .step-content p { color: var(--landing-text-muted); line-height: 1.6; }
+
+        /* --- AUDIENCE SECTION --- */
+        .audience-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 60px;
+        }
+        .audience-card {
+            padding: 40px; border-radius: 20px;
+            background: #ffffff; border: 1px solid rgba(0,0,0,0.05);
+            text-align: center; transition: all 0.4s ease;
+        }
+        .audience-card:hover {
+            box-shadow: 0 30px 60px -15px rgba(0,0,0,0.08); transform: translateY(-10px);
+        }
+        .aud-icon { font-size: 40px; color: var(--ulm-gold); margin-bottom: 20px; }
+        .audience-card h3 { font-size: 1.7rem; margin-bottom: 16px; color: var(--landing-text-main); }
+        .audience-card p { color: var(--landing-text-muted); line-height: 1.6; }
+        .audience-card ul {
+            text-align: left; margin-top: 24px; padding-left: 20px; color: var(--landing-text-muted);
+        }
+        .audience-card ul li { margin-bottom: 10px; }
+        
+        /* --- CTA SECTION --- */
+        .cta-section {
+            background: linear-gradient(135deg, var(--ulm-maroon) 0%, #4a0017 100%);
+            padding: 100px 20px; text-align: center; color: white;
+            position: relative; overflow: hidden;
+        }
+        .cta-content { position: relative; z-index: 10; max-width: 800px; margin: 0 auto; }
+        .cta-section h2 { font-size: 3.5rem; margin-bottom: 24px; color: white; }
+        .cta-section p { font-size: 1.25rem; color: rgba(255,255,255,0.8); margin-bottom: 40px; }
+        .btn-cta {
+            background: var(--ulm-gold); color: #000 !important;
+            padding: 18px 40px; border-radius: 12px; font-size: 18px; font-weight: 700;
+            text-decoration: none; display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(253,185,19,0.3);
+        }
+        .btn-cta:hover {
+            transform: scale(1.05); box-shadow: 0 15px 30px rgba(253,185,19,0.4);
+        }
+
+        /* --- FOOTER --- */
+        .landing-footer {
+            background: #111; color: white; padding: 60px 20px 30px;
+        }
+        .footer-container {
+            max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 40px;
+        }
+        .footer-brand span { font-family: var(--ulm-font-heading); font-size: 24px; font-weight: 800; color: white; }
+        .footer-links a { color: rgba(255,255,255,0.6); text-decoration: none; margin-left: 20px; transition: color 0.3s; }
+        .footer-links a:hover { color: white; }
+        .footer-bottom { text-align: center; padding-top: 30px; color: rgba(255,255,255,0.4); font-size: 14px; }
+
+        /* Animation Utilities */
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        
+        @keyframes slideUpFade {
+            0% { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideDownFade {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .hero-title { font-size: 3.5rem; }
+            .hero-ctas { flex-direction: column; }
+            .audience-grid { grid-template-columns: 1fr; }
+            .nav-links { display: none; }
+        }
+        @media (max-width: 600px) {
+            .section-title { font-size: 2.2rem; }
+            .step-row { flex-direction: column; gap: 20px; }
+            .steps-container::before { left: 25px; }
+            .cta-section h2 { font-size: 2.5rem; }
+            .footer-container { flex-direction: column; gap: 20px; text-align: center; }
+        }
+    </style>
+</head>
+<body class="landing-page">
+
+    <!-- Sticky Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <img src="{% static 'images/ulm_logo.png' %}" alt="GradeSync Logo">
+                <span>GradeSync</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#audience">For Who</a>
+                <a href="{% url 'login' %}" class="btn-nav-login">Sign In</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-blob blob-1"></div>
+        <div class="hero-blob blob-2"></div>
+        
+        <div class="hero-content">
+            <div class="hero-badge">GradeSync 2.0 is Live</div>
+            <h1 class="hero-title">Automated Grading.<br><span>Simplified.</span></h1>
+            <p class="hero-subtitle">GradeSync helps students, faculty, and administrators streamline coding assignments, automate evaluation, and gain instant, actionable insights.</p>
+            <div class="hero-ctas">
+                <a href="{% url 'login' %}" class="btn-primary">Login to GradeSync</a>
+                <a href="{% url 'register' %}" class="btn-secondary">Get Started Free</a>
+            </div>
+
+            <!-- Abstract Dashboard Preview -->
+            <div class="hero-dashboard-mockup">
+                <div class="mockup-header">
+                    <div class="mockup-dot red"></div>
+                    <div class="mockup-dot yellow"></div>
+                    <div class="mockup-dot green"></div>
+                </div>
+                <div class="mockup-body">
+                    <div class="mockup-sidebar"></div>
+                    <div class="mockup-main">
+                        <div class="mockup-bar"></div>
+                        <div class="mockup-grid">
+                            <div class="mockup-card"></div>
+                            <div class="mockup-card"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="section">
+        <div class="section-header reveal">
+            <div class="section-tag">Powerful Features</div>
+            <h2 class="section-title">Everything you need to scale grading.</h2>
+            <p class="section-subtitle">GradeSync provides state-of-the-art tools designed to completely modernize computer science & software engineering education.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card reveal" style="transition-delay: 0.1s;">
+                <div class="feature-icon"><i class="fa-solid fa-code"></i></div>
+                <h3 class="feature-title">Automated Execution</h3>
+                <p class="feature-desc">Automatically evaluate code submissions against custom public and private test cases instantly within secure sandboxes.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.2s;">
+                <div class="feature-icon"><i class="fa-solid fa-language"></i></div>
+                <h3 class="feature-title">Multi-Language Support</h3>
+                <p class="feature-desc">Native support for Python, Java, C++, and more. Scale grading across multiple curriculum pathways effortlessly.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.3s;">
+                <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <h3 class="feature-title">AI & Plagiarism Detection</h3>
+                <p class="feature-desc">Integrated code similarity scanning and advanced AI-generated code detection routines to maintain academic integrity.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.4s;">
+                <div class="feature-icon"><i class="fa-solid fa-users"></i></div>
+                <h3 class="feature-title">Group Assignments</h3>
+                <p class="feature-desc">Seamlessly manage group repositories, peer reviews, and aggregated team grading from a unified faculty dashboard.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.5s;">
+                <div class="feature-icon"><i class="fa-solid fa-list-check"></i></div>
+                <h3 class="feature-title">Dynamic Rubrics</h3>
+                <p class="feature-desc">Create reusable point-based parameter rubrics that calculate weights automatically when combined with test case success.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.6s;">
+                <div class="feature-icon"><i class="fa-solid fa-chart-column"></i></div>
+                <h3 class="feature-title">Advanced Reporting</h3>
+                <p class="feature-desc">Export comprehensive metrics via CSV for Canvas integration, and view rich data visualizations on student performance trajectories.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="workflow-section">
+        <div class="workflow-bg"></div>
+        <div class="workflow-container">
+            <div class="section-header reveal">
+                <div class="section-tag">Workflow</div>
+                <h2 class="section-title">Grading on Autopilot</h2>
+                <p class="section-subtitle">Experience a frictionless pipeline from student submission to faculty review in three simple steps.</p>
+            </div>
+
+            <div class="steps-container">
+                <div class="step-row reveal" style="transition-delay: 0.1s;">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Students Submit Code</h3>
+                        <p>Students upload their source code or link their repository directly through the intuitive GradeSync portal. Preliminary public test-case results are shown instantly as a sanity check before final submission.</p>
+                    </div>
+                </div>
+                <div class="step-row reveal" style="transition-delay: 0.3s;">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Evaluation Engine Runs</h3>
+                        <p>Our secure backend spins up isolated Docker containers to compile and execute the code. Hidden test-cases, time-complexity limitations, and memory bounds are strictly enforced.</p>
+                    </div>
+                </div>
+                <div class="step-row reveal" style="transition-delay: 0.5s;">
+                    <div class="step-content">
+                        <h3>Instant Feedback & Insights</h3>
+                        <p>Grades are immediately calculated based on rubric weights. Faculty receive a comprehensive integrity report (AI + Plagiarism) and detailed matrices of test outcomes, ready for final approval.</p>
+                    </div>
+                    <div class="step-number" style="order: -1;">3</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Audience Section -->
+    <section id="audience" class="section">
+        <div class="section-header reveal">
+            <h2 class="section-title">Built for Everyone</h2>
+            <p class="section-subtitle">GradeSync connects the classroom by providing specialized tools tailored for every academic role.</p>
+        </div>
+
+        <div class="audience-grid">
+            <div class="audience-card reveal" style="transition-delay: 0.1s;">
+                <i class="fa-solid fa-graduation-cap aud-icon"></i>
+                <h3>Students</h3>
+                <p>Submit assignments confidently with real-time feedback loops.</p>
+                <ul>
+                    <li>Live syntax/test validation</li>
+                    <li>Detailed feedback reports</li>
+                    <li>Historical grade tracking</li>
+                </ul>
+            </div>
+            <div class="audience-card reveal" style="transition-delay: 0.2s;">
+                <i class="fa-solid fa-chalkboard-user aud-icon"></i>
+                <h3>Faculty</h3>
+                <p>Cut grading time in half. Focus on teaching, not testing.</p>
+                <ul>
+                    <li>Bulk execution matrices</li>
+                    <li>AI & Integrity confidence scores</li>
+                    <li>1-Click LMS CSV Exports</li>
+                </ul>
+            </div>
+            <div class="audience-card reveal" style="transition-delay: 0.3s;">
+                <i class="fa-solid fa-building-columns aud-icon"></i>
+                <h3>Administrators</h3>
+                <p>Govern the platform architecture with high-level overviews.</p>
+                <ul>
+                    <li>Course & Roster Management</li>
+                    <li>User role provisioning (GAs)</li>
+                    <li>System telemetry & analytics</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-content reveal">
+            <h2>Start Grading Smarter Today</h2>
+            <p>Join the next generation of academic software evaluation. Fast, secure, and incredibly powerful.</p>
+            <a href="{% url 'login' %}" class="btn-cta">Sign In to GradeSync</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <span>GradeSync</span>
+            </div>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="{% url 'login' %}">Login Support</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 GradeSync Portal. Built with ULM Brand Guidelines. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- JavaScript for Animations and Interactions -->
+    <script>
+        // Sticky Navbar effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Intersection Observer for scroll animations
+        const revealElements = document.querySelectorAll('.reveal');
+        
+        const revealOptions = {
+            threshold: 0.15,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const revealOnScroll = new IntersectionObserver(function(entries, observer) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    observer.unobserve(entry.target); // Run once
+                }
+            });
+        }, revealOptions);
+
+        revealElements.forEach(el => {
+            revealOnScroll.observe(el);
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
