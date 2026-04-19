@@ -32,6 +32,9 @@
                 
                 <div style="flex: 1;">
                     <h3 style="margin: 0 0 5px 0; color: var(--maroon); font-size: 18px;">{{ course.dashboard_card_title }}</h3>
+                    {% if course.title %}
+                    <p style="margin: 0 0 6px 0; color: #111827; font-size: 14px; font-weight: 600;">{{ course.title }}</p>
+                    {% endif %}
                     <p style="margin: 0; color: #555; font-size: 14px;"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Course Level:</strong> {{ course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #888; font-size: 13px;">{{ course.students.count }} Students Enrolled</p>
                 </div>
@@ -61,6 +64,9 @@
                         <i class="fa-solid fa-box-archive" style="font-size: 14px; margin-right: 6px; color: #6b7280;"></i>
                         {{ course.dashboard_card_title }}
                     </h3>
+                    {% if course.title %}
+                    <p style="margin: 0 0 6px 0; color: #111827; font-size: 14px; font-weight: 600;">{{ course.title }}</p>
+                    {% endif %}
                     <p style="margin: 0; color: #6b7280; font-size: 14px;"><strong>Term:</strong> {{ course.term }} &nbsp;|&nbsp; <strong>Course Level:</strong> {{ course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #9ca3af; font-size: 13px;">{{ course.students.count }} Students Enrolled</p>
                 </div>

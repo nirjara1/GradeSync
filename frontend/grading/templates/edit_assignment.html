@@ -445,9 +445,9 @@
             <button type="button" class="btn-secondary" onclick="addRubricRow()" style="margin-top: 12px;">
                 <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Add criterion
             </button>
-            <a href="{% url 'configure_rubric_comments' assignment.id %}" class="btn-secondary" style="margin-top: 12px; margin-left: 8px; text-decoration: none;">
+            <button type="submit" name="action" value="save_and_configure_comments" class="btn-secondary" style="margin-top: 12px; margin-left: 8px;">
                 <i class="fa-regular fa-comment-dots" style="margin-right: 6px;"></i> Configure score-based comments
-            </a>
+            </button>
             <input type="hidden" name="rubric_criteria_json" id="rubricCriteriaJson" value="{{ rubric_criteria_json_prefill|default:'[]' }}">
         </div>
 
@@ -530,6 +530,9 @@
             var nm = tr.querySelector('.rubric-name');
             var mp = tr.querySelector('.rubric-max');
             var wt = tr.querySelector('.rubric-weight');
+            if (prefill.id !== undefined && prefill.id !== null && String(prefill.id).trim() !== '') {
+                tr.dataset.criterionId = String(prefill.id);
+            }
             if (nm) nm.value = prefill.name || '';
             if (mp && prefill.max_points !== undefined && prefill.max_points !== null) mp.value = prefill.max_points;
             if (wt && prefill.weight !== undefined && prefill.weight !== null) wt.value = prefill.weight;
@@ -567,12 +570,17 @@
             if (!name) return;
             var maxEl = tr.querySelector('.rubric-max');
             var mp = parseFloat(maxEl && maxEl.value) || 0;
+            var cid = tr.dataset && tr.dataset.criterionId ? parseInt(tr.dataset.criterionId, 10) : NaN;
+            var base = {};
+            if (!isNaN(cid)) {
+                base.id = cid;
+            }
             if (weighted) {
                 var wEl = tr.querySelector('.rubric-weight');
                 var w = parseFloat(wEl && wEl.value) || 0;
-                out.push({ name: name, max_points: mp, weight: w });
+                out.push(Object.assign({}, base, { name: name, max_points: mp, weight: w }));
             } else {
-                out.push({ name: name, max_points: mp });
+                out.push(Object.assign({}, base, { name: name, max_points: mp }));
             }
         });
         outEl.value = JSON.stringify(out);

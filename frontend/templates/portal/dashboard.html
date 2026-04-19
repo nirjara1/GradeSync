@@ -71,6 +71,15 @@
         line-height: 1.4;
     }
 
+    .card-content-enhanced .course-name {
+        color: var(--text-main);
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 6px;
+        margin-top: 0;
+        line-height: 1.35;
+    }
+
     .card-content-enhanced .course-prof, 
     .card-content-enhanced .course-term {
         color: var(--text-muted);
@@ -269,6 +278,9 @@
 
                         <div class="card-content-enhanced">
                             <p class="course-title">{{ enrollment.course.dashboard_card_title }}</p>
+                            {% if enrollment.course.title %}
+                            <p class="course-name">{{ enrollment.course.title }}</p>
+                            {% endif %}
                             <p class="course-prof">{{ enrollment.course.professor.get_full_name|default:enrollment.course.professor.username }}</p>
                             <p class="course-term">{{ enrollment.course.term }}</p>
                         </div>

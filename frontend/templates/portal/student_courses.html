@@ -30,6 +30,9 @@
                 
                 <div style="flex: 1;">
                     <h3 style="margin: 0 0 5px 0; color: var(--maroon); font-size: 18px;">{{ enrollment.course.dashboard_card_title }}</h3>
+                    {% if enrollment.course.title %}
+                    <p style="margin: 0 0 6px 0; color: #111827; font-size: 14px; font-weight: 600;">{{ enrollment.course.title }}</p>
+                    {% endif %}
                     <p style="margin: 0; color: #555; font-size: 14px;"><strong>Term:</strong> {{ enrollment.course.term }} &nbsp;|&nbsp; <strong>Course Level:</strong> {{ enrollment.course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #888; font-size: 13px;"><strong>Instructor:</strong> {{ enrollment.course.professor.get_full_name|default:enrollment.course.professor.username }}</p>
                 </div>
@@ -64,6 +67,9 @@
                         <i class="fa-solid fa-box-archive" style="font-size: 14px; margin-right: 6px; color: #6b7280;"></i>
                         {{ enrollment.course.dashboard_card_title }}
                     </h3>
+                    {% if enrollment.course.title %}
+                    <p style="margin: 0 0 6px 0; color: #111827; font-size: 14px; font-weight: 600;">{{ enrollment.course.title }}</p>
+                    {% endif %}
                     <p style="margin: 0; color: #6b7280; font-size: 14px;"><strong>Term:</strong> {{ enrollment.course.term }} &nbsp;|&nbsp; <strong>Course Level:</strong> {{ enrollment.course.section }}</p>
                     <p style="margin: 5px 0 0 0; color: #9ca3af; font-size: 13px;"><strong>Instructor:</strong> {{ enrollment.course.professor.get_full_name|default:enrollment.course.professor.username }}</p>
                 </div>

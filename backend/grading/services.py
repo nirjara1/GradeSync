@@ -5,9 +5,9 @@ import logging
 import ast
 import re
 from django.conf import settings
-from django.db import transaction
+from django.db import connection, transaction
 from .models import Submission, TestCase, TestResult, RuleSet, Assignment
-from .sandbox import execute_code
+from .sandbox import execute_code, execute_code_batch
 
 logger = logging.getLogger(__name__)
 
@@ -398,6 +398,53 @@ def run_bulk_plagiarism_analysis(assignment_id: int) -> dict:
     }
 
 
+def _persist_test_results(submission: Submission, result_rows: list) -> None:
+    """
+    Write per-test rows efficiently. PostgreSQL uses a single upsert-like bulk_write;
+    other backends fall back to update_or_create per row.
+    """
+    if not result_rows:
+        return
+    objs = [
+        TestResult(
+            submission=submission,
+            test_case=r["test_case"],
+            passed=r["passed"],
+            actual_output=r["actual_output"],
+            error_message=r["error_message"],
+            execution_time=r["execution_time"],
+            points_earned=1 if r["passed"] else 0,
+        )
+        for r in result_rows
+    ]
+    if connection.vendor == "postgresql":
+        TestResult.objects.bulk_create(
+            objs,
+            update_conflicts=True,
+            unique_fields=["submission", "test_case"],
+            update_fields=[
+                "passed",
+                "actual_output",
+                "error_message",
+                "execution_time",
+                "points_earned",
+            ],
+        )
+        return
+    for o in objs:
+        TestResult.objects.update_or_create(
+            submission=submission,
+            test_case=o.test_case,
+            defaults={
+                "passed": o.passed,
+                "actual_output": o.actual_output,
+                "error_message": o.error_message,
+                "execution_time": o.execution_time,
+                "points_earned": o.points_earned,
+            },
+        )
+
+
 def grade_submission(submission_id: int) -> dict:
     """
     Grade a submission by running all test cases and checking rules.
@@ -438,10 +485,10 @@ def grade_submission(submission_id: int) -> dict:
         submission.status = 'grading'
         submission.save(update_fields=['status'])
         
-        # Get all test cases for this assignment
-        test_cases = TestCase.objects.filter(assignment=assignment).order_by('order')
-        
-        if not test_cases.exists():
+        # Get all test cases for this assignment (list: avoids repeated queries)
+        test_cases = list(TestCase.objects.filter(assignment=assignment).order_by('order'))
+
+        if not test_cases:
             submission.status = 'graded'
             submission.total_score = 0
             submission.max_score = 0
@@ -454,53 +501,143 @@ def grade_submission(submission_id: int) -> dict:
                 "test_results": [],
                 "rule_violations": []
             }
-        
+
         # Run test cases
         test_results = []
+        persist_rows = []
         total_score = 0
-        max_score = 0
-        
-        for test_case in test_cases:
-            max_score += 1
-            
-            # Execute code with test input (normalize literal \n from CSV to real newlines)
-            input_data = (test_case.input_data or '').replace('\\n', '\n')
-            result = execute_code(language, code_str, input_data, submission_id)
-            
-            # Compare output
-            actual_output = result.get('stdout', '').strip()
-            expected_output = test_case.expected_output.strip()
-            passed = actual_output == expected_output
-            
-            if passed:
-                total_score += 1
-            
-            # Create or update TestResult (unique on submission + test_case; re-run overwrites)
-            TestResult.objects.update_or_create(
-                submission=submission,
-                test_case=test_case,
-                defaults={
+        max_score = len(test_cases)
+
+        if language == "python" and len(test_cases) > 1:
+            # Batch execution: one container for all tests (major speedup)
+            inputs = [
+                (tc.input_data or "").replace("\\n", "\n")
+                for tc in test_cases
+            ]
+            batch = execute_code_batch(language, code_str, inputs, submission_id)
+            results = batch.get("results") if isinstance(batch, dict) else None
+            if not isinstance(results, list) or len(results) != len(test_cases):
+                # Fallback to per-test execution if batch failed to return expected shape
+                results = None
+
+            if results is not None:
+                for test_case, result in zip(test_cases, results):
+                    actual_output = (result.get("stdout", "") or "").strip()
+                    expected_output = (test_case.expected_output or "").strip()
+                    passed = actual_output == expected_output and int(result.get("exit_code", 0) or 0) == 0
+
+                    if passed:
+                        total_score += 1
+
+                    err_msg = result.get("stderr", "") or ""
+                    exec_time = float(result.get("execution_time", 0.0) or 0.0)
+                    persist_rows.append(
+                        {
+                            "test_case": test_case,
+                            "passed": passed,
+                            "actual_output": actual_output,
+                            "error_message": err_msg,
+                            "execution_time": exec_time,
+                        }
+                    )
+                    test_results.append(
+                        {
+                            "test_case_id": test_case.id,
+                            "name": test_case.name,
+                            "passed": passed,
+                            "points_earned": 1 if passed else 0,
+                            "execution_time": exec_time,
+                            "expected_output": test_case.expected_output,
+                            "actual_output": actual_output,
+                            "error_message": err_msg,
+                            "is_private": getattr(test_case, "is_private", False),
+                        }
+                    )
+                    logger.info(
+                        "Test case %s for submission %s: %s",
+                        test_case.id,
+                        submission_id,
+                        "PASS" if passed else "FAIL",
+                    )
+            else:
+                # Per-test fallback (keeps behavior identical if batch fails)
+                for test_case in test_cases:
+                    input_data = (test_case.input_data or '').replace('\\n', '\n')
+                    result = execute_code(language, code_str, input_data, submission_id)
+
+                    actual_output = result.get('stdout', '').strip()
+                    expected_output = test_case.expected_output.strip()
+                    passed = actual_output == expected_output
+
+                    if passed:
+                        total_score += 1
+
+                    err_msg = result.get('stderr', '') or ''
+                    exec_time = float(result.get('execution_time', 0.0) or 0.0)
+                    persist_rows.append(
+                        {
+                            "test_case": test_case,
+                            "passed": passed,
+                            "actual_output": actual_output,
+                            "error_message": err_msg,
+                            "execution_time": exec_time,
+                        }
+                    )
+
+                    test_results.append({
+                        'test_case_id': test_case.id,
+                        'name': test_case.name,
+                        'passed': passed,
+                        'points_earned': 1 if passed else 0,
+                        'execution_time': exec_time,
+                        'expected_output': test_case.expected_output,
+                        'actual_output': actual_output,
+                        'error_message': err_msg,
+                        'is_private': getattr(test_case, 'is_private', False),
+                    })
+
+                    logger.info(f"Test case {test_case.id} for submission {submission_id}: {'PASS' if passed else 'FAIL'}")
+        else:
+            for test_case in test_cases:
+                # Execute code with test input (normalize literal \n from CSV to real newlines)
+                input_data = (test_case.input_data or '').replace('\\n', '\n')
+                result = execute_code(language, code_str, input_data, submission_id)
+
+                # Compare output
+                actual_output = result.get('stdout', '').strip()
+                expected_output = test_case.expected_output.strip()
+                passed = actual_output == expected_output
+
+                if passed:
+                    total_score += 1
+
+                err_msg = result.get('stderr', '') or ''
+                exec_time = float(result.get('execution_time', 0.0) or 0.0)
+                persist_rows.append(
+                    {
+                        "test_case": test_case,
+                        "passed": passed,
+                        "actual_output": actual_output,
+                        "error_message": err_msg,
+                        "execution_time": exec_time,
+                    }
+                )
+
+                test_results.append({
+                    'test_case_id': test_case.id,
+                    'name': test_case.name,
                     'passed': passed,
-                    'actual_output': actual_output,
-                    'error_message': result.get('stderr', ''),
-                    'execution_time': result.get('execution_time', 0.0),
                     'points_earned': 1 if passed else 0,
-                },
-            )
-            
-            test_results.append({
-                'test_case_id': test_case.id,
-                'name': test_case.name,
-                'passed': passed,
-                'points_earned': 1 if passed else 0,
-                'execution_time': result.get('execution_time', 0.0),
-                'expected_output': test_case.expected_output,
-                'actual_output': actual_output,
-                'error_message': result.get('stderr', ''),
-                'is_private': getattr(test_case, 'is_private', False),
-            })
-            
-            logger.info(f"Test case {test_case.id} for submission {submission_id}: {'PASS' if passed else 'FAIL'}")
+                    'execution_time': exec_time,
+                    'expected_output': test_case.expected_output,
+                    'actual_output': actual_output,
+                    'error_message': err_msg,
+                    'is_private': getattr(test_case, 'is_private', False),
+                })
+
+                logger.info(f"Test case {test_case.id} for submission {submission_id}: {'PASS' if passed else 'FAIL'}")
+
+        _persist_test_results(submission, persist_rows)
         
         # Check static analysis rules
         rule_violations = []
