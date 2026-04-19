@@ -722,9 +722,27 @@
             // Maroon & Gold with low opacity
             const colors = ['rgba(132, 0, 41, 0.4)', 'rgba(253, 185, 19, 0.4)'];
             
+            let mouse = {
+                x: null,
+                y: null,
+                radius: 120
+            };
+            
+            const heroSection = document.querySelector('.hero');
+            
+            window.addEventListener('mousemove', function(event) {
+                if(!heroSection) return;
+                const rect = heroSection.getBoundingClientRect();
+                mouse.x = event.clientX - rect.left;
+                mouse.y = event.clientY - rect.top;
+            });
+            window.addEventListener('mouseout', function() {
+                mouse.x = null;
+                mouse.y = null;
+            });
+            
             function resizeCanvas() {
                 canvas.width = window.innerWidth;
-                const heroSection = document.querySelector('.hero');
                 canvas.height = heroSection ? heroSection.offsetHeight : window.innerHeight;
             }
             
@@ -745,6 +763,24 @@
                     
                     if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
                     if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+                    
+                    // Mouse interactivity (Repulse)
+                    if (mouse.x != null && mouse.y != null) {
+                        let dx = mouse.x - this.x;
+                        let dy = mouse.y - this.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < mouse.radius) {
+                            const forceDirectionX = dx / distance;
+                            const forceDirectionY = dy / distance;
+                            const force = (mouse.radius - distance) / mouse.radius;
+                            const directionX = forceDirectionX * force * 2.5; 
+                            const directionY = forceDirectionY * force * 2.5;
+                            
+                            this.x -= directionX;
+                            this.y -= directionY;
+                        }
+                    }
                 }
                 draw() {
                     ctx.beginPath();
@@ -756,9 +792,8 @@
             
             function initParticles() {
                 particlesArray = [];
-                // Density of particles
                 let numberOfParticles = (canvas.width * canvas.height) / 10000;
-                numberOfParticles = Math.min(numberOfParticles, 120); // Cap for performance
+                numberOfParticles = Math.min(numberOfParticles, 120); 
                 for (let i = 0; i < numberOfParticles; i++) {
                     particlesArray.push(new Particle());
                 }
@@ -769,7 +804,6 @@
                     for (let b = a; b < particlesArray.length; b++) {
                         let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x))
                                      + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
-                        // Link particles if close enough
                         if(distance < 18000) {
                             let opacityValue = 1 - (distance / 18000);
                             ctx.strokeStyle = `rgba(132, 0, 41, ${opacityValue * 0.15})`;
@@ -777,6 +811,21 @@
                             ctx.beginPath();
                             ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
                             ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                            ctx.stroke();
+                        }
+                    }
+                    
+                    // Connect to mouse (Grab Effect)
+                    if (mouse.x != null && mouse.y != null) {
+                        let mouseDist = ((particlesArray[a].x - mouse.x) * (particlesArray[a].x - mouse.x))
+                                      + ((particlesArray[a].y - mouse.y) * (particlesArray[a].y - mouse.y));
+                        if (mouseDist < 25000) {
+                            let opacityMouse = 1 - (mouseDist / 25000);
+                            ctx.strokeStyle = `rgba(253, 185, 19, ${opacityMouse * 0.4})`; // Gold connection lines
+                            ctx.lineWidth = 1.2;
+                            ctx.beginPath();
+                            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                            ctx.lineTo(mouse.x, mouse.y);
                             ctx.stroke();
                         }
                     }
