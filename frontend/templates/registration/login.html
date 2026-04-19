@@ -70,39 +70,44 @@
             }
         }
 
-        /* Top Header Bar */
-        .header {
-            position: relative;
-            z-index: 10;
+        /* --- STICKY NAVBAR (from landing page) --- */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 120px;
-            background-color: var(--primary-red);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            padding: 10px 20px;
+            padding: 20px 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background: rgba(250, 250, 250, 0.3);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
         }
-
-        .ulm-seal {
-            height: 70px;
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .nav-brand img {
+            height: 40px;
             width: auto;
         }
-
-        .gradesync-logo {
-            color: #ffffff;
-            font-size: 36px;
-            font-weight: 700;
-            font-family: Arial, Helvetica, sans-serif;
-            margin: 0;
-            letter-spacing: 0.5px;
-        }
-
-        .vertical-separator {
-            width: 2px;
-            height: 60px;
-            background-color: #ffffff;
-            margin: 0 15px;
+        .nav-brand span {
+            font-family: var(--ulm-font-heading);
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--ulm-maroon);
+            letter-spacing: 0.02em;
         }
 
         /* Login Card */
@@ -111,7 +116,7 @@
             background-color: var(--card-bg);
             width: 100%;
             max-width: 420px;
-            margin: auto;
+            margin: 120px auto auto auto;
             padding: 48px 36px;
             border-radius: 16px;
             /* Soft diffused drop shadow */
@@ -333,21 +338,8 @@
         }
 
         @media (max-width: 480px) {
-            .header {
-                height: 80px;
-                padding: 10px 15px;
-            }
-
-            .ulm-seal {
-                height: 50px;
-            }
-
-            .gradesync-logo {
-                font-size: 24px;
-            }
-
-            .vertical-separator {
-                height: 40px;
+            .navbar {
+                padding: 15px 0;
             }
 
             .login-card {
@@ -371,18 +363,15 @@
 <body class="gradesync-app">
     <div id="background-container"></div>
 
-    <header class="header">
-        <a href="{% url 'home' %}" style="position: absolute; left: 30px; color: white; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none; border-radius: 50%; transition: background 0.3s, transform 0.2s;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.15)'; this.style.transform='scale(1.05)'" onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)'">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L8 2.207l6.646 6.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293z"/>
-              <path d="m8 3.293 6 6V13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5V9.293z"/>
-            </svg>
-        </a>
-        <img src="{% static 'images/ulm_logo.png' %}" alt="ULM Seal" class="ulm-seal"
-            onerror="this.src='https://via.placeholder.com/100x100.png?text=ULM+Seal'">
-        <div class="vertical-separator"></div>
-        <div class="gradesync-logo">GradeSync</div>
-    </header>
+    <!-- Navbar (Matches Landing Page Theme) -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="{% url 'home' %}" class="nav-brand">
+                <img src="{% static 'images/ulm_logo.png' %}" alt="GradeSync Logo">
+                <span>GradeSync</span>
+            </a>
+        </div>
+    </nav>
 
     <main class="login-card">
         <h1 class="login-title">Sign In</h1>
