@@ -46,6 +46,8 @@ services:
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-GradeSync <noreply@gradesync.local>}
     volumes:
       - ./backend:/app
+      - ./autograder_ai:/autograder_ai
+      - media_data:/app/media
       - ./app/data:/app/data
       - ./frontend:/frontend
       # Mount Docker socket so Django can spawn sibling containers (DooD pattern)
@@ -76,6 +78,8 @@ services:
       - EXECUTION_TIMEOUT_SECONDS=10
     volumes:
       - ./backend:/app
+      - ./autograder_ai:/autograder_ai
+      - media_data:/app/media
       - ./app/data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/gradesync_sandbox:/tmp/gradesync_sandbox
@@ -87,4 +91,5 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  media_data:
 
