@@ -397,12 +397,6 @@
                    placeholder="e.g. CSCI 4038 standard 5-point rubric">
         </div>
 
-        <div class="form-group">
-            <label class="field-label" for="id_description">Description (optional)</label>
-            <textarea id="id_description" name="description" rows="2"
-                      placeholder="When should I reach for this rubric?">{{ description_value|default:'' }}</textarea>
-        </div>
-
         <label class="toggle-row" for="id_rubric_is_weighted">
             <input type="checkbox" name="rubric_is_weighted" id="id_rubric_is_weighted"
                    {% if is_weighted_value %}checked{% endif %}
