@@ -50,7 +50,7 @@ import logging
 import json
 import csv
 import openpyxl
-from io import TextIOWrapper
+from io import TextIOWrapper, BytesIO
 from typing import Optional
 from django.utils import timezone
 import re
@@ -2010,6 +2010,96 @@ def download_submission_view(request, pk):
         return response
     except FileNotFoundError:
         raise Http404("File not found.")
+
+@login_required
+def download_submission_zip_view(request, pk):
+    """
+    Downloads a single student submission as a ZIP file named after the student.
+    """
+    user = get_user_from_request(request)
+    submission = get_object_or_404(Submission, pk=pk)
+    
+    if not can_view_submission(user, submission) and not has_course_access(user, submission.assignment.course, request):
+        return HttpResponseForbidden("You do not have permission to download this submission.")
+        
+    try:
+        # Prepare the ZIP file in memory
+        buffer = BytesIO()
+        with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            orig_name = os.path.basename(submission.file_path.name)
+            zip_file.writestr(orig_name, submission.file_path.read())
+            
+        buffer.seek(0)
+        
+        # Consistent naming: StudentName_AssignmentName.zip
+        if submission.student:
+            identifier = submission.student.user.get_full_name().replace(' ', '_') or submission.student.user.username
+        elif submission.group:
+            identifier = (submission.group.name or f"Group_{submission.group.id}").replace(' ', '_')
+        else:
+            identifier = f"Submission_{submission.id}"
+            
+        filename = f"{identifier}_{submission.assignment.name.replace(' ', '_')}.zip"
+        
+        response = HttpResponse(buffer.read(), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as e:
+        logger.error(f"Error creating zip for submission {pk}: {e}")
+        raise Http404("Error generating download.")
+
+@login_required
+def download_all_submissions_view(request, assignment_id):
+    """
+    Downloads all submissions for an assignment as a master ZIP containing 
+    individual ZIP files for each student/group.
+    """
+    user = get_user_from_request(request)
+    assignment = get_object_or_404(Assignment, pk=assignment_id)
+    
+    if not has_course_access(user, assignment.course, request):
+        return HttpResponseForbidden("You do not have permission to download these submissions.")
+        
+    submissions = Submission.objects.filter(assignment=assignment).select_related('student__user', 'group')
+    
+    if not submissions.exists():
+        messages.warning(request, "No submissions found for this assignment.")
+        return redirect('gradebook', pk=assignment_id)
+        
+    try:
+        master_buffer = BytesIO()
+        with zipfile.ZipFile(master_buffer, 'w', zipfile.ZIP_DEFLATED) as master_zip:
+            for sub in submissions:
+                # 1. Create the student identifier
+                if sub.student:
+                    identifier = sub.student.user.get_full_name().replace(' ', '_') or sub.student.user.username
+                elif sub.group:
+                    identifier = (sub.group.name or f"Group_{sub.group.id}").replace(' ', '_')
+                else:
+                    identifier = f"Submission_{sub.id}"
+                
+                # 2. Extract original filename
+                orig_name = os.path.basename(sub.file_path.name)
+                
+                # 3. Create nested zip content for this student
+                student_zip_buffer = BytesIO()
+                with zipfile.ZipFile(student_zip_buffer, 'w', zipfile.ZIP_DEFLATED) as student_zip:
+                    student_zip.writestr(orig_name, sub.file_path.read())
+                
+                # 4. Add the student zip into the master zip
+                master_zip.writestr(f"{identifier}.zip", student_zip_buffer.getvalue())
+                
+        master_buffer.seek(0)
+        
+        filename = f"{assignment.name.replace(' ', '_')}_All_Submissions.zip"
+        
+        response = HttpResponse(master_buffer.read(), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as e:
+        logger.error(f"Error creating master zip for assignment {assignment_id}: {e}")
+        messages.error(request, "There was an error generating the bulk download.")
+        return redirect('gradebook', pk=assignment_id)
 
 @login_required
 def delete_submission_view(request, pk):

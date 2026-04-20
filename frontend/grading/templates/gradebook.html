@@ -53,41 +53,54 @@ For students / GAs we keep the simple single-column layout.
                             <td style="padding: 12px 16px; text-align: center; border-bottom: 1px solid #f3f4f6;">
                                 {% if cell.status == 'graded' %}
                                     {% if cell.submission_id %}
-                                    <a href="{% url 'grade_submission' pk=cell.submission_id %}"
-                                       style="position: relative; z-index: 1; display: inline-block; font-weight: 700; color: #059669; text-decoration: none; font-size: 15px; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; cursor: pointer;"
-                                       onmouseover="this.style.background='#ecfdf5'" onmouseout="this.style.background='transparent'">
                                         {{ cell.score|floatformat:1 }}
+                                    </a>
+                                    <a href="{% url 'download_submission_zip' pk=cell.submission_id %}" 
+                                       style="padding: 4px; color: #9ca3af; text-decoration: none; transition: color 0.2s;"
+                                       onmouseover="this.style.color='var(--maroon)'" onmouseout="this.style.color='#9ca3af'"
+                                       title="Download Submission (Zip)">
+                                        <i class="fa-solid fa-file-zipper"></i>
                                     </a>
                                     {% else %}
                                     <span style="font-weight: 700; color: #059669; font-size: 15px;">{{ cell.score|floatformat:1 }}</span>
                                     {% endif %}
                                 {% elif cell.status == 'late_graded' %}
                                     {% if cell.submission_id %}
-                                    <a href="{% url 'grade_submission' pk=cell.submission_id %}"
-                                       style="position: relative; z-index: 1; display: inline-flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; font-weight: 700; color: #059669; font-size: 15px; padding: 4px 8px; border-radius: 6px; cursor: pointer;"
-                                       onmouseover="this.style.background='#ecfdf5'" onmouseout="this.style.background='transparent'">
                                         <span>{{ cell.score|floatformat:1 }}</span>
                                         <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">Late</span>
+                                    </a>
+                                    <a href="{% url 'download_submission_zip' pk=cell.submission_id %}" 
+                                       style="padding: 4px; color: #9ca3af; text-decoration: none; transition: color 0.2s;"
+                                       onmouseover="this.style.color='var(--maroon)'" onmouseout="this.style.color='#9ca3af'"
+                                       title="Download Submission (Zip)">
+                                        <i class="fa-solid fa-file-zipper"></i>
                                     </a>
                                     {% else %}
                                     <span style="font-weight: 700; color: #059669;">{{ cell.score|floatformat:1 }}</span>
                                     {% endif %}
                                 {% elif cell.status == 'ungraded' %}
                                     {% if cell.submission_id %}
-                                    <a href="{% url 'grade_submission' pk=cell.submission_id %}"
-                                       style="position: relative; z-index: 1; display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; text-decoration: none; transition: transform 0.1s; cursor: pointer;"
-                                       onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                                         Submitted
+                                    </a>
+                                    <a href="{% url 'download_submission_zip' pk=cell.submission_id %}" 
+                                       style="padding: 4px; color: #9ca3af; text-decoration: none; transition: color 0.2s;"
+                                       onmouseover="this.style.color='var(--maroon)'" onmouseout="this.style.color='#9ca3af'"
+                                       title="Download Submission (Zip)">
+                                        <i class="fa-solid fa-file-zipper"></i>
                                     </a>
                                     {% else %}
                                     <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 700; text-transform: uppercase;">Submitted</span>
                                     {% endif %}
                                 {% elif cell.status == 'late_ungraded' %}
                                     {% if cell.submission_id %}
-                                    <a href="{% url 'grade_submission' pk=cell.submission_id %}"
-                                       style="position: relative; z-index: 1; display: inline-flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; cursor: pointer;">
                                         <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">Submitted</span>
                                         <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;">Late</span>
+                                    </a>
+                                    <a href="{% url 'download_submission_zip' pk=cell.submission_id %}" 
+                                       style="padding: 4px; color: #9ca3af; text-decoration: none; transition: color 0.2s; margin-top: 4px;"
+                                       onmouseover="this.style.color='var(--maroon)'" onmouseout="this.style.color='#9ca3af'"
+                                       title="Download Submission (Zip)">
+                                        <i class="fa-solid fa-file-zipper"></i>
                                     </a>
                                     {% else %}
                                     <span style="font-size: 11px; color: #64748b;">—</span>
@@ -122,6 +135,13 @@ For students / GAs we keep the simple single-column layout.
             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';">
             <i class="fa-solid fa-play"></i> Run All Tests
         </button>
+        <a href="{% url 'download_all_submissions' assignment_id=assignment.id %}"
+            style="background: #ffffff; color: var(--maroon); border: 1.5px solid var(--maroon); border-radius: 8px; padding: 10px 20px; font-weight: 650; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s;"
+            onmouseover="this.style.background='rgba(132,0,41,0.05)'; this.style.transform='translateY(-1px)';"
+            onmouseout="this.style.background='#ffffff'; this.style.transform='translateY(0)';"
+            title="Download all submissions for this assignment as a ZIP">
+            <i class="fa-solid fa-file-zipper"></i> Download All (Zip)
+        </a>
     </div>
     <hr class="divider" style="margin-top: 0; margin-bottom: 24px; border: 0; border-top: 2px solid #f3f4f6;">
 
@@ -157,9 +177,10 @@ For students / GAs we keep the simple single-column layout.
                         {{ submission.submission_time|date:"M j, Y, g:i A" }}
                     </td>
                     <td style="padding: 16px;">
-                        <a href="{% url 'download_submission' submission.pk %}"
-                            style="color: var(--maroon); text-decoration: none; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                            <i class="fa-solid fa-download"></i> Download
+                        <a href="{% url 'download_submission_zip' submission.pk %}"
+                            style="color: var(--maroon); text-decoration: none; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;"
+                            title="Download student files in a ZIP named after them">
+                            <i class="fa-solid fa-file-zipper"></i> Download (Zip)
                         </a>
                     </td>
                     <td style="padding: 16px;">
