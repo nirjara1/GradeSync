@@ -429,6 +429,73 @@
         }
         .audience-card ul li { margin-bottom: 10px; }
         
+        /* --- TEAM SECTION --- */
+        .team-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 60px;
+        }
+        .team-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            flex: 1 1 200px;
+            max-width: 260px;
+        }
+        .team-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
+            border-color: rgba(132,0,41,0.15);
+        }
+        .team-card::before {
+            content: ''; position: absolute; top:0; left:0; width:100%; height:80px;
+            background: linear-gradient(135deg, rgba(132,0,41,0.06), transparent);
+            z-index:-1;
+        }
+        .team-img-wrapper {
+            width: 110px;
+            height: 110px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 4px solid #ffffff;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            background: #f3f4f6;
+        }
+        .team-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .team-card:hover .team-img-wrapper img {
+            transform: scale(1.1);
+        }
+        .team-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #111;
+            margin-bottom: 5px;
+        }
+        .team-role {
+            font-size: 0.95rem;
+            color: var(--ulm-maroon);
+            font-weight: 600;
+        }
+        .team-subrole {
+            font-size: 0.85rem;
+            color: var(--landing-text-muted);
+            margin-top: 4px;
+        }
+
         /* --- CTA SECTION --- */
         .cta-section {
             background: linear-gradient(135deg, var(--ulm-maroon) 0%, #4a0017 100%);
@@ -509,6 +576,7 @@
                 <a href="#features">Features</a>
                 <a href="#how-it-works">How It Works</a>
                 <a href="#audience">For Who</a>
+                <a href="#team">Team</a>
                 <a href="{% url 'login' %}" class="btn-nav-login">Sign In</a>
             </div>
         </div>
@@ -654,6 +722,63 @@
                     <li>User role provisioning (GAs)</li>
                     <li>System telemetry & analytics</li>
                 </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section id="team" class="section" style="background-color: rgba(0,0,0,0.02)">
+        <div class="section-header reveal">
+            <div class="section-tag">Meet The Team</div>
+            <h2 class="section-title">The Brains Behind GradeSync</h2>
+            <p class="section-subtitle">Dedicated engineers and designers building the future of automated educational evaluation.</p>
+        </div>
+
+        <div class="team-grid">
+            <!-- Group Leader -->
+            <div class="team-card reveal" style="transition-delay: 0.1s;">
+                <div class="team-img-wrapper">
+                    <img src="https://via.placeholder.com/150/e5e7eb/6b7280?text=NK" alt="Nirjara KC">
+                </div>
+                <h3 class="team-name">Nirjara KC</h3>
+                <div class="team-role">Group Leader</div>
+            </div>
+
+            <!-- UI Lead -->
+            <div class="team-card reveal" style="transition-delay: 0.2s;">
+                <div class="team-img-wrapper">
+                    <img src="https://via.placeholder.com/150/e5e7eb/6b7280?text=IS" alt="Ishant Shrestha">
+                </div>
+                <h3 class="team-name">Ishant Shrestha</h3>
+                <div class="team-role">User Interface Lead</div>
+                <div class="team-subrole">Frontend</div>
+            </div>
+
+            <!-- Head Programmer -->
+            <div class="team-card reveal" style="transition-delay: 0.3s;">
+                <div class="team-img-wrapper">
+                    <img src="https://via.placeholder.com/150/e5e7eb/6b7280?text=KP" alt="Kapil Paudel">
+                </div>
+                <h3 class="team-name">Kapil Paudel</h3>
+                <div class="team-role">Head Programmer</div>
+            </div>
+
+            <!-- System Lead -->
+            <div class="team-card reveal" style="transition-delay: 0.4s;">
+                <div class="team-img-wrapper">
+                    <img src="https://via.placeholder.com/150/e5e7eb/6b7280?text=BP" alt="Biplov Poudel">
+                </div>
+                <h3 class="team-name">Biplov Poudel</h3>
+                <div class="team-role">System Lead</div>
+            </div>
+
+            <!-- Documentation Lead -->
+            <div class="team-card reveal" style="transition-delay: 0.5s;">
+                <div class="team-img-wrapper">
+                    <img src="https://via.placeholder.com/150/e5e7eb/6b7280?text=WM" alt="Wyatt Morgan">
+                </div>
+                <h3 class="team-name">Wyatt Morgan</h3>
+                <div class="team-role">Documentation Lead</div>
             </div>
         </div>
     </section>
