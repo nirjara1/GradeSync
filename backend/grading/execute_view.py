@@ -20,6 +20,7 @@ import json
 import subprocess
 import tempfile
 import os
+import re
 import logging
 
 from django.http import JsonResponse
@@ -129,6 +130,32 @@ def _safe_filename(name: str) -> str:
     return name or "main"
 
 
+_JAVA_MAIN_PATTERN = re.compile(r"public\s+static\s+void\s+main\s*\(", re.MULTILINE)
+
+
+def _resolve_java_main_class_name(files: list | None, entry_filename: str) -> str:
+    """
+    JVM entry point for `java <ClassName>` after `javac *.java`.
+
+    If multiple .java files are submitted, the active editor tab may point at a
+    helper class with no main(). Prefer the source file that contains
+    `public static void main(` and use its public class name (filename stem).
+    Otherwise fall back to the basename of entry_filename (single-file / legacy).
+    """
+    if files:
+        for item in files:
+            fn = (item.get("filename") or item.get("name") or "").strip()
+            if not fn.lower().endswith(".java"):
+                continue
+            content = item.get("code") or item.get("content") or ""
+            if _JAVA_MAIN_PATTERN.search(content):
+                base = os.path.splitext(os.path.basename(fn))[0]
+                if base:
+                    return base
+    base = os.path.splitext(os.path.basename(_safe_filename(entry_filename)))[0]
+    return base or "Main"
+
+
 def _run_in_docker_with_input(code: str, language: str, filename: str, input_data: str = "", files: list | None = None) -> dict:
     """
     Write code to a temp file, mount it into a Docker container,
@@ -165,10 +192,10 @@ def _run_in_docker_with_input(code: str, language: str, filename: str, input_dat
         # Step 3: Refactor the Docker Run Command
         base_cmd = config["cmd"]
 
-        # For Java, compile and run using the actual class name derived from filename
+        # For Java, compile all sources then run the class that defines main()
         if language == "java":
-            class_name = os.path.splitext(os.path.basename(entry_filename))[0] or "Main"
-            # Compile all .java files to support multi-file programs
+            class_name = _resolve_java_main_class_name(files, entry_filename)
+            logger.info("[execute] java entry class=%s (active filename hint=%s)", class_name, entry_filename)
             inner_script = f"cd /code && javac *.java && java {class_name}"
             docker_cmd_suffix = ["/bin/sh", "-c", f"{inner_script} < /code/input_temp.txt"]
         else:

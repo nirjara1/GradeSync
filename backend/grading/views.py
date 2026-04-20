@@ -3252,9 +3252,13 @@ def run_public_tests_api(request):
     language = data.get('language', 'python')
     filename = data.get('filename', 'main.py')
     assignment_id = data.get('assignment_id')
-    
-    if not code or not assignment_id:
-        return JsonResponse({'error': 'Missing required fields: code, assignment_id'}, status=400)
+    files_list = data.get('files') if isinstance(data.get('files'), list) else None
+
+    if not assignment_id:
+        return JsonResponse({'error': 'Missing required fields: assignment_id'}, status=400)
+    has_payload = bool(str(code or '').strip()) or (files_list and len(files_list) > 0)
+    if not has_payload:
+        return JsonResponse({'error': 'Missing required fields: code or files'}, status=400)
     
     # Fetch assignment and get public test cases
     try:
@@ -3288,7 +3292,7 @@ def run_public_tests_api(request):
                 language=language,
                 filename=filename,
                 input_data=test_case.input_data,
-                files=data.get('files') if isinstance(data.get('files'), list) else None,
+                files=files_list,
             )
 
             # Combine stdout and stderr so students can see compile/runtime errors
