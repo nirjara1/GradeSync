@@ -1,5 +1,6 @@
 services:
   db:
+    restart: always
     image: postgres:16
     env_file:
       - .env
@@ -24,6 +25,7 @@ services:
       - "1025:1025"
 
   web:
+    restart: always
     build:
       context: .
       dockerfile: Dockerfile
