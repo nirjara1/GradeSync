@@ -2102,6 +2102,73 @@ def download_all_submissions_view(request, assignment_id):
         return redirect('gradebook', pk=assignment_id)
 
 @login_required
+def download_student_course_archive_view(request, course_id, student_id):
+    """
+    Downloads all submissions for a specific student in a course as a master ZIP.
+    Each assignment's submission is placed in its own sub-folder/zip.
+    """
+    user = get_user_from_request(request)
+    course = get_object_or_404(Course, pk=course_id)
+    student = get_object_or_404(Student, pk=student_id)
+    
+    if not has_course_access(user, course, request):
+        return HttpResponseForbidden("You do not have permission to download these submissions.")
+        
+    submissions = Submission.objects.filter(
+        student=student,
+        assignment__course=course
+    ).select_related('assignment')
+    
+    if not submissions.exists():
+        # Check for group submissions if no individual ones found
+        from django.db.models import Q
+        submissions = Submission.objects.filter(
+            Q(student=student) | Q(group__members__student=student),
+            assignment__course=course
+        ).select_related('assignment', 'group').distinct()
+
+    if not submissions.exists():
+        messages.warning(request, "No submissions found for this student in this course.")
+        # Try to find an assignment in the course to redirect back to its gradebook
+        first_assignment = Assignment.objects.filter(course=course).first()
+        if first_assignment:
+            return redirect('gradebook', pk=first_assignment.id)
+        return redirect('assignments_dashboard')
+        
+    try:
+        master_buffer = BytesIO()
+        with zipfile.ZipFile(master_buffer, 'w', zipfile.ZIP_DEFLATED) as master_zip:
+            for sub in submissions:
+                # 1. Create a subfolder name based on assignment
+                folder_name = sub.assignment.name.replace(' ', '_')
+                
+                # 2. Extract original filename
+                orig_name = os.path.basename(sub.file_path.name)
+                
+                # 3. Handle file reading
+                file_content = sub.file_path.read()
+                
+                # 4. Add to master zip under the assignment subfolder
+                master_zip.writestr(f"{folder_name}/{orig_name}", file_content)
+                
+        master_buffer.seek(0)
+        
+        student_name = (student.user.get_full_name() or student.user.username).replace(' ', '_')
+        course_code = course.code_section_label.replace(' ', '_')
+        filename = f"{student_name}_{course_code}_Archive.zip"
+        
+        response = HttpResponse(master_buffer.read(), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as e:
+        logger.error(f"Error creating student archive zip: {e}")
+        messages.error(request, "There was an error generating the archive download.")
+        first_assignment = Assignment.objects.filter(course=course).first()
+        if first_assignment:
+            return redirect('gradebook', pk=first_assignment.id)
+        return redirect('assignments_dashboard')
+
+@login_required
 def delete_submission_view(request, pk):
     """
     Allows a student to delete their own submission.
