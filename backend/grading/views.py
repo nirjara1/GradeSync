@@ -1634,66 +1634,134 @@ def gradebook_view(request, pk):
 
     # For instructors, also build the course-level grid view (students x assignments)
     if course_role == 'INSTRUCTOR':
-        course = assignment.course
-        # Columns: all assignments in this course
-        grid_assignments = Assignment.objects.filter(course=course).order_by('due_date', 'id')
-        # Rows: all enrolled students
-        member_qs = CourseMember.objects.filter(
-            course=course,
-            role_in_course='STUDENT',
-        ).select_related('user').order_by('user__last_name', 'user__first_name', 'user__username')
-
-        student_users = [m.user for m in member_qs]
-        grid_students = Student.objects.filter(user__in=student_users).select_related('user')
-        student_by_user_id = {s.user_id: s for s in grid_students}
-
-        # All submissions/grades for these assignments
-        grid_submissions = Submission.objects.filter(
-            assignment__in=grid_assignments
-        ).select_related('assignment', 'student', 'group', 'grade').prefetch_related('group__members')
-
-        cell_lookup = {}
-        for sub in grid_submissions:
-            if sub.group:
-                # Map to all members of the group
-                for member in sub.group.members.all():
-                    cell_lookup[(member.student_id, sub.assignment_id)] = sub
-            elif sub.student_id:
-                cell_lookup[(sub.student_id, sub.assignment_id)] = sub
-
-        rows = []
-        for member in member_qs:
-            stu = student_by_user_id.get(member.user_id)
-            if not stu:
-                continue
-
-            cells = []
-            for a in grid_assignments:
-                sub = cell_lookup.get((stu.id, a.id))
-                if not sub:
-                    status = assignment_submission_report_status(a, None)
-                    score = None
-                else:
-                    g = getattr(sub, 'grade', None)
-                    score = float(g.score) if g else None
-                    status = assignment_submission_report_status(a, sub)
-                submission_id = sub.id if sub else None
-                cells.append({
-                    "assignment": a,
-                    "status": status,
-                    "score": score,
-                    "submission_id": submission_id,
-                })
-
-            rows.append({
-                "student": stu,
-                "cells": cells,
-            })
-
+        grid_assignments, rows = _build_instructor_course_gradebook_grid(assignment.course)
         context['assignments'] = grid_assignments
         context['rows'] = rows
 
     return render(request, 'gradebook.html', context)
+
+
+def _build_instructor_course_gradebook_grid(course):
+    """
+    Build Canvas-style gradebook grid data: rows (students) x columns (assignments).
+    """
+    grid_assignments = Assignment.objects.filter(course=course).order_by('due_date', 'id')
+    member_qs = CourseMember.objects.filter(
+        course=course,
+        role_in_course='STUDENT',
+    ).select_related('user').order_by('user__last_name', 'user__first_name', 'user__username')
+
+    student_users = [m.user for m in member_qs]
+    grid_students = Student.objects.filter(user__in=student_users).select_related('user')
+    student_by_user_id = {s.user_id: s for s in grid_students}
+
+    grid_submissions = Submission.objects.filter(
+        assignment__in=grid_assignments
+    ).select_related('assignment', 'student', 'group', 'grade').prefetch_related('group__members')
+
+    cell_lookup = {}
+    for sub in grid_submissions:
+        if sub.group:
+            for member in sub.group.members.all():
+                cell_lookup[(member.student_id, sub.assignment_id)] = sub
+        elif sub.student_id:
+            cell_lookup[(sub.student_id, sub.assignment_id)] = sub
+
+    rows = []
+    for member in member_qs:
+        stu = student_by_user_id.get(member.user_id)
+        if not stu:
+            continue
+
+        cells = []
+        for a in grid_assignments:
+            sub = cell_lookup.get((stu.id, a.id))
+            if not sub:
+                status = assignment_submission_report_status(a, None)
+                score = None
+            else:
+                g = getattr(sub, 'grade', None)
+                score = float(g.score) if g else None
+                status = assignment_submission_report_status(a, sub)
+            submission_id = sub.id if sub else None
+            cells.append({
+                "assignment": a,
+                "status": status,
+                "score": score,
+                "submission_id": submission_id,
+            })
+
+        rows.append({
+            "student": stu,
+            "cells": cells,
+        })
+
+    return grid_assignments, rows
+
+
+def _gradebook_export_cell_value(cell):
+    """
+    Convert gradebook status/score to the exported cell label.
+    """
+    if cell.get('score') is not None:
+        return f"{float(cell['score']):.1f}"
+    status = cell.get('status')
+    if status in ('ungraded', 'late_ungraded'):
+        return "Ungraded"
+    if status == 'missing':
+        return "Missing"
+    return "Not submitted"
+
+
+@login_required
+def gradebook_export_view(request, pk):
+    """
+    Export instructor gradebook grid for the assignment's course as an Excel file.
+    """
+    user = get_user_from_request(request)
+    assignment = get_object_or_404(Assignment, pk=pk)
+    course = assignment.course
+
+    if not has_course_access(user, course, request):
+        return HttpResponseForbidden("You do not have permission to export this gradebook.")
+
+    course_role = get_user_course_role(user, course, request)
+    if course_role not in ('INSTRUCTOR', 'GRADING_ASSISTANT'):
+        return HttpResponseForbidden("Only instructional staff can export gradebook reports.")
+
+    grid_assignments, rows = _build_instructor_course_gradebook_grid(course)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Gradebook"
+
+    headers = ["Student Name", "Email"]
+    for a in grid_assignments:
+        headers.append(f"{a.name} (/{int(a.points or 0)})")
+    ws.append(headers)
+
+    for row in rows:
+        excel_row = [
+            row['student'].user.get_full_name() or row['student'].user.username,
+            row['student'].user.email or "",
+        ]
+        for cell in row['cells']:
+            excel_row.append(_gradebook_export_cell_value(cell))
+        ws.append(excel_row)
+
+    ws.column_dimensions['A'].width = 28
+    ws.column_dimensions['B'].width = 34
+    for idx in range(3, len(headers) + 1):
+        col_letter = openpyxl.utils.get_column_letter(idx)
+        ws.column_dimensions[col_letter].width = 18
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    course_label = (course.code_section_label() or course.title or "course").replace(" ", "_")
+    response["Content-Disposition"] = f'attachment; filename="gradebook_report_{course_label}.xlsx"'
+    wb.save(response)
+    return response
 
 
 @login_required

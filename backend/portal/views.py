@@ -221,30 +221,7 @@ def student_gradebook(request):
     """
     request.session['active_role'] = 'STUDENT'
     student_profile, _ = Student.objects.get_or_create(user=request.user)
-    enrollments = CourseMember.objects.filter(
-        user=request.user,
-        role_in_course__in=['STUDENT', 'GRADING_ASSISTANT'],
-    ).select_related('course', 'course__professor')
-
-    course_ids = [e.course_id for e in enrollments]
-    course_filter = request.GET.get('course')
-    if course_filter:
-        try:
-            cf = int(course_filter)
-            if cf in course_ids:
-                course_ids = [cf]
-        except ValueError:
-            pass
-
-    courses = [e.course for e in enrollments if e.course_id in course_ids]
-    # Preserve order from enrollments
-    seen = set()
-    courses_ordered = []
-    for e in enrollments:
-        if e.course_id in course_ids and e.course_id not in seen:
-            seen.add(e.course_id)
-            courses_ordered.append(e.course)
-    courses = courses_ordered
+    enrollments, courses, course_filter_id = _gradebook_courses_for_request(request)
 
     now = timezone.now()
     sections = []
@@ -262,23 +239,48 @@ def student_gradebook(request):
     if course_pcts:
         overall_pct = sum(course_pcts) / len(course_pcts)
 
-    fid = None
-    if course_filter and str(course_filter).isdigit():
-        try:
-            fid = int(course_filter)
-            if fid not in [e.course_id for e in enrollments]:
-                fid = None
-        except ValueError:
-            fid = None
-
     return render(request, 'portal/student_gradebook.html', {
         'sections': sections,
         'overall_percentage': overall_pct,
-        'filter_course_id': fid,
+        'filter_course_id': course_filter_id,
         'enrollments': enrollments,
         'feedback_payload': feedback_payload,
         'gradebook_course_layout': False,
     })
+
+
+def _gradebook_courses_for_request(request):
+    """
+    Resolve enrolled courses for gradebook display/export with optional course filter.
+    """
+    enrollments = CourseMember.objects.filter(
+        user=request.user,
+        role_in_course__in=['STUDENT', 'GRADING_ASSISTANT'],
+    ).select_related('course', 'course__professor')
+
+    enrolled_course_ids = [e.course_id for e in enrollments]
+    selected_course_ids = list(enrolled_course_ids)
+    filter_course_id = None
+
+    course_filter = request.GET.get('course')
+    if course_filter:
+        try:
+            filter_course_id = int(course_filter)
+            if filter_course_id in enrolled_course_ids:
+                selected_course_ids = [filter_course_id]
+            else:
+                filter_course_id = None
+        except ValueError:
+            filter_course_id = None
+
+    seen = set()
+    courses = []
+    for e in enrollments:
+        if e.course_id in selected_course_ids and e.course_id not in seen:
+            seen.add(e.course_id)
+            courses.append(e.course)
+
+    return enrollments, courses, filter_course_id
 
 
 @login_required

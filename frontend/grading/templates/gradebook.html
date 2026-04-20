@@ -20,6 +20,12 @@ For students / GAs we keep the simple single-column layout.
             <h2 class="page-title" style="margin: 0; color: var(--maroon);">
                 {{ course.code_section_label }} &gt; Grades
             </h2>
+            <a href="{% url 'gradebook_export' pk=assignment.id %}"
+               style="background: var(--maroon); color: #fff; border: 1px solid var(--maroon); border-radius: 8px; padding: 10px 16px; font-weight: 700; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;"
+               title="Download gradebook report as Excel">
+                <i class="fa-solid fa-file-excel"></i>
+                Download Excel Report
+            </a>
         </div>
         <hr class="divider" style="margin-top: 0; margin-bottom: 24px; border: 0; border-top: 2px solid #f3f4f6;">
 
