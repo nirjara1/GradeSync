@@ -161,7 +161,6 @@
         <p>View due dates, submission status, and grades for all of your enrolled courses.</p>
         {% endif %}
     </div>
-
     {% if enrollments|length > 1 and not gradebook_course_layout %}
     <form method="get" class="gb-course-filter" action="{% url 'student_gradebook' %}">
         <label for="course-filter">Course</label>
