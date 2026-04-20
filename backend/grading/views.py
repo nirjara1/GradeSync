@@ -491,12 +491,24 @@ AUTO_FEEDBACK_BLOCK_HEADER = "--- Auto rubric comments ---"
 
 
 def _strip_auto_feedback_block(text):
+    """
+    Return the manual portion of a Grade.feedback string, stripping the
+    auto-generated rubric comment block if present.
+
+    Two shapes are saved by the grading view:
+      1. "<manual>\n\n--- Auto rubric comments ---\n<auto>"
+      2. "--- Auto rubric comments ---\n<auto>"   (no manual feedback)
+    Both must yield an empty / manual-only string here so the instructor
+    textarea never re-displays auto comments.
+    """
     src = (text or '').strip()
     if not src:
         return ''
     marker = f"\n\n{AUTO_FEEDBACK_BLOCK_HEADER}\n"
     if marker in src:
         return src.split(marker)[0].rstrip()
+    if src.startswith(AUTO_FEEDBACK_BLOCK_HEADER):
+        return ''
     return src
 
 
