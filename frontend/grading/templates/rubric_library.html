@@ -1,0 +1,192 @@
+{% extends base_template %}
+
+{% block content %}
+<style>
+    .rubric-library {
+        max-width: 1100px;
+        margin: 30px auto;
+    }
+
+    .rubric-library__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .rubric-library__title {
+        margin: 0 0 6px 0;
+    }
+
+    .rubric-library__subtitle {
+        margin: 0;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    body.gradesync-app a.rubric-library__new,
+    a.rubric-library__new {
+        background: var(--maroon, #840029) !important;
+        color: #ffffff !important;
+        text-decoration: none !important;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 13px;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    body.gradesync-app a.rubric-library__new:hover,
+    a.rubric-library__new:hover {
+        background: #6b0020 !important;
+        color: #ffffff !important;
+    }
+
+    .rubric-library__new i {
+        color: #ffffff !important;
+    }
+
+    .rubric-card-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .rubric-card {
+        background: var(--bg-card, #fff);
+        border: 1px solid var(--border-color, #e5e7eb);
+        border-radius: 12px;
+        padding: 18px 20px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .rubric-card__name {
+        margin: 0 0 4px 0;
+        color: var(--maroon, #840029);
+        font-size: 18px;
+    }
+
+    .rubric-card__meta {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-muted, #6b7280);
+    }
+
+    .rubric-card__desc {
+        margin: 6px 0 0 0;
+        font-size: 14px;
+        color: var(--text-main, #374151);
+    }
+
+    .rubric-card__actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .rubric-card__btn {
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #374151;
+        font-weight: 600;
+        font-size: 13px;
+        padding: 8px 14px;
+        border-radius: 8px;
+        text-decoration: none;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .rubric-card__btn--danger {
+        color: #b91c1c;
+        border-color: #fecaca;
+        background: #fff5f5;
+    }
+
+    [data-theme='dark'] .rubric-card__btn {
+        background: var(--bg-card);
+        color: var(--text-main);
+        border-color: var(--border-color);
+    }
+
+    [data-theme='dark'] .rubric-card__btn--danger {
+        color: #fca5a5;
+        background: rgba(127, 29, 29, 0.25);
+        border-color: rgba(252, 165, 165, 0.5);
+    }
+
+    .rubric-empty {
+        padding: 40px;
+        text-align: center;
+        background: var(--bg-card, #f9fafb);
+        border: 1px dashed var(--border-color, #d1d5db);
+        border-radius: 12px;
+        color: var(--text-muted, #6b7280);
+    }
+</style>
+
+<div class="rubric-library">
+    <div class="rubric-library__header">
+        <div>
+            <h2 class="page-title rubric-library__title">Rubric Library</h2>
+            <p class="rubric-library__subtitle">
+                Save reusable, named rubrics with comment presets. Apply them when creating new assignments.
+            </p>
+        </div>
+        <a class="rubric-library__new" href="{% url 'rubric_template_create' %}">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i> New rubric
+        </a>
+    </div>
+
+    {% if templates %}
+        <div class="rubric-card-list">
+            {% for tpl in templates %}
+            <article class="rubric-card">
+                <div>
+                    <h3 class="rubric-card__name">{{ tpl.name }}</h3>
+                    <p class="rubric-card__meta">
+                        {{ tpl.criteria_count }} criteri{{ tpl.criteria_count|pluralize:"on,a" }}
+                        &nbsp;|&nbsp;
+                        {% if tpl.is_weighted %}Weighted{% else %}Points-based{% endif %}
+                        &nbsp;|&nbsp;
+                        Updated {{ tpl.updated_at|date:"M j, Y" }}
+                    </p>
+                    {% if tpl.description %}
+                    <p class="rubric-card__desc">{{ tpl.description }}</p>
+                    {% endif %}
+                </div>
+                <div class="rubric-card__actions">
+                    <a class="rubric-card__btn" href="{% url 'rubric_template_edit' tpl.id %}">
+                        <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit
+                    </a>
+                    <form method="post" action="{% url 'rubric_template_delete' tpl.id %}"
+                          style="margin:0;"
+                          onsubmit="return confirm('Delete rubric &quot;{{ tpl.name|escapejs }}&quot;? This cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit" class="rubric-card__btn rubric-card__btn--danger">
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="rubric-empty">
+            <p style="margin: 0 0 10px 0;">You haven't saved any rubrics yet.</p>
+            <a class="rubric-library__new" href="{% url 'rubric_template_create' %}">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Create your first rubric
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

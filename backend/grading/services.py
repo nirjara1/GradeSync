@@ -76,7 +76,7 @@ def run_submission_analysis(submission_id) -> dict:
     """
     try:
         with transaction.atomic():
-            submission = Submission.objects.select_for_update().select_related('assignment', 'student__user').get(id=submission_id)
+            submission = Submission.objects.select_for_update(of=('self',)).select_related('assignment', 'student__user').get(id=submission_id)
             logger.info(f"Starting atomic analysis for submission {submission_id}")
 
             code_str, file_count = extract_code_from_file(submission.file_path)
@@ -156,7 +156,7 @@ def run_submission_analysis(submission_id) -> dict:
                         else:
                             logger.warning(f"Corpus submission {other_sub.id} has no extractable code (files: {other_file_count})")
                             
-                    sim_engine = SimilarityEngine(n=3)
+                    sim_engine = SimilarityEngine()
                     sim_results = sim_engine.check_similarity_from_texts(code_str, corpus_texts)
                     
                     if sim_results:

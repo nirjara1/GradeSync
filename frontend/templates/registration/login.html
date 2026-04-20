@@ -84,13 +84,37 @@
             padding: 10px 20px;
         }
 
+        .header-brand {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Cinematic Entrance Animation */
+            transform-origin: center center;
+            animation: logoEntrance 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes logoEntrance {
+            0% {
+                transform: translateY(35vh) scale(2);
+                opacity: 0;
+            }
+            30% {
+                transform: translateY(35vh) scale(2);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
         .ulm-seal {
             height: 70px;
             width: auto;
         }
 
         .gradesync-logo {
-            color: #ffffff;
+            color: #ffffff !important;
             font-size: 36px;
             font-weight: 700;
             font-family: Arial, Helvetica, sans-serif;
@@ -111,7 +135,7 @@
             background-color: var(--card-bg);
             width: 100%;
             max-width: 420px;
-            margin: auto;
+            margin: 40px auto;
             padding: 48px 36px;
             border-radius: 16px;
             /* Soft diffused drop shadow */
@@ -124,7 +148,8 @@
             /* Fade in and slide up */
             opacity: 0;
             transform: translateY(30px);
-            animation: fadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            /* Delayed fade so logo can finish its sweep */
+            animation: fadeSlideUp 0.8s 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         @keyframes fadeSlideUp {
@@ -352,7 +377,7 @@
 
             .login-card {
                 width: 92%;
-                margin: auto;
+                margin: 20px auto;
                 padding: 36px 24px;
             }
 
@@ -378,10 +403,12 @@
               <path d="m8 3.293 6 6V13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5V9.293z"/>
             </svg>
         </a>
-        <img src="{% static 'images/ulm_logo.png' %}" alt="ULM Seal" class="ulm-seal"
-            onerror="this.src='https://via.placeholder.com/100x100.png?text=ULM+Seal'">
-        <div class="vertical-separator"></div>
-        <div class="gradesync-logo">GradeSync</div>
+        <div class="header-brand">
+            <img src="{% static 'images/ulm_logo.png' %}" alt="ULM Seal" class="ulm-seal"
+                onerror="this.src='https://via.placeholder.com/100x100.png?text=ULM+Seal'">
+            <div class="vertical-separator"></div>
+            <h1 class="gradesync-logo">GradeSync</h1>
+        </div>
     </header>
 
     <main class="login-card">

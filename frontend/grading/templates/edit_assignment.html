@@ -422,6 +422,32 @@
         <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
             Use the same inline rubric builder as create-assignment. Your criteria are saved with this form.
         </p>
+
+        {% if saved_rubric_templates %}
+        <div style="padding: 14px 18px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; margin-bottom: 12px;">
+            <label for="savedRubricSelector" style="display: block; font-weight: 600; color: #374151; margin-bottom: 6px;">
+                <i class="fa-solid fa-list-check" style="color: var(--maroon); margin-right: 6px;"></i>
+                Apply a saved rubric
+            </label>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <select id="savedRubricSelector" style="flex: 1; min-width: 240px; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #111827; font-size: 14px;">
+                    <option value="">-- Pick a saved rubric --</option>
+                    {% for tpl in saved_rubric_templates %}
+                    <option value="{{ tpl.id }}">{{ tpl.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" id="applySavedRubricBtn" class="btn-secondary" style="padding: 9px 16px;">
+                    Apply
+                </button>
+                <a href="{% url 'rubric_library' %}" target="_blank" rel="noopener" style="font-size: 13px; color: var(--maroon); font-weight: 600; text-decoration: underline;">
+                    Manage saved rubrics
+                </a>
+            </div>
+            <input type="hidden" id="appliedRubricTemplateId" name="apply_rubric_template_id" value="">
+            <p id="savedRubricNotice" style="display: none; margin: 8px 0 0 0; font-size: 13px; color: #047857;"></p>
+        </div>
+        {% endif %}
+
         <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: #374151;">
@@ -1008,6 +1034,73 @@
             }
         } catch (e) {
             // keep rubric builder empty if malformed
+        }
+
+        // Saved rubric selector — fetch JSON and replace the rubric builder rows.
+        var applyBtn = document.getElementById('applySavedRubricBtn');
+        var selectorEl = document.getElementById('savedRubricSelector');
+        var hiddenAppliedId = document.getElementById('appliedRubricTemplateId');
+        var noticeEl = document.getElementById('savedRubricNotice');
+        if (applyBtn && selectorEl) {
+            applyBtn.addEventListener('click', function () {
+                var tplId = selectorEl.value;
+                if (!tplId) {
+                    if (noticeEl) {
+                        noticeEl.style.display = 'block';
+                        noticeEl.style.color = '#b91c1c';
+                        noticeEl.textContent = 'Pick a saved rubric first.';
+                    }
+                    return;
+                }
+                applyBtn.disabled = true;
+                applyBtn.textContent = 'Loading...';
+                fetch('/grading/api/rubrics/' + encodeURIComponent(tplId) + '/', {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' },
+                })
+                    .then(function (resp) {
+                        if (!resp.ok) throw new Error('Could not load that rubric.');
+                        return resp.json();
+                    })
+                    .then(function (data) {
+                        var tbody = document.getElementById('rubricRowsBody');
+                        if (tbody) tbody.innerHTML = '';
+                        var weightedEl = document.getElementById('id_rubric_is_weighted');
+                        if (weightedEl) weightedEl.checked = !!data.is_weighted;
+                        syncRubricColumnMode();
+                        (data.criteria || []).forEach(function (c) {
+                            addRubricRow({
+                                name: c.name,
+                                max_points: c.max_points,
+                                weight: c.weight,
+                            });
+                        });
+                        if (hiddenAppliedId) hiddenAppliedId.value = data.id;
+                        if (noticeEl) {
+                            noticeEl.style.display = 'block';
+                            noticeEl.style.color = '#047857';
+                            noticeEl.textContent = 'Applied "' + (data.name || 'rubric') + '". Comment presets will be copied when you save.';
+                        }
+                    })
+                    .catch(function (err) {
+                        if (noticeEl) {
+                            noticeEl.style.display = 'block';
+                            noticeEl.style.color = '#b91c1c';
+                            noticeEl.textContent = err.message || 'Failed to load rubric.';
+                        }
+                    })
+                    .finally(function () {
+                        applyBtn.disabled = false;
+                        applyBtn.textContent = 'Apply';
+                    });
+            });
+
+            selectorEl.addEventListener('change', function () {
+                if (hiddenAppliedId && selectorEl.value === '') {
+                    hiddenAppliedId.value = '';
+                    if (noticeEl) noticeEl.style.display = 'none';
+                }
+            });
         }
     });
 </script>

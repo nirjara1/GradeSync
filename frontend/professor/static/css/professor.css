@@ -125,6 +125,55 @@ html {
     color: var(--text-main) !important;
 }
 
+/*
+ * Dark theme: ulm-brand.css uses higher-specificity rules (body.gradesync-app a, h2/h3)
+ * that keep maroon / body text on dark surfaces. Override where the professor shell
+ * needs readable contrast.
+ */
+[data-theme='dark'] body.gradesync-app {
+    color: var(--text-main);
+}
+
+[data-theme='dark'] body.gradesync-app .header-row a.username-bold,
+[data-theme='dark'] body.gradesync-app .header-row .username a {
+    color: var(--text-main) !important;
+    text-decoration-color: rgba(253, 185, 19, 0.45);
+}
+
+[data-theme='dark'] body.gradesync-app .header-row .username a:hover {
+    color: var(--gold) !important;
+}
+
+[data-theme='dark'] body.gradesync-app .header-left-title {
+    color: #f5f5f5 !important;
+}
+
+[data-theme='dark'] body.gradesync-app .main-content h2,
+[data-theme='dark'] body.gradesync-app .main-content h3:not(.section-title-modern),
+[data-theme='dark'] body.gradesync-app .main-content .page-title {
+    color: var(--text-main) !important;
+}
+
+[data-theme='dark'] body.gradesync-app .main-content h3.courses-section-title {
+    color: var(--gold) !important;
+}
+
+[data-theme='dark'] body.gradesync-app .main-content h3.courses-section-title--archived {
+    color: #d1d5db !important;
+}
+
+[data-theme='dark'] body.gradesync-app .main-content h3.course-list-item__title {
+    color: #f5d0dc !important;
+}
+
+[data-theme='dark'] body.gradesync-app .main-content h3.course-list-item__title--archived {
+    color: #e5e7eb !important;
+}
+
+[data-theme='dark'] body.gradesync-app .logout-link {
+    color: var(--red-link) !important;
+}
+
 /* FullCalendar Dark Mode Integration */
 [data-theme='dark'] .calendar-theme-wrapper {
     background-color: var(--bg-card) !important;
@@ -374,6 +423,251 @@ html {
     border: none;
     border-top: 2px solid #000;
     margin-bottom: 30px;
+}
+
+/* Professor — course list (/professor/courses/) */
+.courses-actions-bar {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.courses-create-btn {
+    margin-top: 0;
+}
+
+.courses-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.courses-list--archived {
+    opacity: 0.95;
+}
+
+.courses-section-title {
+    margin-top: 10px;
+    color: var(--maroon);
+}
+
+.courses-section-title--archived {
+    color: #6b7280;
+}
+
+body.gradesync-app .main-content h3.courses-section-title--archived {
+    color: #6b7280 !important;
+}
+
+.course-list-item--interactive {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+    position: relative;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.course-list-item--interactive:hover {
+    border-color: rgba(132, 0, 41, 0.35);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+/* Whole row is an <a>; ulm-brand paints links maroon — reset so inner headings/body colors show */
+[data-theme='dark'] body.gradesync-app .main-content a.course-list-item--interactive {
+    color: var(--text-main);
+}
+
+.course-list-item__thumb {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-right: 25px;
+    background-color: var(--light-gray);
+}
+
+.course-list-item__thumb--archived {
+    filter: grayscale(100%);
+}
+
+.course-list-item__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.course-list-item__title {
+    margin: 0 0 5px 0;
+    font-size: 18px;
+    color: var(--maroon);
+    font-family: var(--ulm-font-heading, "Barlow Condensed", Arial, sans-serif);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+}
+
+.course-list-item__subtitle {
+    margin: 0 0 6px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.course-list-item--archived .course-list-item__subtitle {
+    color: #4b5563;
+}
+
+[data-theme='dark'] body.gradesync-app .main-content p.course-list-item__subtitle {
+    color: #e5e7eb !important;
+}
+
+[data-theme='dark'] body.gradesync-app .main-content .course-list-item--archived p.course-list-item__subtitle {
+    color: #d1d5db !important;
+}
+
+.course-list-item__title--archived {
+    color: #374151;
+}
+
+.course-list-item__archive-icon {
+    font-size: 14px;
+    margin-right: 6px;
+    color: #6b7280;
+}
+
+[data-theme='dark'] .course-list-item__archive-icon {
+    color: #9ca3af;
+}
+
+.course-list-item__meta {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-main);
+    opacity: 0.88;
+}
+
+.course-list-item__meta strong {
+    font-weight: 700;
+    color: var(--ulm-neutral-dark, #646469);
+}
+
+[data-theme='dark'] .course-list-item__meta {
+    color: #cfd0d4;
+    opacity: 1;
+}
+
+[data-theme='dark'] .course-list-item__meta strong {
+    color: #f0f0f0;
+}
+
+.course-list-item__stat {
+    margin: 5px 0 0 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+[data-theme='dark'] .course-list-item__stat {
+    color: #b0b0b5;
+}
+
+.course-list-item__chevron {
+    padding-left: 20px;
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    color: var(--gold);
+}
+
+.course-list-item__chevron i {
+    font-size: 20px;
+}
+
+.course-list-item--archived {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
+[data-theme='dark'] .course-list-item--archived {
+    background: #252525 !important;
+    border-color: var(--border-color) !important;
+}
+
+.course-list-item--archived .course-list-item__chevron {
+    border-left-color: #d1d5db;
+    color: #9ca3af;
+}
+
+[data-theme='dark'] .course-list-item--archived .course-list-item__chevron {
+    border-left-color: var(--border-color);
+    color: #b0b0b5;
+}
+
+.courses-empty-state {
+    text-align: center;
+    padding: 50px;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.courses-empty-icon {
+    font-size: 48px;
+    color: #ccc;
+    margin-bottom: 20px;
+    display: inline-block;
+}
+
+[data-theme='dark'] .courses-empty-icon {
+    color: #6b6b6b;
+}
+
+.courses-empty-state p {
+    color: var(--text-muted);
+}
+
+.course-list-item-wrap {
+    position: relative;
+}
+
+.course-list-unarchive-form {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    margin: 0;
+}
+
+.course-list-unarchive-btn {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.course-list-unarchive-btn i {
+    margin-right: 5px;
+}
+
+[data-theme='dark'] .course-list-unarchive-btn {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme='dark'] .course-list-unarchive-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
 }
 
 /* COURSE GRID */

@@ -1,0 +1,618 @@
+{% extends base_template %}
+
+{% block content %}
+<style>
+    /* Match the unified-form-container look used by create_assignment.html */
+    .main-content {
+        background-color: transparent !important;
+        box-shadow: none !important;
+        padding: 0 40px !important;
+    }
+
+    .rubric-form {
+        background-color: var(--bg-card, #ffffff);
+        padding: 50px 60px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        max-width: 900px;
+        margin: 40px auto;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .rubric-form__title {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--maroon);
+        margin: 0 0 6px 0;
+        letter-spacing: -0.5px;
+        text-align: center;
+    }
+
+    .rubric-form__subtitle {
+        margin: 0 auto 28px auto;
+        color: var(--text-muted, #6b7280);
+        text-align: center;
+        max-width: 640px;
+        font-size: 14px;
+    }
+
+    .rubric-form .form-group {
+        margin-bottom: 22px;
+    }
+
+    .rubric-form label.field-label {
+        display: block;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-main, #374151);
+        margin-bottom: 8px;
+    }
+
+    .rubric-form input[type="text"],
+    .rubric-form input[type="number"],
+    .rubric-form textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color, #d1d5db);
+        border-radius: 8px;
+        background: #fff;
+        color: #111827;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .rubric-form input[type="text"]:focus,
+    .rubric-form input[type="number"]:focus,
+    .rubric-form textarea:focus {
+        outline: none;
+        border-color: var(--maroon, #840029);
+        box-shadow: 0 0 0 3px rgba(132, 0, 41, 0.12);
+    }
+
+    [data-theme='dark'] .rubric-form input[type="text"],
+    [data-theme='dark'] .rubric-form input[type="number"],
+    [data-theme='dark'] .rubric-form textarea {
+        background: var(--bg-card);
+        color: var(--text-main);
+        border-color: var(--border-color);
+    }
+
+    .rubric-form .section-divider {
+        margin: 26px 0 16px 0;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #f3f4f6;
+        font-size: 16px;
+        font-weight: 700;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .rubric-form .section-divider i {
+        color: var(--maroon);
+    }
+
+    [data-theme='dark'] .rubric-form .section-divider {
+        color: var(--text-main);
+        border-bottom-color: var(--border-color);
+    }
+
+    .rubric-criterion {
+        background: #fafafa;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 18px 20px;
+        margin-bottom: 14px;
+        position: relative;
+    }
+
+    [data-theme='dark'] .rubric-criterion {
+        background: #1f1f1f;
+        border-color: var(--border-color);
+    }
+
+    .rubric-criterion__head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 140px 140px;
+        gap: 12px;
+        align-items: end;
+        margin-bottom: 14px;
+        padding-right: 44px; /* room for the floating remove button */
+    }
+
+    .rubric-criterion__head .field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .rubric-criterion__head .field .field-label {
+        margin-bottom: 4px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #6b7280;
+    }
+
+    [data-theme='dark'] .rubric-criterion__head .field .field-label {
+        color: var(--text-muted, #9ca3af);
+    }
+
+    .rubric-criterion__remove {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #fecaca;
+        background: #fff5f5;
+        color: #b91c1c;
+        border-radius: 50%;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 18px;
+        line-height: 1;
+        padding: 0;
+        transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+
+    .rubric-criterion__remove:hover {
+        background: #b91c1c;
+        color: #ffffff;
+        transform: scale(1.05);
+    }
+
+    [data-theme='dark'] .rubric-criterion__remove {
+        background: rgba(127, 29, 29, 0.25);
+        color: #fca5a5;
+        border-color: rgba(252, 165, 165, 0.5);
+    }
+
+    [data-theme='dark'] .rubric-criterion__remove:hover {
+        background: #b91c1c;
+        color: #ffffff;
+    }
+
+    .rubric-presets {
+        border-top: 1px dashed #e5e7eb;
+        padding-top: 12px;
+    }
+
+    [data-theme='dark'] .rubric-presets {
+        border-top-color: var(--border-color);
+    }
+
+    .rubric-presets__label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #6b7280;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin: 0 0 10px 0;
+    }
+
+    [data-theme='dark'] .rubric-presets__label {
+        color: var(--text-muted, #9ca3af);
+    }
+
+    .preset-grid {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        gap: 10px;
+        align-items: start;
+        margin-bottom: 8px;
+    }
+
+    .preset-grid label {
+        font-weight: 600;
+        color: #374151;
+        align-self: center;
+        font-size: 13px;
+    }
+
+    [data-theme='dark'] .preset-grid label {
+        color: var(--text-main);
+    }
+
+    .preset-grid textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
+        border: 1px solid #d1d5db;
+        font-family: inherit;
+        resize: vertical;
+        min-height: 38px;
+    }
+
+    [data-theme='dark'] .preset-grid textarea {
+        border-color: var(--border-color);
+        background: var(--bg-card);
+        color: var(--text-main);
+    }
+
+    .rubric-form__actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 28px;
+        padding-top: 22px;
+        border-top: 1px solid #f3f4f6;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    [data-theme='dark'] .rubric-form__actions {
+        border-top-color: var(--border-color);
+    }
+
+    /* Buttons aligned with create_assignment.html primary/secondary look. */
+    .rubric-form__btn-secondary,
+    a.rubric-form__btn-secondary {
+        background: #f3f4f6;
+        color: #111827 !important;
+        border: 1px solid #d1d5db;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        text-decoration: none !important;
+        cursor: pointer;
+        font-family: inherit;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .rubric-form__btn-secondary:hover,
+    a.rubric-form__btn-secondary:hover {
+        background: #e5e7eb;
+        color: #111827 !important;
+    }
+
+    [data-theme='dark'] .rubric-form__btn-secondary,
+    [data-theme='dark'] a.rubric-form__btn-secondary {
+        background: var(--bg-card);
+        color: var(--text-main) !important;
+        border-color: var(--border-color);
+    }
+
+    .rubric-form__btn-add {
+        background: transparent;
+        color: var(--maroon, #840029) !important;
+        border: 1.5px dashed var(--maroon, #840029);
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        font-family: inherit;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+    }
+
+    .rubric-form__btn-add:hover {
+        background: rgba(132, 0, 41, 0.08);
+    }
+
+    [data-theme='dark'] .rubric-form__btn-add {
+        color: var(--gold, #fdb913) !important;
+        border-color: var(--gold, #fdb913);
+    }
+
+    [data-theme='dark'] .rubric-form__btn-add:hover {
+        background: rgba(253, 185, 19, 0.12);
+    }
+
+    body.gradesync-app button.rubric-form__btn-primary,
+    .rubric-form__btn-primary {
+        background: var(--maroon, #840029) !important;
+        color: #ffffff !important;
+        border: none;
+        padding: 12px 26px;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 14px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: inherit;
+    }
+
+    body.gradesync-app button.rubric-form__btn-primary:hover,
+    .rubric-form__btn-primary:hover {
+        background: #6b0020 !important;
+        color: #ffffff !important;
+    }
+
+    .rubric-form__error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #b91c1c;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 18px;
+        font-size: 14px;
+    }
+
+    .rubric-form .toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 4px 0 18px 0;
+        padding: 12px 14px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #f9fafb;
+        font-weight: 600;
+        color: var(--text-main, #374151);
+        cursor: pointer;
+    }
+
+    .rubric-form .toggle-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--maroon, #840029);
+        cursor: pointer;
+    }
+
+    [data-theme='dark'] .rubric-form .toggle-row {
+        background: var(--bg-card);
+        border-color: var(--border-color);
+        color: var(--text-main);
+    }
+</style>
+
+<div class="rubric-form">
+    <h2 class="page-title rubric-form__title">
+        {% if template %}Edit Rubric{% else %}New Rubric{% endif %}
+    </h2>
+    <p class="rubric-form__subtitle">
+        Save a named rubric with criteria and per-score comment presets. Apply it to any new assignment from the rubric selector.
+    </p>
+
+    {% if error_message %}
+        <div class="rubric-form__error">{{ error_message }}</div>
+    {% endif %}
+
+    <form method="post" id="rubricTemplateForm">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label class="field-label" for="id_name">Rubric name</label>
+            <input type="text" id="id_name" name="name" maxlength="200" required
+                   value="{{ name_value|default:'' }}"
+                   placeholder="e.g. CSCI 4038 standard 5-point rubric">
+        </div>
+
+        <label class="toggle-row" for="id_rubric_is_weighted">
+            <input type="checkbox" name="rubric_is_weighted" id="id_rubric_is_weighted"
+                   {% if is_weighted_value %}checked{% endif %}
+                   onchange="syncWeightedColumns()">
+            <span>Weighted rubric (each criterion contributes a % of the assignment total)</span>
+        </label>
+
+        <h3 class="section-divider"><i class="fa-solid fa-list-ul"></i> Criteria</h3>
+
+        <div id="rubricCriteriaList"></div>
+
+        <button type="button" class="rubric-form__btn-add" onclick="addCriterionRow()">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i> Add criterion
+        </button>
+
+        <input type="hidden" name="rubric_criteria_json" id="rubricCriteriaJson" value="[]">
+
+        <div class="rubric-form__actions">
+            <a class="rubric-form__btn-secondary" href="{% url 'rubric_library' %}">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i> Cancel
+            </a>
+            <button type="submit" class="rubric-form__btn-primary">
+                <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+                {% if template %}Save changes{% else %}Save rubric{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    var prefillRowsRaw = {{ rubric_criteria_json_prefill|default:"[]"|safe }};
+    if (!Array.isArray(prefillRowsRaw)) prefillRowsRaw = [];
+    var rowSeq = 0;
+
+    function nextToken() {
+        rowSeq += 1;
+        return 't' + Date.now().toString(36) + rowSeq;
+    }
+
+    function scoreChoicesForMaxPoints(maxPoints) {
+        var mx = parseFloat(maxPoints);
+        if (!isFinite(mx) || mx <= 0) return [0];
+        var asInt = Math.round(mx);
+        if (Math.abs(mx - asInt) < 0.01 && asInt <= 10) {
+            var arr = [];
+            for (var i = 0; i <= asInt; i += 1) arr.push(i);
+            return arr;
+        }
+        var mid = Math.round((mx / 2.0) * 100) / 100;
+        var roundedMx = Math.round(mx * 100) / 100;
+        var seen = {};
+        var out = [0, mid, roundedMx].filter(function (v) {
+            var key = String(v);
+            if (seen[key]) return false;
+            seen[key] = true;
+            return true;
+        });
+        out.sort(function (a, b) { return a - b; });
+        return out;
+    }
+
+    function scoreToken(v) {
+        // Mirror Python's str(float(v)).replace('.', '_') so server-side preset
+        // field names match exactly (e.g. 0 -> '0_0', 5 -> '5_0', 2.5 -> '2_5').
+        var s = String(v);
+        if (s.indexOf('.') === -1) s = s + '.0';
+        return s.replace(/\./g, '_');
+    }
+
+    function formatScore(v) {
+        var f = Number(v);
+        if (Math.abs(f - Math.round(f)) < 0.01) return String(Math.round(f));
+        return f.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    }
+
+    function buildPresetGrid(token, maxPoints, presetMap) {
+        var grid = document.createElement('div');
+        var scores = scoreChoicesForMaxPoints(maxPoints);
+        scores.forEach(function (v) {
+            var label = formatScore(v);
+            var fieldName = 'preset_' + token + '_' + scoreToken(v);
+            var row = document.createElement('div');
+            row.className = 'preset-grid';
+            var existing = (presetMap && presetMap[label]) ? presetMap[label] : '';
+            row.innerHTML =
+                '<label for="' + fieldName + '">Score ' + label + '</label>' +
+                '<textarea id="' + fieldName + '" name="' + fieldName + '" rows="2" ' +
+                'placeholder="Auto-comment shown when this score is given..."></textarea>';
+            row.querySelector('textarea').value = existing || '';
+            grid.appendChild(row);
+        });
+        return grid;
+    }
+
+    function addCriterionRow(prefill) {
+        var listEl = document.getElementById('rubricCriteriaList');
+        var token = (prefill && prefill.client_token) ? prefill.client_token : nextToken();
+        var data = prefill || {};
+
+        var card = document.createElement('section');
+        card.className = 'rubric-criterion';
+        card.dataset.token = token;
+
+        card.innerHTML = '' +
+            '<button type="button" class="rubric-criterion__remove" aria-label="Remove criterion" title="Remove criterion">&times;</button>' +
+            '<div class="rubric-criterion__head">' +
+                '<div class="field">' +
+                    '<label class="field-label">Criterion</label>' +
+                    '<input type="text" class="rubric-name" placeholder="e.g. Correctness" required>' +
+                '</div>' +
+                '<div class="field rubric-cell-points">' +
+                    '<label class="field-label">Max points</label>' +
+                    '<input type="number" class="rubric-max" min="0.5" step="0.5" value="5">' +
+                '</div>' +
+                '<div class="field rubric-cell-weight">' +
+                    '<label class="field-label">Weight %</label>' +
+                    '<input type="number" class="rubric-weight" min="0" max="100" step="0.5" placeholder="0">' +
+                '</div>' +
+            '</div>' +
+            '<div class="rubric-presets">' +
+                '<p class="rubric-presets__label">Comment presets per earned score</p>' +
+                '<div class="presets-wrapper"></div>' +
+            '</div>';
+
+        listEl.appendChild(card);
+
+        var nameEl = card.querySelector('.rubric-name');
+        var maxEl = card.querySelector('.rubric-max');
+        var weightEl = card.querySelector('.rubric-weight');
+        nameEl.value = data.name || '';
+        if (data.max_points !== undefined && data.max_points !== null && data.max_points !== '') {
+            maxEl.value = data.max_points;
+        }
+        if (data.weight !== undefined && data.weight !== null && data.weight !== '') {
+            weightEl.value = data.weight;
+        }
+
+        function renderPresets() {
+            var wrap = card.querySelector('.presets-wrapper');
+            // Preserve any text already typed into existing textareas.
+            var preserved = {};
+            wrap.querySelectorAll('textarea').forEach(function (ta) {
+                preserved[ta.name] = ta.value;
+            });
+            wrap.innerHTML = '';
+            var grid = buildPresetGrid(token, parseFloat(maxEl.value) || 0, data.presets_map || {});
+            grid.querySelectorAll('textarea').forEach(function (ta) {
+                if (preserved[ta.name]) ta.value = preserved[ta.name];
+            });
+            wrap.appendChild(grid);
+        }
+        renderPresets();
+
+        card.querySelector('.rubric-criterion__remove').addEventListener('click', function () {
+            card.remove();
+            updateHiddenJson();
+        });
+
+        maxEl.addEventListener('change', function () {
+            data.presets_map = null;
+            renderPresets();
+            updateHiddenJson();
+        });
+        nameEl.addEventListener('input', updateHiddenJson);
+        weightEl.addEventListener('input', updateHiddenJson);
+
+        syncWeightedColumns();
+        updateHiddenJson();
+    }
+
+    function syncWeightedColumns() {
+        var weighted = document.getElementById('id_rubric_is_weighted').checked;
+        document.querySelectorAll('.rubric-criterion__head').forEach(function (head) {
+            head.style.gridTemplateColumns = weighted
+                ? 'minmax(0, 1fr) 140px 140px'
+                : 'minmax(0, 1fr) 160px';
+        });
+        document.querySelectorAll('.rubric-cell-weight').forEach(function (el) {
+            el.style.display = weighted ? '' : 'none';
+        });
+        updateHiddenJson();
+    }
+
+    function updateHiddenJson() {
+        var weighted = document.getElementById('id_rubric_is_weighted').checked;
+        var rows = [];
+        document.querySelectorAll('#rubricCriteriaList .rubric-criterion').forEach(function (card) {
+            var name = (card.querySelector('.rubric-name').value || '').trim();
+            if (!name) return;
+            var mp = parseFloat(card.querySelector('.rubric-max').value) || 0;
+            var w = parseFloat(card.querySelector('.rubric-weight').value) || 0;
+            var row = {
+                name: name,
+                max_points: mp,
+                client_token: card.dataset.token,
+            };
+            if (weighted) row.weight = w;
+            rows.push(row);
+        });
+        document.getElementById('rubricCriteriaJson').value = JSON.stringify(rows);
+    }
+
+    document.getElementById('rubricTemplateForm').addEventListener('submit', updateHiddenJson);
+    window.addCriterionRow = addCriterionRow;
+    window.syncWeightedColumns = syncWeightedColumns;
+
+    if (prefillRowsRaw.length) {
+        prefillRowsRaw.forEach(function (row) {
+            row.client_token = row.client_token || nextToken();
+            addCriterionRow(row);
+        });
+    } else {
+        addCriterionRow();
+    }
+    syncWeightedColumns();
+})();
+</script>
+{% endblock %}

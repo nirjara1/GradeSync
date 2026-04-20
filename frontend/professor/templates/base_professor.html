@@ -13,7 +13,7 @@
     <!-- Use FontAwesome for sidebar icons to match screenshot -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/ulm-brand.css' %}?v=1.1">
-    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.4">
+    <link rel="stylesheet" href="{% static 'css/professor.css' %}?v=4.5">
     <link rel="stylesheet" href="{% static 'css/ux-system.css' %}?v=1.0">
     {% block extra_css %}{% endblock %}
 
@@ -75,6 +75,11 @@
                 class="nav-item {% if request.resolver_match.url_name == 'assignments_dashboard' %}active{% endif %}">
                 <i class="fa-solid fa-book-open"></i>
                 <span>Assignments</span>
+            </a>
+            <a href="{% url 'rubric_library' %}"
+                class="nav-item {% if request.resolver_match.url_name == 'rubric_library' or request.resolver_match.url_name == 'rubric_template_create' or request.resolver_match.url_name == 'rubric_template_edit' %}active{% endif %}">
+                <i class="fa-solid fa-list-check"></i>
+                <span>Rubrics</span>
             </a>
             <a href="{% url 'professor_reports' %}" class="nav-item {% if request.resolver_match.url_name == 'professor_reports' %}active{% endif %}">
                 <i class="fa-solid fa-chart-line"></i>

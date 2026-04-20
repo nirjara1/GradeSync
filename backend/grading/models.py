@@ -369,6 +369,80 @@ class RubricCriterionCommentPreset(models.Model):
         return f"{self.criterion.name} @ {self.score_value}"
 
 
+class RubricTemplate(models.Model):
+    """Reusable named rubric authored by a faculty member.
+
+    Faculty build a rubric once (criteria + comment presets) and re-apply it to
+    any number of new assignments via the rubric library.
+    """
+
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='rubric_templates',
+    )
+    name = models.CharField(
+        max_length=200,
+        help_text="Faculty-facing label (e.g. 'CSCI 4038 standard 5-point rubric').",
+    )
+    description = models.TextField(
+        blank=True,
+        help_text='Optional notes / when to apply this rubric.',
+    )
+    is_weighted = models.BooleanField(
+        default=False,
+        help_text='True = criteria use weight %; False = criteria use points (must fit assignment total when applied).',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at', 'name']
+        unique_together = ('owner', 'name')
+
+    def __str__(self):
+        return self.name
+
+
+class RubricTemplateCriterion(models.Model):
+    """Criterion belonging to a RubricTemplate (mirrors RubricCriterion fields)."""
+
+    template = models.ForeignKey(
+        RubricTemplate,
+        on_delete=models.CASCADE,
+        related_name='criteria',
+    )
+    name = models.CharField(max_length=255)
+    order = models.PositiveSmallIntegerField(default=0)
+    max_points = models.DecimalField(max_digits=6, decimal_places=2, default=5)
+    weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.name} ({self.template.name})"
+
+
+class RubricTemplateCriterionPreset(models.Model):
+    """Preset comment text per earned score for a template criterion."""
+
+    criterion = models.ForeignKey(
+        RubricTemplateCriterion,
+        on_delete=models.CASCADE,
+        related_name='comment_presets',
+    )
+    score_value = models.DecimalField(max_digits=6, decimal_places=2)
+    comment_text = models.TextField()
+
+    class Meta:
+        unique_together = ('criterion', 'score_value')
+        ordering = ['criterion_id', 'score_value']
+
+    def __str__(self):
+        return f"{self.criterion.name} @ {self.score_value}"
+
+
 def assignment_id_or_obj(assignment):
     return assignment and getattr(assignment, "id", None)
 
