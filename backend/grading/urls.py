@@ -15,6 +15,7 @@ urlpatterns = [
     path('assignments/<int:pk>/gradebook/', views.gradebook_view, name='gradebook'),
     path('submissions/<int:pk>/grade/', views.grade_submission_view, name='grade_submission'),
     path('submissions/<int:submission_id>/compare/', views.compare_submissions_view, name='compare_submissions'),
+    path('submissions/<int:pk>/download/', views.download_submission_view, name='download_submission'),
     path('submissions/<int:pk>/download-zip/', views.download_submission_zip_view, name='download_submission_zip'),
     path('assignments/<int:assignment_id>/download-all/', views.download_all_submissions_view, name='download_all_submissions'),
     path('submissions/<int:pk>/delete/', views.delete_submission_view, name='delete_submission'),

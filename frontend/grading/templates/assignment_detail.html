@@ -655,9 +655,9 @@
                                             style="background: var(--gs-maroon); color: white; text-decoration: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
                                             <i class="fa-solid fa-pen-to-square"></i> {% if submission.grade %}Edit{% else %}Grade{% endif %}
                                         </a>
-                                        <a href="{% url 'download_submission' submission.pk %}" title="Download"
+                                        <a href="{% url 'download_submission_zip' submission.pk %}" title="Download Submission (Zip)"
                                             style="color: var(--gs-text-muted); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gs-border); border-radius: 6px;">
-                                            <i class="fa-solid fa-download"></i>
+                                            <i class="fa-solid fa-file-zipper"></i>
                                         </a>
                                         {% if can_reopen_group_submissions and submission.group %}
                                         <form method="post"
