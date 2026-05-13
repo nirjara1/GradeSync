@@ -1,39 +1,9 @@
-# GradeSync Employee Portal (Django + Postgres + Docker)
+GradeSync
 
-## Prereqs
-- Docker Desktop installed and running
+GradeSync is a faculty assisted automated grading platform designed to simplify programming assignment workflows for both instructors and students. The platform supports assignment creation, rubric based grading, automated test case execution, plagiarism and AI detection, submission history tracking, and detailed reporting all within a single system.
 
-## Setup
-1) Clone repo
-2) Create env file:
-   - copy `.env.example` to `.env`
-   - For anything beyond your own machine, set `DJANGO_SECRET_KEY` and `DJANGO_DEBUG=0` (see comments in `.env.example`)
+Built as a capstone project by a team of Computer Science students at the University of Louisiana at Monroe, GradeSync focuses on making grading more efficient while still keeping instructors in control of the evaluation process.
 
-## Run
-docker compose up --build
-
-## Migrate DB
-docker compose exec web python manage.py migrate
+🌐 Live Demo: https://gradesyncapp.com/
 
 
-## Create admin user
-docker compose exec web python manage.py createsuperuser
-
-Step 1: Login as admin at http://localhost:8000/admin/
-Step 2: Create an User from account option from navigation bar. Assign the user as professor or student.
-Step 3: Admin will create an username and password for the user. Use that login credentials to login as professor or student.
-
-## Open Locally
-Default Compose maps the app to **port 8000** (`8000:8000`). Use that port unless you add a reverse proxy on 80.
-
-- Student portal: http://localhost:8000/
-- Professor area: http://localhost:8000/professor/
-- Admin: http://localhost:8000/admin/
-
-## Sample assignment test cases (CSV)
-Professors can download a starter file from **Create Assignment** in the UI. 
-
-## When the EC2 is ON
-- Student portal: http://3.151.189.18/
-- Professor area: http://3.151.189.18/professor/
-- Admin: http://3.151.189.18/admin/
